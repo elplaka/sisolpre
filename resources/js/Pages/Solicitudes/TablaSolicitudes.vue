@@ -1563,7 +1563,7 @@
                         class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
                         :class="[{
                             'pb-1 py-2.5 px-0': nomSolicitanteEditable,
-                            'bg-color3-100 p-0 m-0 mt-2': !nomSolicitanteEditable,
+                            'bg-color3-50 p-0 m-0 mt-2': !nomSolicitanteEditable,
                             'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': nomSolicitanteEditable
                         }]"
                         placeholder=""
@@ -1592,7 +1592,7 @@
                         class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
                         :class="[{
                             'pb-1 py-2.5 px-0': apeSolicitanteEditable,
-                            'bg-color3-100 p-0 m-0 mt-2': !apeSolicitanteEditable,
+                            'bg-color3-50 p-0 m-0 mt-2': !apeSolicitanteEditable,
                             'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': apeSolicitanteEditable
                         }]"
                         placeholder=""
@@ -1622,7 +1622,7 @@
                         class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
                         :class="[{
                             'pb-1 py-2.5 px-0': telefonoSolicitanteEditable,
-                            'bg-color3-100 p-0 m-0 mt-2': !telefonoSolicitanteEditable,
+                            'bg-color3-50 p-0 m-0 mt-2': !telefonoSolicitanteEditable,
                             'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': telefonoSolicitanteEditable
                         }]"
                         placeholder=""
@@ -1650,7 +1650,7 @@
                         class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
                         :class="[{
                             'pb-1 py-2.5 px-0': emailSolicitanteEditable,
-                            'bg-color3-100 p-0 m-0 mt-2': !emailSolicitanteEditable,
+                            'bg-color3-50 p-0 m-0 mt-2': !emailSolicitanteEditable,
                             'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': emailSolicitanteEditable
                         }]"
                         placeholder=""
@@ -1700,7 +1700,7 @@
                         class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
                         :class="[{
                             'pb-1 py-2.5 px-0': calleSolicitanteEditable,
-                            'bg-color3-100 p-0 m-0 mt-2': !calleSolicitanteEditable,
+                            'bg-color3-50 p-0 m-0 mt-2': !calleSolicitanteEditable,
                             'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': calleSolicitanteEditable
                         }]"
                         placeholder=""
@@ -1725,7 +1725,7 @@
                         class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
                         :class="[{
                             'pb-1 py-2.5 px-0': numeroSolicitanteEditable,
-                            'bg-color3-100 p-0 m-0 mt-2': !numeroSolicitanteEditable,
+                            'bg-color3-50 p-0 m-0 mt-2': !numeroSolicitanteEditable,
                             'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': numeroSolicitanteEditable
                         }]"
                         placeholder=""
@@ -1751,7 +1751,7 @@
                                 class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
                                 :class="[{
                                     'pb-1 py-2.5 px-0': idColoniaSolicitanteEditable,
-                                    'bg-color3-100 p-0 m-0 mt-2': !idColoniaSolicitanteEditable,
+                                    'bg-color3-50 p-0 m-0 mt-2': !idColoniaSolicitanteEditable,
                                     'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': idColoniaSolicitanteEditable
                                 }]"
                                 placeholder=""
@@ -1799,7 +1799,7 @@
                                 class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
                                 :class="[{
                                     'pb-1 py-2.5 px-0': idLocalidadSolicitanteEditable,
-                                    'bg-color3-100 p-0 m-0 mt-2': !idLocalidadSolicitanteEditable,
+                                    'bg-color3-50 p-0 m-0 mt-2': !idLocalidadSolicitanteEditable,
                                     'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': idLocalidadSolicitanteEditable
                                 }]"
                                 placeholder=""

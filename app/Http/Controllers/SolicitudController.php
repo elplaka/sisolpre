@@ -82,7 +82,7 @@ class SolicitudController extends Controller
         ]);
     }
 
-    public function index(Request $request)
+    public function index(Request $request)  
     {
         $selectedStatuses = $request->input('selectedStatuses', []); // Estatus seleccionados
         $isActive = filter_var($request->input('isActive'), FILTER_VALIDATE_BOOLEAN); // Propiedades activas

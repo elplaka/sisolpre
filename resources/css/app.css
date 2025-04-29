@@ -1,3 +1,244 @@
 @tailwind base;
 @tailwind components;
-@tailwind utilities;
+@tailwind utilities; 
+
+
+/* .btn-1 {
+    background-color: #7b003a; 
+    color: white;
+    transition: background-color 0.3s;
+  }
+  .btn-1:hover {
+    background-color: #660000; 
+  }
+
+  .btn-2 {
+    background-color: #005350; 
+    color: white; 
+    transition: background-color 0.3s;
+  }
+  .btn-2:hover {
+    background-color: #003300; 
+  }
+
+  .btn-3 {
+    background-color: #5f5e5e; 
+    color: white;
+    transition: background-color 0.3s;
+  }
+  .btn-3:hover {
+    background-color: #5a6268; 
+  } */
+
+  :root {
+    --color1: #7b003a;
+    --color-1: #cc0042;
+    --color-1-1: #b3003b;
+    --color-1-2: #e8567c;
+    --color-1-50: #ffe4ec; 
+    --color-2: #00403e;
+    --color-2-1: #002724;
+}
+
+  .tab-header-1 { 
+      background-color: --color-1;  
+      color: white; 
+  }
+
+  /* Cambiar a gris al pasar el mouse */ 
+  .table-stripped tbody tr:hover 
+  { 
+    background-color: #eeeeee; /* Color gris claro */ 
+  }
+
+/* ***************************** EL-INPUT ******************* */
+
+.custom-input .el-input__wrapper {
+    border: 0.08em solid rgb(209, 213, 219) !important;  
+    background-color: rgb(249, 250, 251);
+    --tw-border-opacity: 1;
+    box-shadow: none !important; /* Eliminar ring (sombra) */
+    border-radius: 0.5em !important;
+    height: 2.65em;
+  }
+  
+  .custom-input .el-input__inner {
+    outline: none !important; /* Eliminar outline */
+    box-shadow: none !important; /* Eliminar ring (sombra) */
+    color: rgb(75, 85, 99);
+  
+  }
+  
+  .custom-input .el-input__inner::placeholder {
+    color: rgb(110, 114, 118) !important; /* Color del placeholder en modo claro */
+  }
+  
+  .custom-input .el-input__wrapper.is-focus {
+    background-color: rgb(249, 250, 251);
+    outline: none !important; /* Eliminar outline */
+    box-shadow: none !important; /* Eliminar ring (sombra) */
+    --tw-border-opacity: 1;
+    border: 0.08em solid !important;
+    border-color: rgb(204 0 66 / var(--tw-border-opacity, 1)) !important;
+    --tw-ring-opacity: 1;
+    --tw-ring-color: rgb(204 0 66 / var(--tw-ring-opacity, 1)) !important;
+  }
+  
+  /* ***************************** EL-SELECT ******************* */
+  
+  .custom-select .el-select__wrapper {
+    border: 0.125em solid rgb(209, 213, 219) !important;  
+    background-color: rgb(249, 250, 251);
+    --tw-border-opacity: 1;
+    box-shadow: none !important; /* Eliminar ring (sombra) */
+    border-radius: 0.5em !important;
+    min-height: 2.25em; /* Altura mínima */
+    padding-left: 0.5em; /* Espaciado interno */
+    padding-right: 0.5em; /* Espaciado interno */
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    height: 2.25em!important;
+    /* transition: none !important; */
+  }
+  
+
+  /* ESTO SÍ ME FUNCIONÓ */
+  .el-select-dropdown__item.custom-option {
+    padding-top: 5px !important;
+    padding-bottom: 5px !important;
+    height: auto !important; /* Permite que la altura se ajuste al contenido y padding */
+    line-height: normal !important; /* Permite que la altura de la línea se ajuste */
+    overflow: visible !important; /* Asegura que el contenido no se recorte */
+  }
+
+
+  .custom-select .el-select__tags .el-tag {
+    margin: 0.2em!important; /* Ajusta el margen de los tags */
+    padding: 0.3em 0.5em!important; /* Ajusta el padding de los tags */
+  }
+
+  .custom-select .el-select__tags-text {
+    color:rgb(75, 85, 99);
+  }
+
+  .custom-select .el-tag.el-tag--info
+  {
+    background-color: rgb(229, 230, 231);
+    border-radius: 0.75em;
+  }
+
+  .custom-select .el-tag .el-tag__close
+  {
+    color:rgb(75, 85, 99);
+  }
+  
+  .custom-select .el-select__inner {
+    color: rgb(75, 85, 99);
+  }
+  
+  .custom-select .el-select__placeholder {
+    color: #766e76 !important; 
+  }
+  
+  .custom-select .el-select__wrapper.is-focused {
+    background-color: rgb(249, 250, 251);
+    --tw-border-opacity: 1;
+    border: 0.151em solid !important;
+    border-color: var(--color-1) !important;
+    transition: none !important;
+  }
+
+.custom-dropdown .el-select-dropdown__item.is-selected {
+    color: var(--color-1) !important;
+}
+
+.custom-dropdown .el-select-dropdown__item.is-selected.is-hovering {
+  color: var(--color-1-1) !important;
+}
+
+.custom-dropdown .el-select-dropdown.is-multiple .el-select-dropdown__item.is-selected:after
+{
+    background-color: var(--color-1) !important;
+}
+
+.custom-dropdown .el-select-dropdown.is-multiple .el-select-dropdown__item.is-selected.is-hovering:after
+{
+    background-color: var(--color-1-1) !important;
+}
+
+
+/* EL-SWITCH */
+
+.custom-switch .el-switch__label.el-switch__label--left {
+  color: rgb(110, 114, 118) !important;
+}
+
+.custom-switch .el-switch__label.el-switch__label--right {
+  color: rgb(110, 114, 118) !important;
+}
+
+.custom-switch .el-switch__label.el-switch__label--left.is-active {
+  color: var(--color-1) !important;
+}
+
+.custom-switch .el-switch__label.el-switch__label--right.is-active {
+  color: var(--color-1) !important;
+}
+
+.custom-switch .el-switch__core {
+  background-color:  var(--color1) !important;
+  border-color: var(--color1) !important;
+}
+
+/* .custom-switch .el-switch__action {
+  background-color:  rgb(229, 230, 231) !important;
+} */
+
+/* sweet alert */
+
+.swal2-styled.swal2-confirm {
+  background-color: var(--color-1-1) !important;
+  border-color: var(--color-1-1) !important;
+}
+
+.swal2-styled.swal2-cancel {
+  background-color: var(--color-2) !important;
+  border-color: var(--color-2) !important;
+}
+
+/* Cambiar color de los íconos de SWEET ALERT*/
+.swal2-icon.swal2-warning {
+  color: var(--color-1-2) !important;
+  border-color: var(--color-1-2)  !important;
+}
+
+.swal2-icon.swal2-error {
+  color: #f27474 !important;
+  border-color: #f27474 !important;
+}
+
+.swal2-icon.swal2-success {
+  color: #a5dc86 !important;
+  border-color: #a5dc86 !important;
+}
+
+.swal2-icon.swal2-info {
+  color: #3fc3ee !important;
+  border-color: #3fc3ee !important;
+}
+
+.drop-zone.bg-color1-50 { /* Mayor especificidad */
+  background-color: var(--color-1-50)  !important; /* ¡Evita !important si es posible! */
+  }
+
+  .drop-zone.border-color1-700 { /* Mayor especificidad */
+    border-color: var(--color1)  !important; /* ¡Evita !important si es posible! */
+    }
+
+    select:disabled {
+      color: #111827 !important; /* o el color que estás usando normalmente (por ejemplo text-gray-900) */
+      background-color: transparent !important;
+      -webkit-text-fill-color: #111827 !important; /* Para Safari */
+      opacity: 1 !important; /* Evita que el control se vea semi-transparente */
+    }

@@ -1,8 +1,14 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\AdminAuthController;
+use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\UsuarioController;
+use App\Http\Controllers\SolicitudController;
+use App\Http\Controllers\ColoniaController;
+use App\Http\Controllers\LocalidadController;
+
 use Inertia\Inertia;
 
 /*
@@ -16,23 +22,60 @@ use Inertia\Inertia;
 |
 */
 
+//Login por default
 Route::get('/', function () {
-    return Inertia::render('Welcome', [
+    return Inertia::render('Admin/Auth/Login', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
     ]);
 });
-
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+//admin routs
+Route::group(['prefix' => 'admin', 'middleware' => 'redirectAdmin'], function () {
+    Route::get('login', [AdminAuthController::class, 'showLoginForm'])->name('admin.login');
+    Route::post('login', [AdminAuthController::class, 'login'])->name('admin.login.post');
+    Route::post('logout', [AdminAuthController::class, 'logout'])->name('logout');
+
+    // Ruta para mostrar el formulario de registro
+    Route::get('register', [AdminAuthController::class, 'showRegisterForm'])->name('admin.register');
+    // Ruta para procesar el registro
+    Route::post('register', [AdminAuthController::class, 'register'])->name('admin.register.post');
+});
+
+// Ruta para mostrar el formulario de registro POR FUERA del SISTEMA (Para dar de alta al ADMIN)
+Route::get('registrar', [UsuarioController::class, 'showRegisterForm'])->name('registrar');
+// Ruta para procesar el registro POR FUERA del SISTEMA (Para dar de alta al ADMIN)
+Route::post('registrar', [UsuarioController::class, 'registrar'])->name('registrar.post');
+
+Route::get('admin/usuarios/search', [UsuarioController::class, 'search'])->name('admin.usuarios.search')->middleware('auth');
+Route::get('admin/usuarios', [UsuarioController::class, 'index'])->name('admin.usuarios')->middleware('auth');
+Route::post('admin/usuarios/store', [UsuarioController::class, 'store'])->name('admin.usuarios.store')->middleware('auth');
+Route::post('admin/usuarios/update/{id}', [UsuarioController::class, 'update'])->name('admin.usuarios.update')->middleware('auth');
+Route::get('admin/usuarios/get-puestos/{id_dependencia}', [UsuarioController::class, 'getPuestos'])->name('admin.usuarios.get-puestos')->middleware('auth');
+
+Route::get('solicitudes', [SolicitudController::class, 'index'])->name('solicitudes')->middleware('auth');
+Route::get('solicitudes/get-persona/{curp}', [SolicitudController::class, 'getPersona'])->name('solicitudes.get-persona')->middleware('auth');
+Route::get('solicitudes/get-propiedad/{claveCatastral}', [SolicitudController::class, 'getPropiedad'])->name('solicitudes.get-propiedad')->middleware('auth');
+Route::get('solicitudes/get-colonias', [SolicitudController::class, 'getColonias'])->name('solicitudes.get-colonias')->middleware('auth');
+Route::get('solicitudes/get-localidades', [SolicitudController::class, 'getLocalidades'])->name('solicitudes.get-localidades')->middleware('auth');
+Route::post('solicitudes/store', [SolicitudController::class, 'store'])->name('solicitudes.store')->middleware('auth');
+Route::post('solicitudes/update/{id}', [SolicitudController::class, 'update'])->name('solicitudes.update')->middleware('auth');
+
+
+Route::post('colonias/store', [ColoniaController::class, 'store'])->name('colonias.store')->middleware('auth');
+
+Route::post('localidades/store', [LocalidadController::class, 'store'])->name('localidades.store')->middleware('auth');
+
+
+
+Route::middleware(['auth'])->prefix('admin')->group(function () {
+    Route::get('/dashboard', [AdminController::class, 'index'])->name('admin.dashboard');
 });
 
 require __DIR__.'/auth.php';

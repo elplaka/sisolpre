@@ -19,9 +19,11 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('Auth/Login', [
+        $currentYear = now()->year; 
+        return Inertia::render('Admin/Auth/Login', [
             'canResetPassword' => Route::has('password.request'),
             'status' => session('status'),
+            'currentYear' => $currentYear,
         ]);
     }
 

@@ -4,6 +4,10 @@ namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+// use Tightenco\Ziggy\Ziggy;
+use App\Helper\Cart;
+// use App\Http\Resources\CartResource;
+use Illuminate\Foundation\Application;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -27,6 +31,16 @@ class HandleInertiaRequests extends Middleware
      *
      * @return array<string, mixed>
      */
+    // public function share(Request $request): array
+    // {
+    //     return [
+    //         ...parent::share($request),
+    //         'auth' => [
+    //             'user' => $request->user(),
+    //         ],
+    //     ];
+    // }
+
     public function share(Request $request): array
     {
         return [
@@ -34,6 +48,23 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            // 'ziggy' => fn () => [
+            //     ...(new Ziggy)->toArray(),
+            //     'location' => $request->url(),
+            // ],
+            // 'cart' => new CartResource(Cart::getProductsAndCartItems()),
+
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
+                'warning' => fn () => $request->session()->get('warning'),
+                'info' => fn () => $request->session()->get('info')
+            ],
+            'canLogin' => app('router')->has('login'),
+            'canRegister' => app('router')->has('register'),
+            'laravelVersion' => Application::VERSION,
+            'phpVersion' => PHP_VERSION,
+
         ];
     }
 }

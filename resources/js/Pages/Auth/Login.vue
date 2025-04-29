@@ -31,7 +31,7 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Log in" />
+        <Head title="Iniciar Sesión" />
 
         <div v-if="status" class="mb-4 font-medium text-sm text-green-600">
             {{ status }}
@@ -85,10 +85,12 @@ const submit = () => {
                     Forgot your password?
                 </Link>
 
-                <PrimaryButton class="ms-4" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
-                    Log in
+                <PrimaryButton class="ms-4" :class="{ 'opacity-55': form.processing }" :disabled="form.processing">
+                    INICIAR SESIÓN
                 </PrimaryButton>
             </div>
         </form>
     </GuestLayout>
+
+
 </template>

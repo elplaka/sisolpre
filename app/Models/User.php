@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use App\Models\UserType;
+use App\Models\UsuarioPuesto;
 
 class User extends Authenticatable
 {
@@ -19,8 +21,14 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'last_name',
         'email',
         'password',
+        'genero',
+        'celular',
+        'user_type_id',
+        'isAdmin',
+        'verificado'
     ];
 
     /**
@@ -42,4 +50,9 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    public function userType()
+    {
+        return $this->belongsTo(UserType::class);
+    }
 }

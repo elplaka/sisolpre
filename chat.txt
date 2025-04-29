@@ -1,0 +1,1708 @@
+<script setup>
+    import { router, usePage } from '@inertiajs/vue3';
+    import { ref, computed, watch, onMounted  } from 'vue';
+    import Pagination from '@/Components/Pagination.vue'
+
+    const props = defineProps({
+        solicitudes: Array,
+        // types: Array,
+        pagination: Object,
+        tiposPropiedades: Array,
+        destinosObras: Array,
+        tiposTramites: Array,
+        // searchQuery: String,
+        // selectedTypes: Array,
+        // isActive: Boolean,
+        // isInactive: Boolean,
+        // activos: Number,
+        // inactivos: Number,
+        // sortColumn: String, 
+        // sortDirection: String
+    });
+
+    const value = ref(false)
+    const sortColumn = ref('');
+    const sortDirection = ref('');
+    const dropdownVisible = ref(null);
+    
+    const nuevoSolicitante = ref(false);
+    const nuevoPropietario = ref(false);
+    const id_solicitante = ref('');
+    const id_solicitante_representante = ref('');
+    const id_propiedad = ref('');
+    const img_croquis = ref('');
+    const id_tramite = ref('');
+    const id_estatus = ref('');
+    const fecha_ingreso = ref(null);
+
+    const isLoading = ref(false);
+    const isLoadingModal = ref(false);
+    const isLoadingModal2 = ref(false);
+    const paraNuevaSolicitud = ref(false);
+    const paraEditarSolicitud = ref(false);
+    const dialogVisible = ref(false);
+    const modalBuscarSolicitanteVisible = ref(false);
+    const modalBuscarColoniaVisible = ref(false);
+    const modalBuscarLocalidadVisible = ref(false);
+    const floatingCURPRef = ref(null);  
+    const floatingNombreRef = ref(null); 
+    const floatingNombrePropietarioRef = ref(null); 
+    const floatingNombreColoniaRef = ref(null);  
+    const floatingNombreLocalidadRef = ref(null); 
+
+    const abreModalSolicitud = async () => {
+        resetFormData();
+
+        paraNuevaSolicitud.value = true;
+        paraEditarSolicitud.value = false;
+        dialogVisible.value = true; 
+
+        idColoniaSolicitante.value = '';
+        nombreColoniaSolicitante.value = '';
+        idLocalidadSolicitante.value = '';
+        nombreLocalidadSolicitante.value = '';
+
+        curp.value = 'CAGA910511MPLVRP07';
+        nomSolicitante.value = 'ANGEL';
+        apeSolicitante.value = 'SANCHEZ DIAZ';
+        telefonoSolicitante.value = '6941088943';
+        emailSolicitante.value = 'elplaka@hotmail.com';
+        calleSolicitante.value = 'PROL. BENITO JUAREZ';
+        numeroSolicitante.value = '25';
+        idColoniaSolicitante.value = 1;
+        nombreColoniaSolicitante.value = 'CENTRO';
+        idLocalidadSolicitante.value = '1';
+        nombreLocalidadSolicitante.value = 'CONCORDIA';
+
+        curpPropietario.value = 'GODE560104MOCNRD09';
+        nomPropietario.value = 'ELVIRA';
+        apePropietario.value = 'VAZQUEZ ZAMUDIO';
+        telefonoPropietario.value = '6672155901';
+        emailPropietario.value = 'elvy_vz@hotmail.com';
+        callePropietario.value = 'CARR. MAZATLÁN-DURANGO';
+        numeroPropietario.value = 'S/N';
+        idColoniaPropietario.value = 3;
+        nombreColoniaPropietario.value = 'LA OTRA BANDA';
+        idLocalidadPropietario.value = '1';
+        nombreLocalidadPropietario.value = 'CONCORDIA';
+
+        claveCatastral.value = "004123458786963253"
+        tipoPropiedad.value = 1;
+        superficiePropiedad.value = 200;
+        superficieConstruccionPropiedad.value = 125;
+        callePropiedad.value = 'MARGARITA MAZA DE JUAREZ';
+        numeroPropiedad.value = '251';
+        idColoniaPropiedad.value = 2;
+        nombreColoniaPropiedad.value = 'LOS RANCHITOS';
+        idLocalidadPropiedad.value = '1';
+        nombreLocalidadPropiedad.value = 'CONCORDIA';
+
+        destinoObra.value = 1;
+
+        isLoading.value = false;   
+        isLoadingModal2.value = false; 
+
+        setTimeout(() => {
+            floatingCURPRef.value?.focus();
+        }, 50);
+    }
+
+    const dialogWidth = computed(() =>  {
+            return window.innerWidth < 1024 ? '95%' : '55%';
+    });
+
+    const dialogWidthBuscar = computed(() =>  {
+            return window.innerWidth < 1024 ? '95%' : '35%';
+    });
+
+    const resetFormData = () => {
+        id_solicitante.value = '';
+        id_solicitante_representante.value = '';
+        id_propiedad.value = '';
+        img_croquis.value = '';
+        id_tramite.value = '';
+        id_estatus.value = '';
+        const today = new Date();
+        const localDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+        fecha_ingreso.value = localDate;
+    };
+
+    const handleClose = () => {
+        dialogVisible.value = false;
+    };
+
+    const isFocusedGenero = ref(false);
+    const genero = ref('');
+
+    const handleFocusGenero = (status) => {
+        isFocusedGenero.value = status; // SELECT - Cambia el estado del foco
+    };
+
+    const isFocusedTipoPropiedad = ref(false);
+
+    const handleFocusTipoPropiedad = (status) => {
+        isFocusedTipoPropiedad.value = status; // SELECT - Cambia el estado del foco
+    };
+
+    const isFocusedDestinoObra = ref(false);
+
+    const handleFocusDestinoObra = (status) => {
+        isFocusedDestinoObra.value = status; // SELECT - Cambia el estado del foco
+    };
+
+    const isFocusedTipoTramite = ref(false);
+
+    const handleFocusTipoTramite = (status) => {
+        isFocusedTipoTramite.value = status; // SELECT - Cambia el estado del foco
+    };
+
+    const abreModalBuscarSolicitante = async () => {
+
+        modalBuscarSolicitanteVisible.value = true; 
+    }
+
+    const personaExistente = ref(false);
+    const curpCompleta = ref(false);
+    const curpInvalida = ref(false);   
+    const persona = ref([]);
+    const curp = ref('');
+    const nomSolicitante = ref('');
+    const apeSolicitante = ref('');
+    const calleSolicitante = ref('');
+    const numeroSolicitante = ref('');
+    const idColoniaSolicitante = ref('');
+    const nombreColoniaSolicitante = ref('');
+    const idLocalidadSolicitante = ref('');
+    const nombreLocalidadSolicitante = ref('');
+    const telefonoSolicitante = ref('');
+    const emailSolicitante = ref('');
+
+    const esPropietario = ref(1);
+    const longitud_curp = ref(18);
+
+    const curpCompletaPropietario = ref(false);
+    const curpInvalidaPropietario = ref(false);   
+    const curpPropietario = ref('');
+    const nomPropietario = ref('');
+    const apePropietario = ref('');
+    const callePropietario = ref('');
+    const numeroPropietario = ref('');
+    const idColoniaPropietario = ref('');
+    const nombreColoniaPropietario = ref('');
+    const idLocalidadPropietario = ref('');
+    const nombreLocalidadPropietario = ref('');
+    const telefonoPropietario = ref('');
+    const emailPropietario = ref('');
+
+    const tipoPropiedad = ref('');
+    const claveCatastral = ref('');
+    const superficiePropiedad = ref('');
+    const superficieConstruccionPropiedad = ref('');
+    const callePropiedad = ref('');
+    const numeroPropiedad = ref('');
+    const idColoniaPropiedad = ref('');
+    const nombreColoniaPropiedad = ref('');
+    const idLocalidadPropiedad = ref('');
+    const nombreLocalidadPropiedad = ref('');
+
+    const tipoTramite = ref('');
+    const destinoObra = ref('');
+
+    const obtenerPersona = async (curp) => {
+        try {
+            if (dialogVisible.value)
+            {
+                isLoadingModal.value = true;
+                isLoading.value = false;
+            }
+            else
+            { 
+                isLoading.value = true;
+                isLoadingModal.value = false;
+            }
+
+            const response = await fetch(`/solicitudes/get-persona/${encodeURIComponent(curp)}`, { // Agrega las comillas
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Error en la respuesta del servidor');
+            }
+
+            const data = await response.json();
+            persona.value = data.persona; // Aquí se almacenan los datos en la variable puestos
+        } catch (error) {
+            console.error('Error al obtener los datos:', error);
+        }
+        finally
+        {
+            isLoading.value = false;
+            isLoadingModal.value = false;
+        }
+    };
+
+   // Expresión regular para validar CURP
+    const curpRegex = /^([A-Z][AEIOUX][A-Z]{2}\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])[HM](?:AS|B[CS]|C[CLMSH]|D[FG]|G[TR]|HG|JC|M[CNS]|N[ETL]|OC|PL|Q[TR]|S[PLR]|T[CSL]|VZ|YN|ZS)[B-DF-HJ-NP-TV-Z]{3}[A-Z\d])(\d)$/;
+
+    watch(curp, async (newValue) => {
+        if (newValue.length >= longitud_curp.value)
+        {
+            if (newValue.length > longitud_curp.value)
+            {
+                curpInvalida.value = true;
+                curpCompleta.value = false;
+                return;
+            }
+            if (!curpRegex.test(newValue)) 
+            {
+                curpInvalida.value = true;
+                curpCompleta.value = false;
+                return;
+            }
+            
+            isLoadingModal.value = true; // Muestra el cargador
+            await obtenerPersona(newValue);
+            curpCompleta.value = true;
+            curpInvalida.value = false;
+
+            if (persona.value && persona.value.length > 0) {
+                nomSolicitante.value = persona.value[0].nombre;
+                apeSolicitante.value = persona.value[0].apellidos;
+                calleSolicitante.value = persona.value[0].solicitante.calle;
+                nuevoSolicitante.value = false;
+            } else
+            {
+                nuevoSolicitante.value = true;
+                setTimeout(() => {
+                    floatingNombreRef.value?.focus();
+                }, 50);
+            }
+        } 
+        else 
+        {
+            personaExistente.value = false;
+            curpInvalida.value = false;
+            curpCompleta.value = false;
+        }
+    });
+
+    const activeTab = ref('solicitante');
+    
+    const nombreColoniaBuscar = ref('');
+    const coloniasFiltradas = ref(null);
+    const tipoColonia = ref('');
+
+    const abreModalBuscarColonia = (tipo) =>
+    {
+        modalBuscarColoniaVisible.value = true;
+
+        isLoading.value = false;   
+        isLoadingModal.value = false;
+        nombreColoniaBuscar.value = '';
+        coloniasFiltradas.value = null;
+
+        tipoColonia.value = tipo;
+
+        setTimeout(() => {
+            floatingNombreColoniaRef.value?.focus();
+        }, 50);
+    }
+
+    function debounce(func, delay) 
+    {
+        let timeout;
+        return (...args) => {
+            clearTimeout(timeout); // Resetea el temporizador si se vuelve a llamar
+            timeout = setTimeout(() => {
+                func(...args); // Ejecuta la función tras el retraso
+            }, delay);
+        };
+    }
+
+    const filtrarColonias = async () => {
+        isLoadingModal2.value = true; // Indicar que está cargando
+        try {
+            const response = await fetch(`/solicitudes/get-colonias?nombre=${encodeURIComponent(nombreColoniaBuscar.value)}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            const data = await response.json();
+            coloniasFiltradas.value = data.colonias;
+        } catch (error) {
+            console.error('Error al obtener los datos:', error);
+        }
+        finally 
+        {
+            isLoadingModal2.value = false; // Finalizar el estado de carga
+        }
+    };
+
+    const agregarColonia = async() => {
+        isLoadingModal2.value = true;
+        const formData = new FormData();
+        formData.append('nombre', nombreColoniaBuscar.value);
+
+        try {
+            await router.post('/colonias/store', formData, {
+                onSuccess: (page) => {
+                    Swal.fire({
+                        toast: true,
+                        icon: 'success',
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        title: page.props.flash.success,
+                        timer: 2000,
+                        timerProgressBar: true
+                    });
+                    modalBuscarColoniaVisible.value = false;
+                    idColoniaSolicitante.value = page.props.flash.idColonia;
+                    nombreColoniaSolicitante.value = nombreColoniaBuscar.value.toUpperCase().trim();
+                    // resetFormData();
+                    isLoadingModal2.value = false;
+                },
+                onFinish: () => {
+                    isLoadingModal2.value = false;
+                },
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+                onError: (errors) => {
+                    isLoadingModal2.value = false;
+                    // Mostrar SweetAlert2 con los errores de validación
+                    let errorMessage = 'Hubo un error al guardar la información.';
+                    
+                    // Si hay errores de validación, construir un mensaje con ellos
+                    if (errors && Object.keys(errors).length > 0) {
+                        errorMessage = Object.values(errors).join('<br>'); // Unir los errores en un solo mensaje
+                    }
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        html: errorMessage,
+                        confirmButtonText: 'Aceptar',
+                        width: '200px',
+                        target: 'body', // Renderizar en el body
+                        didOpen: () => {
+                            const swalContainer = document.querySelector('.swal2-container');
+                            if (swalContainer) {
+                                swalContainer.style.setProperty('z-index', '99999', 'important');
+                            }
+                        }
+                    });
+                },
+            });
+        } catch (err) {
+            console.error('Error inesperado:', err);
+        }
+    };
+    
+    const debouncedFiltrarColonias = debounce(filtrarColonias, 500);
+
+    const seleccionaColonia = (idColonia, nombreColonia) =>
+    {
+        modalBuscarColoniaVisible.value = false;
+
+        if (tipoColonia.value == 'solicitante')
+        {
+            idColoniaSolicitante.value = idColonia;
+            nombreColoniaSolicitante.value = nombreColonia;
+        }
+        else if (tipoColonia.value == 'propietario')
+        {
+            idColoniaPropietario.value = idColonia;
+            nombreColoniaPropietario.value = nombreColonia;
+        }
+        else if (tipoColonia.value == 'propiedad')
+        {
+            idColoniaPropiedad.value = idColonia;
+            nombreColoniaPropiedad.value = nombreColonia;
+        }
+        else
+        {
+            console.log('no entra nada');
+            console.log(tipoColonia, typeof tipoColonia);
+        }
+    }
+
+    const nombreLocalidadBuscar = ref('');
+    const localidadesFiltradas = ref(null);
+
+    const abreModalBuscarLocalidad = () =>
+    {
+        modalBuscarLocalidadVisible.value = true;
+
+        isLoading.value = false;   
+        isLoadingModal.value = false;
+        nombreLocalidadBuscar.value = '';
+        localidadesFiltradas.value = null;
+
+        setTimeout(() => {
+            floatingNombreLocalidadRef.value?.focus();
+        }, 50);
+    }
+
+    const filtrarLocalidades = async () => {
+        isLoadingModal2.value = true; // Indicar que está cargando
+        try {
+            const response = await fetch(`/solicitudes/get-localidades?nombre=${encodeURIComponent(nombreLocalidadBuscar.value)}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            const data = await response.json();
+            localidadesFiltradas.value = data.localidades;
+        } catch (error) {
+            console.error('Error al obtener los datos:', error);
+        }
+        finally 
+        {
+            isLoadingModal2.value = false; // Finalizar el estado de carga
+        }
+    };
+
+    const agregarLocalidad = async() => {
+        isLoadingModal2.value = true;
+        const formData = new FormData();
+        formData.append('nombre', nombreLocalidadBuscar.value);
+
+        try {
+            await router.post('/localidades/store', formData, {
+                onSuccess: (page) => {
+                    Swal.fire({
+                        toast: true,
+                        icon: 'success',
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        title: page.props.flash.success,
+                        timer: 2000,
+                        timerProgressBar: true
+                    });
+                    modalBuscarLocalidadVisible.value = false;
+                    idLocalidadSolicitante.value = page.props.flash.idLocalidad;
+                    nombreLocalidadSolicitante.value = nombreLocalidadBuscar.value.toUpperCase().trim();
+                    // resetFormData();
+                    isLoadingModal2.value = false;
+                },
+                onFinish: () => {
+                    isLoadingModal2.value = false;
+                },
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+                onError: (errors) => {
+                    isLoadingModal2.value = false;
+                    // Mostrar SweetAlert2 con los errores de validación
+                    let errorMessage = 'Hubo un error al guardar la información.';
+                    
+                    // Si hay errores de validación, construir un mensaje con ellos
+                    if (errors && Object.keys(errors).length > 0) {
+                        errorMessage = Object.values(errors).join('<br>'); // Unir los errores en un solo mensaje
+                    }
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        html: errorMessage,
+                        confirmButtonText: 'Aceptar',
+                        width: '200px',
+                        target: 'body', // Renderizar en el body
+                        didOpen: () => {
+                            const swalContainer = document.querySelector('.swal2-container');
+                            if (swalContainer) {
+                                swalContainer.style.setProperty('z-index', '99999', 'important');
+                            }
+                        }
+                    });
+                },
+            });
+        } catch (err) {
+            console.error('Error inesperado:', err);
+        }
+    };
+    
+    const debouncedFiltrarLocalidades = debounce(filtrarLocalidades, 500);
+
+    const seleccionaLocalidad = (idLocalidad, nombreLocalidad) =>
+    {
+        modalBuscarLocalidadVisible.value = false;
+
+        idLocalidadSolicitante.value = idLocalidad;
+        nombreLocalidadSolicitante.value = nombreLocalidad;
+    }
+
+    watch(curpPropietario, async (newValue) => {
+        if (newValue.length >= longitud_curp.value)
+        {
+            if (newValue.length > longitud_curp.value)
+            {
+                curpInvalidaPropietario.value = true;
+                curpCompletaPropietario.value = false;
+                return;
+            }
+            if (!curpRegex.test(newValue)) 
+            {
+                curpInvalidaPropietario.value = true;
+                curpCompletaPropietario.value = false;
+                return;
+            }
+            
+            isLoadingModal.value = true; // Muestra el cargador
+            await obtenerPersona(newValue);
+            curpCompletaPropietario.value = true;
+            curpInvalidaPropietario.value = false;
+
+            if (persona.value && persona.value.length > 0) {
+                nomPropietario.value = persona.value[0].nombre;
+                apePropietario.value = persona.value[0].apellidos;
+                callePropietario.value = persona.value[0].solicitante.calle;
+                nuevoPropietario.value = false;
+            } else
+            {
+                nuevoPropietario.value = true;
+                setTimeout(() => {
+                    floatingNombrePropietarioRef.value?.focus();
+                }, 50);
+            }
+        } 
+        else 
+        {
+            personaExistente.value = false;
+            curpInvalidaPropietario.value = false;
+            curpCompletaPropietario.value = false;
+        }
+    });
+
+    const cveMunicipio = ref('004');
+
+    onMounted(() => {
+        claveCatastral.value = cveMunicipio.value + ' '; // Inicializa con cveMunicipio seguido de un espacio
+    });
+
+    // Método para dar formato y permitir edición completa
+    const formatClaveCatastral = (event) => {
+        let value = event.target.value.replace(/\D/g, ''); // Elimina todo lo que no sean dígitos
+        value = value.substring(0, 18);
+
+        // Formatear en grupos de tres dígitos separados por espacios
+        value = value.replace(/(\d{3})(?=\d)/g, '$1 ');
+        claveCatastral.value = value.trim();
+    };
+
+    watch(claveCatastral, (newValue) => {
+        let value = newValue.replace(/\D/g, '').substring(0, 18);
+        value = value.replace(/(\d{3})(?=\d)/g, '$1 ');
+        claveCatastral.value = value.trim();
+    });
+
+    const handleFocusClaveCatastral = (event) => {
+        if (claveCatastral.value.length === 3) {
+            event.target.setSelectionRange(3, 3); // Coloca el cursor después del tercer carácter
+            console.log('handleFocus');
+        } else {
+            // event.target.select();
+        }
+    };
+
+    const claveCatastralRef = ref(null);
+
+    watch(activeTab, (newValue) => {
+        if (newValue === 'propiedad') {
+            setTimeout(() => {
+                claveCatastralRef.value?.focus();
+            }, 50);
+        }
+    });
+</script>
+    
+    <template>
+        <el-dialog
+        v-model="dialogVisible"
+        :title="paraEditarSolicitud ? 'Editar solicitud' : 'Nueva solicitud'"
+        :width="dialogWidth"
+        :before-close="handleClose"
+        top="10vh">
+            <div v-if="isLoadingModal" style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; z-index: 50; background-color: rgba(255, 255, 255, 0.7); width: 100%; height: 100%;">
+                <svg class="animate-spin" style="width: 2rem; height: 2rem; color: gray;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle style="opacity: 0.25; stroke: currentColor; stroke-width: 4;" cx="12" cy="12" r="10"></circle>
+                    <path style="opacity: 0.75; fill: currentColor;" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+                <span style="margin-left: 0.5rem; color: gray;">Cargando...</span>
+            </div>
+            <div class="flex flex-col mb-5 md:flex-row items-center justify-between space-y-4 md:space-y-0 md:space-x-4">
+                <div class="relative w-full md:w-auto">
+                    <input
+                    v-model="fecha_ingreso"
+                    type="date"
+                    name="floating_fecha"
+                    id="floating_fecha"
+                    class="block w-full md:w-auto py-2.5 pb-1 px-0 text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-color1 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                    required/>
+                    <label
+                    for="floating_fecha"
+                    class="absolute text-sm text-gray-500 dark:text-gray-400 duration-300 top-[-13.5px] origin-[0] peer-focus:scale-90 peer-focus:text-color1 peer-focus:font-medium">
+                    Fecha
+                    </label>
+                </div>
+                <!-- <button
+                    @click="asignarFolio"
+                    class="flex items-center justify-center space-x-2 py-2 px-4 w-full md:w-auto border-2 border-color1 text-color1 text-sm font-medium rounded-md shadow bg-transparent hover:bg-color1 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-color1">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                    <path d="M18 1.5c2.9 0 5.25 2.35 5.25 5.25v3.75a.75.75 0 0 1-1.5 0V6.75a3.75 3.75 0 1 0-7.5 0v3a3 3 0 0 1 3 3v6.75a3 3 0 0 1-3 3H3.75a3 3 0 0 1-3-3v-6.75a3 3 0 0 1 3-3h9v-3c0-2.9 2.35-5.25 5.25-5.25Z" />
+                    </svg>
+                    <span>Asignar Folio</span>
+                </button> -->
+                <el-switch
+                    v-model="value"
+                    class="custom-switch"
+                    size="large"
+                    active-text="Folio manual"
+                    inactive-text="Folio automático"
+                />                
+            </div>
+            <div class="border-b-2 mb-4 border-gray-200 dark:border-gray-700">
+                <ul class="flex flex-wrap -mb-px text-sm font-medium text-center text-gray-500 dark:text-gray-400">
+                    <li class="me-2">
+                        <a
+                            href="#"
+                            @click.prevent="activeTab = 'solicitante'"
+                            :class="activeTab === 'solicitante' ? 'text-color1 border-color1' : 'hover:text-gray-700 hover:border-gray-400 dark:hover:text-gray-400'"
+                            class="inline-flex items-center justify-center p-4 border-b-2 border-transparent rounded-t-lg group">
+                            <svg
+                                :class="activeTab === 'solicitante' ? 'text-color1' : 'text-gray-500 group-hover:text-gray-600 dark:text-gray-600 dark:group-hover:text-gray-400'"
+                                class="w-4 h-4 me-2"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="currentColor"
+                                viewBox="0 0 20 20">
+                                <path d="M10 0a10 10 0 1 0 10 10A10.011 10.011 0 0 0 10 0Zm0 5a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm0 13a8.949 8.949 0 0 1-4.951-1.488A3.987 3.987 0 0 1 9 13h2a3.987 3.987 0 0 1 3.951 3.512A8.949 8.949 0 0 1 10 18Z" />
+                            </svg>
+                            Solicitante
+                        </a>
+                    </li>
+                    <li v-if="esPropietario == 0" class="me-2">
+                        <a
+                            href="#"
+                            @click.prevent="activeTab = 'propietario'"
+                            :class="activeTab === 'propietario' ? 'text-color1 border-color1' : 'hover:text-gray-700 hover:border-gray-400 dark:hover:text-gray-400'"
+                            class="inline-flex items-center justify-center p-4 border-b-2 border-transparent rounded-t-lg group">
+                            <svg
+                                :class="activeTab === 'propietario' ? 'text-color1' : 'text-gray-500 group-hover:text-gray-600 dark:text-gray-600 dark:group-hover:text-gray-400'"
+                                class="w-4 h-4 me-2"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="currentColor"
+                                viewBox="0 0 16 16">
+                                <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zm4.5 0a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1zM8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6m5 2.755C12.146 12.825 10.623 12 8 12s-4.146.826-5 1.755V14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1z"/>
+                            </svg>
+                            Propietario
+                        </a>
+                    </li>
+                    <li class="me-2">
+                        <a
+                            href="#"
+                            @click.prevent="activeTab = 'propiedad'"
+                            :class="activeTab === 'propiedad' ? 'text-color1 border-color1' : 'hover:text-gray-700 hover:border-gray-400 dark:hover:text-gray-400'"
+                            class="inline-flex items-center justify-center p-4 border-b-2 border-transparent rounded-t-lg group">
+                            <svg
+                                :class="activeTab === 'propiedad' ? 'text-color1' : 'text-gray-500 group-hover:text-gray-600 dark:text-gray-600 dark:group-hover:text-gray-400'"
+                                class="w-4 h-4 me-2"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="currentColor"
+                                viewBox="0 -960 960 960">
+                                <path d="M80-120v-650l200-150 200 150v90h400v560H80Zm80-80h80v-80h-80v80Zm0-160h80v-80h-80v80Zm0-160h80v-80h-80v80Zm0-160h80v-80h-80v80Zm160 0h80v-80h-80v80Zm0 480h480v-400H320v400Zm240-240v-80h160v80H560Zm0 160v-80h160v80H560ZM400-440v-80h80v80h-80Zm0 160v-80h80v80h-80Z" />
+                            </svg>                            
+                            Propiedad
+                        </a>
+                    </li>
+                    <li class="me-2">
+                        <a
+                            href="#"
+                            @click.prevent="activeTab = 'tramite'"
+                            :class="activeTab === 'tramite' ? 'text-color1 border-color1' : 'hover:text-gray-700 hover:border-gray-400 dark:hover:text-gray-400'"
+                            class="inline-flex items-center justify-center p-4 border-b-2 border-transparent rounded-t-lg group">
+                            <svg
+                                :class="activeTab === 'tramite' ? 'text-color1' : 'text-gray-500 group-hover:text-gray-600 dark:text-gray-600 dark:group-hover:text-gray-400'"
+                                class="w-4 h-4 me-2"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="currentColor"
+                                viewBox="0 -960 960 960"
+                                >
+                                <path d="M760-200H320q-33 0-56.5-23.5T240-280v-560q0-33 23.5-56.5T320-920h280l240 240v400q0 33-23.5 56.5T760-200ZM560-640v-200H320v560h440v-360H560ZM160-40q-33 0-56.5-23.5T80-120v-560h80v560h440v80H160Zm160-800v200-200 560-560Z" />
+                            </svg>
+                            Trámite
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            <div v-if="activeTab === 'solicitante'" class="space-y-4">
+                <h3 
+                    class="flex items-center text-lg font-semibold text-gray-800 dark:text-white">
+                    <span>Datos del/a solicitante</span>
+                    <span 
+                        style="letter-spacing:0.5px" class="flex items-center bg-color2-600 text-xs text-white py-1 font-thin px-2 rounded-lg ml-2">
+                        Nuevo(a)
+                    </span>
+                </h3>
+                <div class="flex items-center space-x-4">
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 25%;">
+                        <input
+                        v-model="curp"
+                        ref="floatingCURPRef"
+                        autocomplete="off"
+                        type="text"
+                        name="floating_CURP"
+                        id="floating_CURP"
+                        class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                        placeholder=""
+                        :maxlength="longitud_curp" 
+                        required/>
+                        <label 
+                            for="floating_CURP" 
+                            style="letter-spacing: -0.12em;" 
+                            class="flex items-center peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                            <span v-if="!curpInvalida" class="flex-shrink-0">C U R P</span>
+                            <span 
+                                class="flex items-center bg-color1-50 text-color1-800 px-1 rounded-md"
+                                style="letter-spacing: 0em;" 
+                                v-else="curpInvalida">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" 
+                                    stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                                </svg>
+                                CURP inválida
+                            </span>
+                        </label>
+                    </div>
+                    <div v-if="curpCompleta" class="relative z-0 mb-5 group peer w-full" style="flex-basis: 35%;">
+                        <input
+                        v-model="nomSolicitante"
+                        ref="floatingNombreRef"
+                        autocomplete="off"
+                        type="text"          
+                        class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                        placeholder=""
+                        required/>
+                        <label
+                        for="floating_nombre"
+                        style="letter-spacing: -0.12em;"
+                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                        N o m b r e
+                        </label>
+                    </div>
+                    <div v-if="curpCompleta" class="relative z-0 mb-5 group peer w-full" style="flex-basis: 40%;">
+                        <input
+                        v-model="apeSolicitante"
+                        ref="floatingApellidosRef"
+                        autocomplete="off"
+                        type="text"
+                        class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                        placeholder=""
+                        required/>
+                        <label
+                        style="letter-spacing: -0.12em;"
+                        for="floating_apellidos"
+                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                        A p e l l i d o s
+                        </label>
+                    </div>
+                </div>
+                <div v-if="curpCompleta" class="flex items-center space-x-4" style="margin-bottom: -1rem;">
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 25%;">
+                        <input
+                        v-model="telefonoSolicitante"
+                        type="text"
+                        class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                        placeholder=""
+                        required/>
+                        <label
+                        style="letter-spacing: -0.12em;"
+                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                        
+                        <span class="hidden sm:block">N ° &nbsp; d e &nbsp; t e l é f o n o</span>
+                        <span class="block sm:hidden">T e l é f o n o</span>
+                        </label>
+                    </div>
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 40%;">
+                        <input
+                        v-model="emailSolicitante"
+                        type="text"
+                        class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                        placeholder=""
+                        required/>
+                        <label
+                        style="letter-spacing: -0.12em;"
+                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                        <span class="hidden sm:block">C o r r e o &nbsp; e l e c t r ó n i c o</span>
+                        <span class="block sm:hidden">E - m a i l</span>
+                        </label>
+                    </div>
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 35%;">
+                        <select
+                            id="select_propietario"
+                            v-model="esPropietario"
+                            class="pt-3 pl-0 pb-1 bg-transparent border-0 border-b-2 appearance-none text-gray-900 border-gray-300 w-full text-sm focus:outline-none focus:ring-0 focus:border-color1 block dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500 peer
+                            bg-gray-50 p-2.5"
+                            required>
+                            <option value="" disabled selected style="display: none;"></option>
+                            <option :key="'1'" :value="'1'">SÍ</option>
+                            <option :key="'0'" :value="'0'">NO</option>
+                        </select>
+                        <label
+                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                       
+                        <span class="hidden sm:block"> ¿Es el/la propietario(a)?</span>
+                        <span class="block sm:hidden">¿Propietario(a)?</span>
+                        </label>
+                    </div>
+                </div>
+                <h2 v-if="curpCompleta" 
+                    class="flex items-center text-sm font-semibold text-gray-800 dark:text-white">
+                    <span>Domicilio</span>
+                </h2>
+                <div v-if="curpCompleta" class="flex items-center space-x-4">
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 40%;">
+                        <input
+                        v-model="calleSolicitante"
+                        type="text"
+                        class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                        placeholder=""
+                        required/>
+                        <label
+                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                        Calle
+                        </label>
+                    </div>
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 10%;">
+                        <input
+                        v-model="numeroSolicitante"
+                        type="text"
+                        class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                        placeholder=""
+                        required/>
+                        <label
+                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                        N°
+                        </label>
+                    </div>
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 50%;">
+                        <div class="relative">
+                            <input
+                                v-model="nombreColoniaSolicitante"
+                                type="text"
+                                class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                                placeholder=""
+                                disabled
+                                required />
+                            <label
+                                class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                                Colonia
+                            </label>
+                        </div>
+                        <button
+                            type="button"
+                            @click="abreModalBuscarColonia('solicitante')"
+                            title="Buscar colonia..."
+                            class="absolute right-0 top-1/2 transform -translate-y-1/2 p-1 text-gray-500 hover:text-color1-700 rounded-lg focus:outline-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 scale-110" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M12.9 14.32a8 8 0 111.42-1.42l4.9 4.9a1 1 0 01-1.42 1.42l-4.9-4.9zM8 14a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div v-if="curpCompleta" class="flex items-center space-x-4">
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 50%;">
+                        <div class="relative">
+                            <input
+                                v-model="nombreLocalidadSolicitante"
+                                type="text"
+                                class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                                placeholder=""
+                                disabled
+                                required />
+                            <label
+                                class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                                Localidad
+                            </label>
+                        </div>
+                        <button
+                            type="button"
+                            @click="abreModalBuscarLocalidad"
+                            title="Buscar localidad..."
+                            class="absolute right-0 top-1/2 transform -translate-y-1/2 p-1 text-gray-500 hover:text-color1-700 rounded-lg focus:outline-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 scale-110" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M12.9 14.32a8 8 0 111.42-1.42l4.9 4.9a1 1 0 01-1.42 1.42l-4.9-4.9zM8 14a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div v-if="activeTab === 'propietario'" class="space-y-4">
+                <h3 
+                    class="flex items-center text-lg font-semibold text-gray-800 dark:text-white">
+                    <span>Datos del/a propietario(a)</span>
+                    <span 
+                        style="letter-spacing:0.5px" class="flex items-center bg-color2-600 text-xs text-white py-1 font-thin px-2 rounded-lg ml-2">
+                        Nuevo(a)
+                    </span>
+                </h3>
+                <div class="flex items-center space-x-4">
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 25%;">
+                        <input
+                        v-model="curpPropietario"
+                        ref="floatingCURPPropietarioRef"
+                        autocomplete="off"
+                        type="text"
+                        name="floating_CURPPropietario"
+                        id="floating_CURPPropietario"
+                        class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                        placeholder=""
+                        :maxlength="longitud_curp" 
+                        required/>
+                        <label 
+                            for="floating_CURPPropietario" 
+                            style="letter-spacing: -0.12em;" 
+                            class="flex items-center peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                            <span v-if="!curpInvalidaPropietario" class="flex-shrink-0">C U R P</span>
+                            <span 
+                                class="flex items-center bg-color1-50 text-color1-800 px-1 rounded-md"
+                                style="letter-spacing: 0em;" 
+                                v-else="curpInvalidaPropietario">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" 
+                                    stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                                </svg>
+                                CURP inválida
+                            </span>
+                        </label>
+                    </div>
+                    <div v-if="curpCompletaPropietario" class="relative z-0 mb-5 group peer w-full" style="flex-basis: 35%;">
+                        <input
+                        v-model="nomPropietario"
+                        ref="floatingNombrePropietarioRef"
+                        autocomplete="off"
+                        type="text"          
+                        class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                        placeholder=""
+                        required/>
+                        <label
+                        for="floating_nombrePropietario"
+                        style="letter-spacing: -0.12em;"
+                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                        N o m b r e
+                        </label>
+                    </div>
+                    <div v-if="curpCompletaPropietario" class="relative z-0 mb-5 group peer w-full" style="flex-basis: 40%;">
+                        <input
+                        v-model="apePropietario"
+                        autocomplete="off"
+                        type="text"
+                        class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                        placeholder=""
+                        required/>
+                        <label
+                        style="letter-spacing: -0.12em;"
+                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                        A p e l l i d o s
+                        </label>
+                    </div>
+                </div>
+                <div v-if="curpCompletaPropietario" class="flex items-center space-x-4" style="margin-bottom: -1rem;">
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 25%;">
+                        <input
+                        v-model="telefonoPropietario"
+                        type="text"
+                        class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                        placeholder=""
+                        required/>
+                        <label
+                        style="letter-spacing: -0.12em;"
+                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                        
+                        <span class="hidden sm:block">N ° &nbsp; d e &nbsp; t e l é f o n o</span>
+                        <span class="block sm:hidden">T e l é f o n o</span>
+                        </label>
+                    </div>
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 45%;">
+                        <input
+                        v-model="emailPropietario"
+                        type="text"
+                        class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                        placeholder=""
+                        required/>
+                        <label
+                        style="letter-spacing: -0.12em;"
+                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                        <span class="hidden sm:block">C o r r e o &nbsp; e l e c t r ó n i c o</span>
+                        <span class="block sm:hidden">E - m a i l</span>
+                        </label>
+                    </div>
+                </div>
+                <h2 v-if="curpCompletaPropietario" 
+                    class="flex items-center text-sm font-semibold text-gray-800 dark:text-white">
+                    <span>Domicilio</span>
+                </h2>
+                <div v-if="curpCompletaPropietario" class="flex items-center space-x-4">
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 40%;">
+                        <input
+                        v-model="callePropietario"
+                        type="text"
+                        class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                        placeholder=""
+                        required/>
+                        <label
+                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                        Calle
+                        </label>
+                    </div>
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 10%;">
+                        <input
+                        v-model="numeroPropietario"
+                        type="text"
+                        class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                        placeholder=""
+                        required/>
+                        <label
+                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                        N°
+                        </label>
+                    </div>
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 50%;">
+                        <div class="relative">
+                            <input
+                                v-model="nombreColoniaPropietario"
+                                type="text"
+                                class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                                placeholder=""
+                                disabled
+                                required />
+                            <label
+                                class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                                Colonia
+                            </label>
+                        </div>
+                        <button
+                            type="button"
+                            @click="abreModalBuscarColonia('propietario')"
+                            title="Buscar colonia..."
+                            class="absolute right-0 top-1/2 transform -translate-y-1/2 p-1 text-gray-500 hover:text-color1-700 rounded-lg focus:outline-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 scale-110" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M12.9 14.32a8 8 0 111.42-1.42l4.9 4.9a1 1 0 01-1.42 1.42l-4.9-4.9zM8 14a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div v-if="curpCompletaPropietario" class="flex items-center space-x-4">
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 50%;">
+                        <div class="relative">
+                            <input
+                                v-model="nombreLocalidadPropietario"
+                                type="text"
+                                class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                                placeholder=""
+                                disabled
+                                required />
+                            <label
+                                class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                                Localidad
+                            </label>
+                        </div>
+                        <button
+                            type="button"
+                            @click="abreModalBuscarLocalidad"
+                            title="Buscar localidad..."
+                            class="absolute right-0 top-1/2 transform -translate-y-1/2 p-1 text-gray-500 hover:text-color1-700 rounded-lg focus:outline-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 scale-110" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M12.9 14.32a8 8 0 111.42-1.42l4.9 4.9a1 1 0 01-1.42 1.42l-4.9-4.9zM8 14a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div v-if="activeTab === 'propiedad'" class="space-y-4">
+                <h3 
+                    class="flex items-center text-lg font-semibold text-gray-800 dark:text-white">
+                    <span>Datos de la propiedad</span>
+                    <span 
+                        style="letter-spacing:0.5px" class="flex items-center bg-color2-600 text-xs text-white py-1 font-thin px-2 rounded-lg ml-2">
+                        Nueva
+                    </span>
+                </h3>
+                <div class="flex items-center space-x-4">
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 22%;">
+                        <input
+                            v-model="claveCatastral"
+                            ref="claveCatastralRef" 
+                            type="text"
+                            class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                            maxlength="23"
+                            @focus="handleFocusClaveCatastral"
+                            @input="formatClaveCatastral"
+                            required
+                            />
+
+                        <label
+                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                        <span class="hidden sm:block"> Clave catastral</span>
+                        <span class="block sm:hidden">Cve. catastral</span>
+                        </label>
+                    </div>
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 24%;">
+                        <select
+                            id="select_tipo_propiedad"
+                            v-model="tipoPropiedad"
+                            @focus="handleFocusTipoPropiedad(true)"
+                            @blur="handleFocusTipoPropiedad(false)"
+                            class="pt-[10px] pl-0 pb-1 bg-transparent border-0 border-b-2 appearance-none text-gray-900 border-gray-300 w-full text-sm focus:outline-none focus:ring-0 focus:border-color1 block dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500 peer bg-gray-50 p-2.5"
+                            required>
+                            <option value="" disabled selected style="display: none;"></option>
+                            <option v-for="(tipo, index) in tiposPropiedades" :key="index" :value="tipo.id">
+                                {{ tipo.nombre }}
+                            </option>
+                        </select>
+                        <label
+                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-9 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1"
+                        for="select_tipo_propiedad"
+                        :class="{
+                            'scale-85 -translate-y-9': tipoPropiedad || isFocusedTipoPropiedad,
+                            'scale-90 translate-y-[-11px]': !tipoPropiedad && !isFocusedTipoPropiedad
+                        }"
+                        :style="{
+                            top: tipoPropiedad || isFocusedTipoPropiedad ? '25px' : '24px',
+                        }"
+                        >
+                        Tipo
+                        </label>
+                    </div>
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 27%;">
+                        <input
+                            v-model="superficiePropiedad"
+                            type="number"
+                            class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                            required
+                            />
+
+                        <label
+                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                        <span class="hidden sm:block"> Superficie (m²)</span>
+                        <span class="block sm:hidden"> Sup.</span>
+                        </label>
+                    </div>
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 27%;">
+                        <input
+                            v-model="superficieConstruccionPropiedad"
+                            type="number"
+                            class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                            required
+                            />
+
+                        <label
+                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                        <span class="hidden sm:block"> Superficie en construcción (m²)</span>
+                        <span class="block sm:hidden"> Sup. const.</span>
+                        </label>
+                    </div>
+                </div>
+                <div v-if="curpCompleta" class="flex items-center space-x-4">
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 40%;">
+                        <input
+                        v-model="callePropiedad"
+                        type="text"
+                        class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                        placeholder=""
+                        required/>
+                        <label
+                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                        Calle
+                        </label>
+                    </div>
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 10%;">
+                        <input
+                        v-model="numeroPropiedad"
+                        type="text"
+                        class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                        placeholder=""
+                        required/>
+                        <label
+                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                        N°
+                        </label>
+                    </div>
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 50%;">
+                        <div class="relative">
+                            <input
+                                v-model="nombreColoniaPropiedad"
+                                type="text"
+                                class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                                placeholder=""
+                                disabled
+                                required />
+                            <label
+                                class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                                Colonia
+                            </label>
+                        </div>
+                        <button
+                            type="button"
+                            @click="abreModalBuscarColonia('propiedad')"
+                            title="Buscar colonia..."
+                            class="absolute right-0 top-1/2 transform -translate-y-1/2 p-1 text-gray-500 hover:text-color1-700 rounded-lg focus:outline-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 scale-110" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M12.9 14.32a8 8 0 111.42-1.42l4.9 4.9a1 1 0 01-1.42 1.42l-4.9-4.9zM8 14a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div v-if="curpCompleta" class="flex items-center space-x-4">
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 50%;">
+                        <div class="relative">
+                            <input
+                                v-model="nombreLocalidadPropiedad"
+                                type="text"
+                                class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                                placeholder=""
+                                disabled
+                                required />
+                            <label
+                                class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                                Localidad
+                            </label>
+                        </div>
+                        <button
+                            type="button"
+                            @click="abreModalBuscarLocalidad"
+                            title="Buscar localidad..."
+                            class="absolute right-0 top-1/2 transform -translate-y-1/2 p-1 text-gray-500 hover:text-color1-700 rounded-lg focus:outline-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 scale-110" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M12.9 14.32a8 8 0 111.42-1.42l4.9 4.9a1 1 0 01-1.42 1.42l-4.9-4.9zM8 14a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div v-if="activeTab == 'tramite'" class="space-y-4">
+                <h3 
+                    class="flex items-center text-lg font-semibold text-gray-800 dark:text-white">
+                    <span>Trámite a realizar</span>
+                    <span 
+                        style="letter-spacing:0.5px" class="flex items-center bg-color2-600 text-xs text-white py-1 font-thin px-2 rounded-lg ml-2">
+                        Nuevo
+                    </span>
+                </h3>
+                <div class="flex items-center">
+                    <div>
+                        <table class="w-full">
+                            <thead>
+                                <tr>
+                                    <th
+                                        v-for="tipoTramite in tiposTramites"
+                                        :key="tipoTramite.id"
+                                        class="border-0 uppercase border-b-2 border-gray-300 px-4 py-1 text-sm font-semibold text-gray-900 dark:text-white">
+                                        {{ tipoTramite.nombre }}
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td v-for="(tipoTramite, index) in tiposTramites"
+                                        :key="tipoTramite.id"
+                                        :class="{
+                                            'bg-gray-100': index % 2 === 0, // Aplica fondo gray-200 para columnas pares (0, 2, 4...)
+                                            'bg-white': index % 2 !== 0    // Aplica fondo blanco para columnas impares (1, 3, 5...)
+                                        }"
+                                        class="border-0 border-gray-300 px-4 py-2 align-top">
+                                        <div v-for="tramite in tipoTramite.tramites" :key="tramite.id" class="mb-1">
+                                            <input
+                                                type="checkbox"
+                                                :id="`tramite-${tramite.id}`"
+                                                :value="tramite.id"
+                                                class="w-4 h-4 text-color1 focus:ring-color1 border-gray-300 rounded"/>
+                                            <label
+                                                :for="`tramite-${tramite.id}`"
+                                                class="ml-2 text-xs text-gray-700 dark:text-gray-300">
+                                                {{ tramite.nombre }}
+                                            </label>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 35%;">
+                        <select
+                            id="select_tipo_tramite"
+                            v-model="tipoTramite"
+                            @focus="handleFocusTipoTramite(true)"
+                            @blur="handleFocusTipoTramite(false)"
+                            class="pt-3 pl-0 pb-1 bg-transparent border-0 border-b-2 appearance-none text-gray-900 border-gray-300 w-full text-sm focus:outline-none focus:ring-0 focus:border-color1 block dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500 peer bg-gray-50 p-2.5"
+                            required>
+                            <option value="" disabled selected style="display: none;"></option>
+                            <option v-for="(tipo, index) in tiposTramites" :key="index" :value="tipo.id">
+                                {{ tipo.nombre }}
+                            </option>
+                        </select>
+                        <label
+                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-9 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1"
+                        for="select_tipo_tramite"
+                        :class="{
+                            'scale-85 -translate-y-9': tipoTramite || isFocusedTipoTramite,
+                            'scale-90 translate-y-[-11px]': !tipoTramite && !isFocusedTipoTramite
+                        }"
+                        :style="{
+                            top: tipoTramite || isFocusedTipoTramite ? '25px' : '24px',
+                        }"
+                        >
+                        Tipo
+                        </label>
+                    </div>
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 30%;">
+                        <select
+                            id="select_destino_obra"
+                            v-model="destinoObra"
+                            @focus="handleFocusDestinoObra(true)"
+                            @blur="handleFocusDestinoObra(false)"
+                            class="pt-3 pl-0 pb-1 bg-transparent border-0 border-b-2 appearance-none text-gray-900 border-gray-300 w-full text-sm focus:outline-none focus:ring-0 focus:border-color1 block dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500 peer bg-gray-50 p-2.5"
+                            required>
+                            <option value="" disabled selected style="display: none;"></option>
+                            <option v-for="(destino, index) in destinosObras" :key="index" :value="destino.id">
+                                {{ destino.nombre }}
+                            </option>
+                        </select>
+                        <label
+                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-9 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1"
+                        for="select_destino_obra"
+                        :class="{
+                            'scale-85 -translate-y-9': destinoObra || isFocusedTipoDestinoObra,
+                            'scale-90 translate-y-[-11px]': !destinoObra && !isFocusedTipoDestinoObra
+                        }"
+                        :style="{
+                            top: destinoObra || isFocusedTipoDestinoObra ? '25px' : '24px',
+                        }"
+                        >
+                        <span class="hidden sm:block"> Destino de la obra</span>
+                        <span class="block sm:hidden">Dest. obra</span>
+                        </label>
+                    </div> -->
+                </div>
+            </div>
+        </el-dialog>
+
+    <el-dialog v-model="modalBuscarSolicitanteVisible">
+
+    </el-dialog>
+
+    <el-dialog 
+    v-model="modalBuscarColoniaVisible"
+    title="Buscar colonia" 
+    top="30vh"
+    :width="dialogWidthBuscar">
+        <div v-if="isLoadingModal2"
+            style="position: fixed; 
+                top: 0; 
+                left: 0; 
+                display: flex; 
+                align-items: center; 
+                justify-content: center; 
+                z-index: 50; 
+                background-color: rgba(255, 255, 255, 0.7); 
+                width: 100vw; 
+                height: 100vh;">
+                <svg class="animate-spin" 
+                    style="width: 3rem; height: 3rem; color: #4B5563;" 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    fill="none" 
+                    viewBox="0 0 24 24">
+                    <circle style="opacity: 0.25; stroke: currentColor; stroke-width: 4;" cx="12" cy="12" r="10"></circle>
+                    <path style="opacity: 1; stroke: currentColor; stroke-linecap: round; stroke-width: 4;" 
+                        d="M4 12a8 8 0 018-8"></path>
+                </svg>
+            <span style="margin-left: 0.5rem; color: #4B5563; font-size: 1rem;">Cargando...</span>
+        </div>
+        <div class="relative w-full">
+            <input
+            v-model="nombreColoniaBuscar"
+            ref="floatingNombreColoniaRef"
+            type="text" 
+            placeholder="Escribe el NOMBRE de la COLONIA"
+            @input="debouncedFiltrarColonias"
+            class="block w-full p-2 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-color1 focus:border-color1 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:placeholder-gray-400"/>
+
+            <button
+                v-if="nombreColoniaBuscar.length >= 5 && coloniasFiltradas && coloniasFiltradas.length === 0"
+                type="button"
+                @click="agregarColonia"
+                class="absolute inset-y-0 right-0 px-4 text-white bg-color1 rounded-r-lg hover:bg-color1-600 focus:ring-2 focus:ring-color1">
+                +
+            </button>
+        </div>
+        <div class="w-full mt-2 overflow-x-auto">
+            <table class="min-w-full text-xs text-left text-gray-500 dark:text-gray-400">
+                <div v-if="coloniasFiltradas && coloniasFiltradas.length > 0" class="mt-2 mb-2">
+                    <thead class="text-sm text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        RESULTADOS DE LA BÚSQUEDA
+                    </thead>
+                </div>
+                <tbody>
+                    <tr v-if="coloniasFiltradas && coloniasFiltradas.length > 0" 
+                    v-for="colonia in coloniasFiltradas" :key="colonia.id" 
+                    class="hover:text-color1-800 hover:font-bold hover:bg-color1-50 dark:hover:bg-gray-600 cursor-pointer border-b border-gray-300 dark:border-gray-600" 
+                    @click="seleccionaColonia(colonia.id, colonia.nombre)">
+                        <td class="px-4 py-2 w-1/2">{{ colonia.nombre }}</td>
+                    </tr>
+                    <tr v-else>
+                        <td v-if="coloniasFiltradas" colspan="2" class="px-4 py-6 text-sm text-gray-400 dark:text-gray-300">
+                            <div class="flex items-center space-x-4">
+                                <span 
+                                    class="flex-shrink-0 text-color4-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-10">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                                    </svg>
+                                </span>
+                                <span 
+                                    class="text-left text-color4-600 bg-color4-50 px-4 py-2 rounded-r-lg border-l-4 border-color4-600">
+                                    {{ coloniasFiltradas === null 
+                                        ? '' 
+                                        : (nombreColoniaBuscar.length >= 5 
+                                            ? 'No se encontró ninguna colonia con ese nombre. Si quieres agregar ' + nombreColoniaBuscar.toUpperCase().trim() + ' al CATÁLOGO DE COLONIAS del sistema debes seleccionar el botón de +' 
+                                            : 'No hay RESULTADOS para mostrar. Si quieres agregar una COLONIA al sistema debes escribir su NOMBRE COMPLETO y seleccionar el botón de + que eventualmente aparecerá.') 
+                                    }}
+                                </span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </el-dialog>
+
+    <el-dialog 
+    v-model="modalBuscarLocalidadVisible"
+    title="Buscar localidad" 
+    top="30vh"
+    :width="dialogWidthBuscar">
+        <div v-if="isLoadingModal2"
+            style="position: fixed; 
+                top: 0; 
+                left: 0; 
+                display: flex; 
+                align-items: center; 
+                justify-content: center; 
+                z-index: 50; 
+                background-color: rgba(255, 255, 255, 0.7); 
+                width: 100vw; 
+                height: 100vh;">
+                <svg class="animate-spin" 
+                    style="width: 3rem; height: 3rem; color: #4B5563;" 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    fill="none" 
+                    viewBox="0 0 24 24">
+                    <circle style="opacity: 0.25; stroke: currentColor; stroke-width: 4;" cx="12" cy="12" r="10"></circle>
+                    <path style="opacity: 1; stroke: currentColor; stroke-linecap: round; stroke-width: 4;" 
+                        d="M4 12a8 8 0 018-8"></path>
+                </svg>
+            <span style="margin-left: 0.5rem; color: #4B5563; font-size: 1rem;">Cargando...</span>
+        </div>
+        <div class="relative w-full">
+            <input
+            v-model="nombreLocalidadBuscar"
+            ref="floatingNombreLocalidadRef"
+            type="text" 
+            placeholder="Escribe el NOMBRE de la LOCALIDAD"
+            @input="debouncedFiltrarLocalidades"
+            class="block w-full p-2 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-color1 focus:border-color1 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:placeholder-gray-400"/>
+
+            <button
+                v-if="nombreLocalidadBuscar.length >= 5 && localidadesFiltradas && localidadesFiltradas.length === 0"
+                type="button"
+                @click="agregarLocalidad"
+                class="absolute inset-y-0 right-0 px-4 text-white bg-color1 rounded-r-lg hover:bg-color1-600 focus:ring-2 focus:ring-color1">
+                +
+            </button>
+        </div>
+        <div class="w-full mt-2 overflow-x-auto">
+            <table class="min-w-full text-xs text-left text-gray-500 dark:text-gray-400">
+                <div v-if="localidadesFiltradas && localidadesFiltradas.length > 0" class="mt-2 mb-2">
+                    <thead class="text-sm text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        RESULTADOS DE LA BÚSQUEDA
+                    </thead>
+                </div>
+                <tbody>
+                    <tr v-if="localidadesFiltradas && localidadesFiltradas.length > 0" 
+                    v-for="localidad in localidadesFiltradas" :key="localidad.id" 
+                    class="hover:text-color1-800 hover:font-bold hover:bg-color1-50 dark:hover:bg-gray-600 cursor-pointer border-b border-gray-300 dark:border-gray-600" 
+                    @click="seleccionaLocalidad(localidad.id, localidad.nombre)">
+                        <td class="px-4 py-2 w-1/2">{{ localidad.nombre }}</td>
+                    </tr>
+                    <tr v-else>
+                        <td v-if="localidadesFiltradas" colspan="2" class="px-4 py-6 text-sm text-gray-400 dark:text-gray-300">
+                            <div class="flex items-center space-x-4">
+                                <span 
+                                    class="flex-shrink-0 text-color4-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-10">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                                    </svg>
+                                </span>
+                                <span 
+                                    class="text-left text-color4-600 bg-color4-50 px-4 py-2 rounded-r-lg border-l-4 border-color4-600">
+                                    {{ localidadesFiltradas === null 
+                                        ? '' 
+                                        : (nombreLocalidadBuscar.length >= 5 
+                                            ? 'No se encontró ninguna localidad con ese nombre. Si quieres agregar ' + nombreLocalidadBuscar.toUpperCase().trim() + ' al CATÁLOGO DE LOCALIDADES del sistema debes seleccionar el botón de +' 
+                                            : 'No hay RESULTADOS para mostrar. Si quieres agregar una LOCALIDAD al sistema debes escribir su NOMBRE COMPLETO y seleccionar el botón de + que eventualmente aparecerá.') 
+                                    }}
+                                </span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </el-dialog>
+
+    <section class="bg-gray-50 dark:bg-gray-900 p-3 sm:p-5">
+     <div class="mx-auto max-w-screen-xl lg:px-0 w-[100%] sm:w-[100%] md:w-[100%] lg:w-[95%]">
+        <h1 class="text-2xl font-bold">Solicitudes</h1>
+        <br>
+        <div class="bg-white dark:bg-gray-800 relative shadow-md sm:rounded-lg overflow-visible">
+            <div class="w-full md:w-auto flex flex-col md:flex-row space-y-2 md:space-y-0 items-stretch md:items-center justify-end md:space-x-3 flex-shrink-0">
+                    <button @click="abreModalSolicitud" type="button" class="mt-2 bg-color1-800 hover:bg-color1-700 flex items-center justify-center text-white focus:ring-4 focus:ring-color1-300 font-medium rounded-lg text-sm px-6 py-2 focus:outline-none dark:focus:ring-color1-800">
+                        + Nueva
+                    </button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>
+                            <!-- ID -->
+                            <th scope="col" class="px-4 py-3 cursor-pointer" @click="sortTable('id')">
+                                <div class="flex items-center">
+                                    <span class="mr-1">ID</span>
+                                    <svg v-if="sortColumn === 'id'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4 text-color1">
+                                    <path v-if="sortDirection === 'asc'" fill-rule="evenodd" d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
+                                    <path v-else fill-rule="evenodd" d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                            </th>
+                            <!-- ID -->
+                            <th scope="col" class="px-4 py-3 cursor-pointer" @click="sortTable('fecha_ingreso')">
+                                <div class="flex items-center">
+                                    <span class="mr-1">FECHA INGRESO</span>
+                                    <svg v-if="sortColumn === 'fecha_ingreso'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4 text-color1">
+                                    <path v-if="sortDirection === 'asc'" fill-rule="evenodd" d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
+                                    <path v-else fill-rule="evenodd" d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                            </th>
+                            <!-- Solicitante -->
+                            <th scope="col" class="px-4 py-3 cursor-pointer" @click="sortTable('id_solicitante')">
+                                <div class="flex items-center">
+                                    <span class="mr-1">Solicitante</span>
+                                    <svg v-if="sortColumn === 'id_solicitante'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4 text-color1">
+                                    <path v-if="sortDirection === 'asc'" fill-rule="evenodd" d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
+                                    <path v-else fill-rule="evenodd" d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                            </th>
+                            <!-- Propiedad -->
+                            <th scope="col" class="px-4 py-3 cursor-pointer" @click="sortTable('id_propiedad')">
+                                <div class="flex items-center">
+                                    <span class="mr-1">Propiedad</span>
+                                    <svg v-if="sortColumn === 'id_propiedad'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4 text-color1">
+                                    <path v-if="sortDirection === 'asc'" fill-rule="evenodd" d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
+                                    <path v-else fill-rule="evenodd" d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                            </th>
+                            <!-- Trámite -->
+                            <th scope="col" class="px-4 py-3 cursor-pointer" @click="sortTable('id_tramite')">
+                                <div class="flex items-center">
+                                    <span class="mr-1">Trámite</span>
+                                    <svg v-if="sortColumn === 'id_tramite'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4 text-color1">
+                                    <path v-if="sortDirection === 'asc'" fill-rule="evenodd" d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
+                                    <path v-else fill-rule="evenodd" d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                            </th>
+                            <!-- Estatus -->
+                            <th scope="col" class="px-4 py-3 cursor-pointer" @click="sortTable('id_estatus')">
+                                <div class="flex items-center">
+                                    <span class="mr-1">Estatus</span>
+                                    <svg v-if="sortColumn === 'id_estatus'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4 text-color1">
+                                    <path v-if="sortDirection === 'asc'" fill-rule="evenodd" d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
+                                    <path v-else fill-rule="evenodd" d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="solicitud in solicitudes" :key="solicitud.id" class="text-xs border-b dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600">
+                            <th scope="row" class="px-4 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">{{ solicitud.id }}</th>
+                            <td class="px-4 py-2">{{ solicitud.fecha_ingreso }}</td>
+                            <td class="px-4 py-2">{{ solicitud.solicitante.persona.nombre + ' ' + solicitud.solicitante.persona.apellidos }}</td>
+                            <td class="px-4 py-2">{{ solicitud.propiedad.calle + ' ' + solicitud.propiedad.numero + ' :: ' + solicitud.propiedad.colonia.nombre + ' - ' + solicitud.propiedad.localidad.nombre }}</td>
+                            <td class="px-4 py-2">{{ solicitud.tramite.nombre_abreviado}}</td>
+                            <td class="px-4 py-2">
+                                <span>
+                                    <span :style="{ color: solicitud.estatus.color }">●</span>
+                                    {{ solicitud.estatus.nombre }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-2 flex items-center justify-end relative">
+                                <button
+                                    @click="toggleDropdown(solicitud.id, $event)"
+                                    :id="`dropdown-button-${solicitud.id}`"
+                                    class="inline-flex items-center p-0.5 text-sm font-medium text-gray-500 hover:text-gray-800 rounded-lg focus:outline-none dark:text-gray-400 dark:hover:text-gray-100"
+                                    type="button">
+                                    <svg
+                                        class="w-5 h-5"
+                                        aria-hidden="true"
+                                        fill="currentColor"
+                                        viewBox="0 0 20 20"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <path
+                                            d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z"/>
+                                    </svg>
+                                </button>
+                                <div
+                                    v-show="dropdownVisible === solicitud.id"
+                                    :id="'dropdown-' + solicitud.id"
+                                    class="absolute right-0 mb-3 z-50 w-44 bg-white rounded divide-y divide-gray-100 shadow-xl dark:bg-gray-700 dark:divide-gray-600"
+                                    >
+                                    <ul class="py-1 text-sm text-gray-700 dark:text-gray-200">
+                                    <li class="hover:bg-gray-100 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-white">
+                                        <button
+                                        @click="abreModalEditarPuesto(puesto)"
+                                        class="block w-full py-2 px-4 text-left hover:bg-transparent dark:hover:bg-transparent hover:text-inherit dark:hover:text-inherit"
+                                        >
+                                        Editar
+                                        </button>
+                                    </li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div> 
+            <Pagination :data="pagination" />
+        </div>
+        <div v-if="isLoading" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 transition-opacity">
+            <div class="flex items-center">
+                <svg class="animate-spin h-8 w-8 text-color1-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="ml-2 text-gray-300">Cargando...</span>
+            </div>
+        </div>
+    </div>
+    </section>
+</template>

@@ -58,12 +58,16 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
                 'warning' => fn () => $request->session()->get('warning'),
-                'info' => fn () => $request->session()->get('info')
+                'info' => fn () => $request->session()->get('info'),
+                'idColonia' => fn () => $request->session()->get('idColonia'),
+                'idLocalidad' => fn () => $request->session()->get('idLocalidad'),
+                'activeTab' => fn () => $request->session()->get('activeTab'),
             ],
             'canLogin' => app('router')->has('login'),
             'canRegister' => app('router')->has('register'),
             'laravelVersion' => Application::VERSION,
             'phpVersion' => PHP_VERSION,
+            'currentYear' => intval(date('Y')),
 
         ];
     }

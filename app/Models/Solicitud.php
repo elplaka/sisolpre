@@ -36,6 +36,11 @@ class Solicitud extends Model
         return $this->belongsTo(Solicitante::class, 'id_solicitante');
     }
 
+    public function propietario()
+    {
+        return $this->belongsTo(Solicitante::class, 'id_propietario');
+    }
+
     public function propiedad()
     {
         return $this->belongsTo(Propiedad::class, 'id_propiedad');
@@ -44,6 +49,11 @@ class Solicitud extends Model
     public function tramites()
     {
         return $this->hasMany(SolicitudTramite::class, 'id_solicitud');
+    }
+
+       public function destino_obra()
+    {
+        return $this->belongsTo(DestinoObra::class, 'id_destino_obra');
     }
 
 }

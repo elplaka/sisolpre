@@ -22,7 +22,7 @@ export default {
             colors: {
                 color1: {
                   DEFAULT: '#7b003a', 
-                  40: '#ffe4ec', 
+                  40: '#fcf2f5', 
                   50: '#ffe4ec',
                   100: '#fabacb',
                   200: '#f08aa3',
@@ -49,7 +49,7 @@ export default {
                 },
                 color3: {
                   DEFAULT: '#5f5e5e',
-                  40: '#f0f0f0', 
+                  40: '#fafafa', 
                   50: '#f0f0f0',
                   100: '#d9d9d9',
                   200: '#bfbfbf',

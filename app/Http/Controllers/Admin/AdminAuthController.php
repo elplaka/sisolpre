@@ -13,7 +13,9 @@ class AdminAuthController extends Controller
 {
     public function showLoginForm()
     {
-        return Inertia::render('Admin/Auth/Login');
+           return Inertia::render('Admin/Auth/Login', [
+            'currentYear' => intval(date('Y')),
+        ]);
     }
 
     public function login(Request $request)

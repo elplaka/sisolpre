@@ -15,10 +15,11 @@ class Persona extends Model
         'apellidos'
     ];
 
-    public function solicitante()
-    {
-        return $this->belongsTo(Solicitante::class, 'id');
+    public function solicitante() {
+        return $this->hasOne(Solicitante::class, 'id_persona');
     }
-
+    public function propietario() {
+        return $this->hasOne(Solicitante::class, 'id_persona');
+    }
 
 }

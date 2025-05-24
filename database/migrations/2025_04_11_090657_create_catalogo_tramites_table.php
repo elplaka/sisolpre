@@ -48,6 +48,6 @@ class CreateCatalogoTramitesTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('tramites');
+        Schema::dropIfExists('catalogo_tramites');
     }
 }

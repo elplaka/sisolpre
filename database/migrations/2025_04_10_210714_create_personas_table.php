@@ -18,6 +18,8 @@ class CreatePersonasTable extends Migration
             $table->string('curp', 18)->index();
             $table->string('nombre', 30);
             $table->string('apellidos', 40);
+            $table->boolean('activa')->default(true);
+            $table->boolean('editable')->default(true);
             $table->timestamps();
         });
     }

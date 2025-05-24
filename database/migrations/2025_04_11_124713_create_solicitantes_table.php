@@ -17,6 +17,8 @@ class CreateSolicitantesTable extends Migration
             $table->foreignId('id_localidad')->nullable()->constrained('localidades')->onDelete('cascade');
             $table->string('telefono', 10)->nullable();
             $table->string('email', 60)->nullable();
+            $table->boolean('activo')->default(true);
+            $table->boolean('editable')->default(true);
             $table->timestamps();
         });
     }

@@ -112,6 +112,9 @@
     overflow: visible !important; /* Asegura que el contenido no se recorte */
   }
 
+  .el-select-dropdown__item.is-hovering.custom-option {
+    background-color: rgb(240, 240, 240);    
+  }
 
   .custom-select .el-select__tags .el-tag {
     margin: 0.2em!important; /* Ajusta el margen de los tags */
@@ -242,3 +245,19 @@
       -webkit-text-fill-color: #111827 !important; /* Para Safari */
       opacity: 1 !important; /* Evita que el control se vea semi-transparente */
     }
+
+    @keyframes pulse-bar {
+      0% {
+          opacity: 0.6;
+      }
+      50% {
+          opacity: 1;
+      }
+      100% {
+          opacity: 0.6;
+      }
+  }
+  
+  .animate-pulse-bar {
+      animation: pulse-bar 1.25s ease-in-out infinite;
+  }

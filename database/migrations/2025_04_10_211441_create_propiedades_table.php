@@ -18,6 +18,10 @@ class CreatePropiedadesTable extends Migration
             $table->foreignId('id_localidad')->nullable()->constrained('localidades')->onDelete('cascade');
             $table->decimal('superficie', 10, 2)->nullable();
             $table->decimal('superficie_construccion', 10, 2)->nullable();
+            $table->string('img_croquis', 35)->nullable();
+            $table->foreignId('id_propietario')->nullable()->constrained('personas')->onDelete('cascade');
+            $table->boolean('activa')->default(true);
+            $table->boolean('editable')->default(true);
             $table->timestamps();
         });
     }

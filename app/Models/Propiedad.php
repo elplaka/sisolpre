@@ -41,4 +41,9 @@ class Propiedad extends Model
     {
         return $this->hasMany(Solicitud::class, 'id_propiedad');
     }
+
+    public function persona()
+    {
+        return $this->belongsTo(Localidad::class, 'id_propietario');
+    }
 }

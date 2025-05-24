@@ -1,5 +1,7 @@
 <script setup>
+import { usePage } from '@inertiajs/vue3';
 
+const { props: { currentYear } } = usePage();
 </script>
 
 <template>
@@ -8,7 +10,7 @@
         <div
             class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg"
         >
-            <slot />
+            <slot :currentYear="currentYear" />
         </div>
     </div>
 </template>

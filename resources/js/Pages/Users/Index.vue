@@ -16,7 +16,6 @@
 </template>
 
 <script setup>
-// import { defineProps } from 'vue';
 import AdminLayout from '../Admin/Components/AdminLayout.vue'
 import TablaUsers from './TablaUsers.vue'
 import { Head } from '@inertiajs/vue3'; // Importa el componente Head de Inertia.js

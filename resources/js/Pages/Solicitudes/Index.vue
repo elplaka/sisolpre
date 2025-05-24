@@ -8,7 +8,8 @@
         :estatusSolicitud="estatusSolicitud"
         :tiposPropiedades="tiposPropiedades"
         :destinosObras="destinosObras"
-        :tiposTramites="tiposTramites">
+        :tiposTramites="tiposTramites"
+        :localidades="localidades">
       </TablaSolicitudes>
     </AdminLayout>
   </template>
@@ -25,10 +26,10 @@ const props = defineProps({
   tiposPropiedades: Object,
   destinosObras: Object,
   tiposTramites: Object,
+  localidades: Object,
   // solicitantes: Object, // Datos relacionados de los solicitantes
   // propiedades: Object, // Datos relacionados de las propiedades
   // tramites: Object, // Datos relacionados de los trámites
-  // localidades: Object, // Datos relacionados de las localidades
   // estatus: Object, // Estatus de solicitudes
   // searchQuery: String, // Cadena de búsqueda
   userAuth: { type: Object, required: true }, // Información de usuario autenticado

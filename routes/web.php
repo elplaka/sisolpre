@@ -66,7 +66,9 @@ Route::get('solicitudes/get-colonias', [SolicitudController::class, 'getColonias
 Route::get('solicitudes/get-localidades', [SolicitudController::class, 'getLocalidades'])->name('solicitudes.get-localidades')->middleware('auth');
 Route::post('solicitudes/store', [SolicitudController::class, 'store'])->name('solicitudes.store')->middleware('auth');
 Route::post('solicitudes/update/{id}', [SolicitudController::class, 'update'])->name('solicitudes.update')->middleware('auth'); 
-
+Route::post('solicitudes/valida', [SolicitudController::class, 'valida'])->name('solicitudes.valida')->middleware('auth'); 
+Route::post('solicitudes/upload-croquis/{id}', [SolicitudController::class, 'uploadCroquis'])->name('solicitudes.upload-croquis')->middleware('auth'); 
+Route::post('solicitudes/delete-croquis/{id}', [SolicitudController::class, 'deleteCroquis'])->name('solicitudes.delete-croquis')->middleware('auth'); 
 
 Route::post('colonias/store', [ColoniaController::class, 'store'])->name('colonias.store')->middleware('auth');
 

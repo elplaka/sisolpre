@@ -1,6 +1,6 @@
 <script setup>
     import { router, usePage } from '@inertiajs/vue3';
-    import { ref, computed, watch, onMounted, onBeforeUnmount, markRaw  } from 'vue';
+    import { ref, computed, watch, onMounted, onUnmounted, onBeforeUnmount, markRaw, nextTick } from 'vue';
     import Pagination from '@/Components/Pagination.vue'
 
     const props = defineProps({
@@ -10,6 +10,8 @@
         tiposPropiedades: Array,
         destinosObras: Array,
         tiposTramites: Array,
+        localidades: Array,
+
         // searchQuery: String,
         // selectedTypes: Array,
         // isActive: Boolean,
@@ -20,7 +22,8 @@
         // sortDirection: String
     });
 
-    const value = ref(false)
+    const esFolioManual = ref(false);
+    const folioManual = '';
     const sortColumn = ref('');
     const sortDirection = ref('');
     const dropdownVisible = ref(null);
@@ -35,107 +38,365 @@
     const isLoadingModal = ref(false);
     const isLoadingModal2 = ref(false);
     const isSavingModal = ref(false);
+    const isProcessingModal = ref(false);
     const paraNuevaSolicitud = ref(false);
     const paraEditarSolicitud = ref(false);
     const dialogVisible = ref(false);
     const modalBuscarSolicitanteVisible = ref(false);
     const modalBuscarColoniaVisible = ref(false);
     const modalBuscarLocalidadVisible = ref(false);
-    const floatingCURPRef = ref(null);  
-    const floatingNombreRef = ref(null); 
-    const floatingNombrePropietarioRef = ref(null); 
+    const floatingCURPSolicitanteRef = ref(null);  
+    const floatingNomSolicitanteRef = ref(null);
+    const floatingApeSolicitanteRef = ref(null);
+    const floatingEmailSolicitanteRef = ref(null);
+    const floatingTelefonoSolicitanteRef = ref(null);
+
+    const floatingCURPPropietarioRef = ref(null);
+    const floatingNomPropietarioRef = ref(null);
+    const floatingApePropietarioRef = ref(null);
+    const floatingEmailPropietarioRef = ref(null);
+    const floatingTelefonoPropietarioRef = ref(null);
+
     const floatingNombreColoniaRef = ref(null);  
     const floatingNombreLocalidadRef = ref(null); 
     const floatingTipoPropiedadRef = ref(null); 
     const floatingSuperficiePropiedadRef = ref(null);
     const floatingSuperficieConstruccionPropiedadRef = ref(null);
+    const floatingCallePropiedadRef = ref(null);
+    const floatingNumeroPropiedadRef = ref(null);
 
-    const abreModalSolicitud = async () => {
-        resetFormData();
+    const estatusSolicitud = ref([]);
 
-        activeTab.value = 'solicitante';
+    const abreModalSolicitud = async () => 
+    {
+        estatusSolicitud.value = props.estatusSolicitud.filter(item => item.id !== 6);
 
         paraNuevaSolicitud.value = true;
         paraEditarSolicitud.value = false;
-        dialogVisible.value = true; 
+        dialogVisible.value = true;
+        claveCatastralEditable.value = true;
+        curpPropietarioEditable.value = true;
+        curpSolicitanteEditable.value = true;
+        cambiaTabError.value = false;
 
-        idColoniaSolicitante.value = '';
-        nombreColoniaSolicitante.value = '';
-        idLocalidadSolicitante.value = '';
-        nombreLocalidadSolicitante.value = '';
+        resetFormData();
 
-        // claveCatastral.value = '01598765432109876';
-
-        //curp.value = 'CAGA910511MPLVRP07';
-        // nomSolicitante.value = 'ANGEL';
-        // apeSolicitante.value = 'SANCHEZ DIAZ';
-        // telefonoSolicitante.value = '6941088943';
-        // emailSolicitante.value = 'elplaka@hotmail.com';
-        // calleSolicitante.value = 'PROL. BENITO JUAREZ';
-        // numeroSolicitante.value = '25';
-        // idColoniaSolicitante.value = 1;
-        // nombreColoniaSolicitante.value = 'CENTRO';
-        // idLocalidadSolicitante.value = '1';
-        // nombreLocalidadSolicitante.value = 'CONCORDIA';
-
-        // destinoObra.value = 1;
-
+        activeTab.value = 'propiedad';
         isLoading.value = false;   
         isLoadingModal2.value = false; 
 
         setTimeout(() => {
-            floatingCURPRef.value?.focus();
+            claveCatastralRef.value?.focus();
         }, 50);
+    }
+
+    const cargaDatosSolicitud = (solicitud) => 
+    {
+        idSolicitudEditar.value = solicitud.id;  //FOLIO
+        idSolicitanteSolicitud.value = solicitud.id_solicitante;
+        idPropietarioSolicitud.value = solicitud.id_propietario;
+        idPropiedadSolicitud.value = solicitud.id_propiedad;
+        idEstatusSolicitud.value = solicitud.id_estatus;
+        nombreEstatusSolicitud.value = solicitud.estatus.nombre;
+        colorEstatusSolicitud.value = solicitud.estatus.color;
+        fecha_ingreso.value = solicitud.fecha_ingreso;
+        idDestinoObra.value = solicitud.id_destino_obra;
+        nombreDestinoObra.value = solicitud.destino_obra?.nombre;
+
+        esSolicitante.value = solicitud.id_solicitante === solicitud.id_propietario ? '1' : '0';
+    }
+
+    const cargaDatosPropiedad = (propiedad) =>
+    {
+        claveCatastralCompleta.value = true;
+        claveCatastral.value = propiedad.clave_catastral;
+        tipoPropiedad.value = propiedad.id_tipo;
+        nombreTipoPropiedad.value = propiedad?.tipo?.nombre;
+        superficiePropiedad.value = propiedad?.superficie;
+        superficieConstruccionPropiedad.value = propiedad?.superficie_construccion;
+        callePropiedad.value = propiedad?.calle;
+        numeroPropiedad.value = propiedad?.numero;
+        idColoniaPropiedad.value = propiedad?.id_colonia;
+        nombreColoniaPropiedad.value = propiedad?.colonia?.nombre;
+        idLocalidadPropiedad.value = propiedad?.id_localidad;
+        nombreLocalidadPropiedad.value = propiedad?.localidad?.nombre;
+        imgCroquisPropiedad.value = propiedad?.img_croquis;
+
+        if (imgCroquisPropiedad.value == null)
+        {
+            isFileLoaded.value = false;
+            file.value = null;
+            fileName.value = '';
+            imageSrc.value = '';
+        }
+        else
+        {
+            isFileLoaded.value = true;
+            const fileIconTemplate = {
+                template: `
+               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#1f1f1f" class="size-6">
+                <path fill-rule="evenodd" d="M1.5 6a2.25 2.25 0 0 1 2.25-2.25h16.5A2.25 2.25 0 0 1 22.5 6v12a2.25 2.25 0 0 1-2.25 2.25H3.75A2.25 2.25 0 0 1 1.5 18V6ZM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0 0 21 18v-1.94l-2.69-2.689a1.5 1.5 0 0 0-2.12 0l-.88.879.97.97a.75.75 0 1 1-1.06 1.06l-5.16-5.159a1.5 1.5 0 0 0-2.12 0L3 16.061Zm10.125-7.81a1.125 1.125 0 1 1 2.25 0 1.125 1.125 0 0 1-2.25 0Z" clip-rule="evenodd" />
+               </svg> `
+            };
+            fileIcon.value = markRaw(fileIconTemplate); // Marca el objeto como "raw"
+            fileName.value = imgCroquisPropiedad.value;
+            imageSrc.value = '/storage/croquis/' + fileName.value;
+        }
+    }
+
+    const cargaDatosPersonaPropietario = (persona) =>
+    {
+        nomPropietario.value = persona.nombre;
+        apePropietario.value = persona.apellidos;
+
+    } 
+
+    const cargaDatosPropietario = (propietario) =>
+    {
+        idPersonaPropietario.value = propietario.id_persona;
+        curpPropietario.value = propietario.persona?.curp;
+        nomPropietario.value = propietario.persona?.nombre;
+        apePropietario.value = propietario.persona?.apellidos;
+        telefonoPropietario.value = propietario.telefono;
+        emailPropietario.value = propietario.email;
+
+        // callePropietario.value = propietario.calle;
+        // numeroPropietario.value = propietario.num_casa;
+        // idColoniaPropietario.value = propietario.id_colonia;
+        // nombreColoniaPropietario.value = propietario.colonia?.nombre;
+        // idLocalidadPropietario.value = propietario.id_localidad;
+        // nombreLocalidadPropietario.value = propietario.localidad?.nombre;
+    }
+
+    const cargaDatosSolicitante = (solicitante) =>
+    {
+        idPersonaSolicitante.value = solicitante.id_persona;
+        curpSolicitante.value = solicitante.persona.curp;
+        nomSolicitante.value = solicitante.persona.nombre;
+        apeSolicitante.value = solicitante.persona.apellidos;
+        calleSolicitante.value = solicitante.calle;
+        numeroSolicitante.value = solicitante.num_casa;
+        idColoniaSolicitante.value = solicitante.id_colonia;
+        nombreColoniaSolicitante.value = solicitante.colonia?.nombre;
+        idLocalidadSolicitante.value = solicitante.id_localidad;
+        nombreLocalidadSolicitante.value = solicitante.localidad?.nombre;
+        telefonoSolicitante.value = solicitante.telefono;
+        emailSolicitante.value = solicitante.email;
+    }
+
+    const editablesSolicitud = (valor) => {
+        idDestinoObraEditable.value = valor;
+    }
+
+    const editablesPropiedad = (valor) => {
+        tipoPropiedadEditable.value = valor;
+        superficiePropiedadEditable.value = valor;
+        superficieConstruccionPropiedadEditable.value = valor;
+        callePropiedadEditable.value = valor;
+        numeroPropiedadEditable.value = valor;
+        idColoniaPropiedadEditable.value = valor;
+        idLocalidadPropiedadEditable.value = valor;
+    }
+
+    const editablesPersonaPropietario = (valor) => {
+        nomPropietarioEditable.value = valor;
+        apePropietarioEditable.value = valor;
+    }
+
+    const editablesPropietario = (valor) => {
+        telefonoPropietarioEditable.value = valor;
+        emailPropietarioEditable.value = valor;
+
+        // console.log(telefonoPropietarioEditable.value);
+        // callePropietarioEditable.value = valor;
+        // numeroPropietarioEditable.value = valor;
+        // idColoniaPropietarioEditable.value = valor;
+        // idLocalidadPropietarioEditable.value = valor;
+    }
+
+    const editablesPersonaSolicitante = (valor) => {
+        nomSolicitanteEditable.value = valor;
+        apeSolicitanteEditable.value = valor;
+    }
+
+    const editablesSolicitante = (valor) => {
+        telefonoSolicitanteEditable.value = valor;
+        emailSolicitanteEditable.value = valor;
+    }
+
+    const bloqueadosSolicitud = (valor) => {
+        idDestinoObraBloqueado.value = valor;
+    }
+
+    const bloqueadosPersonaPropietario = (valor) => {
+        nomPropietarioBloqueado.value = valor;
+        apePropietarioBloqueado.value = valor;
+    }
+
+    const bloqueadosPersonaSolicitante = (valor) => {
+        nomSolicitanteBloqueado.value = valor;
+        apeSolicitanteBloqueado.value = valor;
+    }
+
+    const bloqueadosPropiedad = (valor) => {
+        tipoPropiedadBloqueado.value = valor;
+        superficiePropiedadBloqueado.value = valor;
+        superficieConstruccionPropiedadBloqueado.value = valor;
+        callePropiedadBloqueado.value = valor;
+        numeroPropiedadBloqueado.value = valor;
+        idColoniaPropiedadBloqueado.value = valor;
+        idLocalidadPropiedadBloqueado.value = valor;
+    }
+
+    const bloqueadosPropietario = (valor) => {
+        telefonoPropietarioBloqueado.value = valor;
+        emailPropietarioBloqueado.value = valor;
+    }
+
+    const bloqueadosSolicitante = (valor) => {
+        telefonoSolicitanteBloqueado.value = valor;
+        emailSolicitanteBloqueado.value = valor;
     }
 
     const abreModalEditarSolicitud = async (solicitud) => {
         paraNuevaSolicitud.value = false;
         paraEditarSolicitud.value = true;
-        dialogVisible.value = true; 
+        nuevaPropiedad.value = false;
+        esSolicitanteEditable.value = true;
+        idEstatusSolicitudEditable.value = true;
+        cambiaTabError.value = false;
+        solicitudBloqueada.value = false;
+        claveCatastralEditable.value = true;
+        curpPropietarioEditable.value = true;
+        curpSolicitanteEditable.value = true;
 
-        idSolicitudEditar.value = solicitud.id;
+        isLoadingModal.value = true;
+        isUploading.value = false;
+        isProcessingFile.value = false;
 
-        folio.value = solicitud.id;
-        idEstatusSolicitud.value = solicitud.id_estatus;
-        fecha_ingreso.value = solicitud.fecha_ingreso;
-        curp.value = solicitud.solicitante.persona.curp;
-        nomSolicitante.value = solicitud.solicitante.persona.nombre;
-        apeSolicitante.value = solicitud.solicitante.persona.apellidos;
-        telefonoSolicitante.value = solicitud.solicitante.telefono;
-        emailSolicitante.value = solicitud.solicitante.email;
-        calleSolicitante.value = solicitud.solicitante.calle;
-        numeroSolicitante.value = solicitud.solicitante.num_casa;
-        idColoniaSolicitante.value = solicitud.solicitante.id_colonia;
-        nombreColoniaSolicitante.value = solicitud.solicitante.colonia?.nombre;
-        idLocalidadSolicitante.value = solicitud.solicitante.id_localidad;
-        nombreLocalidadSolicitante.value = solicitud.solicitante.localidad?.nombre;
+        estatusSolicitud.value = props.estatusSolicitud;
 
-        claveCatastral.value = solicitud.propiedad.clave_catastral;
-        tipoPropiedad.value = solicitud.propiedad.id_tipo;
-        nombreTipoPropiedad.value = solicitud.propiedad?.tipo?.nombre;
-        superficiePropiedad.value = solicitud.propiedad?.superficie;
-        superficieConstruccionPropiedad.value = solicitud.propiedad?.superficie_construccion;
-        callePropiedad.value = solicitud.propiedad?.calle;
-        numeroPropiedad.value = solicitud.propiedad?.numero;
-        idColoniaPropiedad.value = solicitud.propiedad?.id_colonia;
-        nombreColoniaPropiedad.value = solicitud.propiedad?.colonia?.nombre;
-        idLocalidadPropiedad.value = solicitud.propiedad?.id_localidad;
-        nombreLocalidadPropiedad.value = solicitud.propiedad?.localidad?.nombre;
+        bloqueadosPersonaPropietario(!solicitud.propietario.persona.editable);
+        bloqueadosPersonaSolicitante(!solicitud.solicitante.persona.editable);
+        bloqueadosSolicitud(false);
+        bloqueadosPropiedad(false);
+        bloqueadosPropietario(false);
+        bloqueadosSolicitante(false);
 
+        cargaDatosSolicitud(solicitud);
+        cargaDatosPropiedad(solicitud.propiedad);
+        cargaDatosPropietario(solicitud.propietario);
+        editablesSolicitud(true);
+
+        if (solicitud.id_solicitante != solicitud.id_propietario)
+        {
+            cargaDatosSolicitante(solicitud.solicitante);
+            esSolicitante.value = '0';
+        }
+
+        if (idEstatusSolicitud.value >= 6)
+        {   
+            solicitudBloqueada.value = true;
+            curpPropietarioEditable.value = false;
+            claveCatastralEditable.value = false;  
+            idEstatusSolicitudEditable.value = false;
+            idDestinoObraEditable.value = false;
+            curpSolicitanteEditable.value = false;
+            esSolicitanteEditable.value = false;
+            bloqueadosSolicitud(true);
+            bloqueadosPropiedad(true);
+            bloqueadosPropietario(true);
+            bloqueadosSolicitante(true);
+            bloqueadosPersonaPropietario(true);
+            bloqueadosPersonaSolicitante(true);
+            editablesSolicitud(false);
+
+        }
+
+        if (curpPropietario.value.length >= LONGITUD_CURP.value)
+        {
+            curpPropietarioCompleta.value = true;
+        }
+        
+        if (!curpRegex.test(curpPropietario.value)) 
+        {
+            curpPropietarioInvalida.value = true;
+            curpPropietarioCompleta.value = false;
+        } 
+
+        if (curpSolicitante.value.length >= LONGITUD_CURP.value)
+        {
+            curpSolicitanteCompleta.value = true;
+        }
+
+        if (!curpRegex.test(curpSolicitante.value)) 
+        {
+            curpSolicitanteInvalida.value = true;
+            curpSolicitanteCompleta.value = false;
+        } 
+
+        if (curpSolicitante.value.length == 0)
+        {
+            curpSolicitanteInvalida.value = false;
+            curpSolicitanteCompleta.value = false;
+        }
+
+        editablesPropiedad(false);
+        editablesPersonaPropietario(false);
+        editablesPropietario(false);
+        editablesPersonaSolicitante(false);    
+        editablesSolicitante(false);
+        
         tramitesSeleccionados.value = solicitud.tramites.map(tramite => tramite.id_tramite);
-        activeTab.value = 'solicitante';
+
+        nuevoPropietario.value = false;
+        nuevaPropiedad.value = false;
+        nuevoSolicitante.value = false;
+        activeTab.value = 'propiedad';
+        isLoadingModal.value = false;
+        dialogVisible.value = true; 
+        
+        setTimeout(() => {
+            claveCatastralRef.value?.focus();
+        }, 50);
     } 
 
     const dialogWidth = computed(() =>  {
-            return window.innerWidth < 1024 ? '95%' : '55%';
+        return window.innerWidth < 1024 ? '95%' : '55%';
     });
 
     const dialogWidthBuscar = computed(() =>  {
-            return window.innerWidth < 1024 ? '95%' : '35%';
+        return window.innerWidth < 1024 ? '95%' : '35%';
     });
 
-    const resetFormData = () => {
-        curp.value = '';
+    const inicializaSolicitante = () => {
+        nomSolicitante.value = '';
+        apeSolicitante.value = '';
+        telefonoSolicitante.value = '';
+        emailSolicitante.value = '';
+        calleSolicitante.value = '';
+        numeroSolicitante.value = '';
+        idColoniaSolicitante.value = '';
+        nombreColoniaSolicitante.value = '';
+        idLocalidadSolicitante.value = '';
+        nombreLocalidadSolicitante.value = '';
+    };
+
+    const inicializaPropietario = () => {
+        idPersonaPropietario.value = null;
+        nomPropietario.value = '';
+        apePropietario.value = '';
+        telefonoPropietario.value = '';
+        emailPropietario.value = '';
+        callePropietario.value = '';
+        numeroPropietario.value = '';
+        idColoniaPropietario.value = '';
+        nombreColoniaPropietario.value = '';
+        idLocalidadPropietario.value = '';
+        nombreLocalidadPropietario.value = '';
+    };
+
+    const inicializaPropiedad = () => {
         tipoPropiedad.value = '';
         nombreTipoPropiedad.value = '';
         superficiePropiedad.value = '';
@@ -144,22 +405,56 @@
         numeroPropiedad.value = '';
         idColoniaPropiedad.value = '';
         nombreColoniaPropiedad.value = '';
-        idLocalidadPropiedad.value = '';
-        nombreLocalidadPropiedad.value = '';
-        tipoPropiedadEditable.value = true;
-        claveCatastralEditable.value = true;
-        superficiePropiedadEditable.value = true;
-        superficieConstruccionPropiedadEditable.value = true;
-        callePropiedadEditable.value = true;
-        numeroPropiedadEditable.value = true;
-        idColoniaPropiedadEditable.value = true;
-        idLocalidadPropiedadEditable.value = true;
-        idEstatusSolicitud.value = '';
+        //idLocalidadPropiedad.value = '';
+        //nombreLocalidadPropiedad.value = '';
+    };
+
+    const inicializaSolicitud = () => {
+        idEstatusSolicitudEditable.value = true;
         const today = new Date();
         const localDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().split('T')[0];
         fecha_ingreso.value = localDate;
+        tramitesSeleccionados.value = [];
         imageSrc.value = '';
         isFileLoaded.value = false;
+        file.value = null;
+        fileName.value = '';
+        idDestinoObra.value = '';
+        solicitudBloqueada.value = false;
+        esSolicitante.value = '1';
+    }
+
+    const resetFormData = () => {
+        claveCatastral.value = CVE_MUNICIPIO.value + '  000';
+        idEstatusSolicitud.value = '';
+
+        inicializaPropietario();
+        curpPropietario.value = '';
+        curpPropietarioEditable.value = true;
+        curpPropietarioCompleta.value = false;
+        nuevoPropietario.value = false;
+        inicializaPropiedad();
+        inicializaSolicitante();
+        curpSolicitante.value = '';
+        curpSolicitanteEditable.value = true;
+        curpSolicitanteCompleta.value = false;
+        nuevoSolicitante.value = false;
+        inicializaSolicitud();
+        
+        if (paraNuevaSolicitud.value)
+        {
+            editablesSolicitud(true);
+            editablesPropiedad(true);
+            editablesPropietario(true);
+            editablesSolicitante(true);
+            editablesPersonaPropietario(true);
+            editablesPersonaSolicitante(true);
+
+            bloqueadosPropiedad(true);
+            bloqueadosPropietario(true);
+
+            esFolioManual.value = false;
+        }
     };
 
     const handleClose = () => {
@@ -179,17 +474,25 @@
     };
 
     const abreModalBuscarSolicitante = async () => {
-
         modalBuscarSolicitanteVisible.value = true; 
     }
 
-    const folio = ref('');
+    const solicitudBloqueada = ref(false);
     const idEstatusSolicitud = ref('');
+    const nombreEstatusSolicitud = ref('');
+    const colorEstatusSolicitud = ref('');
+    const idSolicitanteSolicitud = ref('');
+    const idPropietarioSolicitud = ref('');
+    const idPropiedadSolicitud = ref('');
+    const imgCroquisPropiedad = ref('');
+    const idDestinoObra = ref('');
+    const idEstatusSolicitudEditable = ref(true);
 
-    const curpCompleta = ref(false);
-    const curpInvalida = ref(false);   
+    const curpSolicitanteCompleta = ref(false);
+    const curpSolicitanteInvalida = ref(false);   
     const persona = ref([]);
-    const curp = ref('');
+    const curpSolicitante = ref('');
+    const idPersonaSolicitante = ref('');
     const nomSolicitante = ref('');
     const apeSolicitante = ref('');
     const calleSolicitante = ref('');
@@ -200,6 +503,7 @@
     const nombreLocalidadSolicitante = ref('');
     const telefonoSolicitante = ref('');
     const emailSolicitante = ref('');
+    const curpSolicitanteEditable = ref(true);
     const nomSolicitanteEditable = ref(true);
     const apeSolicitanteEditable = ref(true);
     const calleSolicitanteEditable = ref(true);
@@ -209,11 +513,21 @@
     const telefonoSolicitanteEditable = ref(true);
     const emailSolicitanteEditable = ref(true);
 
-    const esPropietario = ref(1);
-    const longitud_curp = ref(18);
+    const curpSolicitanteBloqueado = ref(true);
+    const nomSolicitanteBloqueado = ref(true);
+    const apeSolicitanteBloqueado = ref(true);
+    const calleSolicitanteBloqueado = ref(true);
+    const numeroSolicitanteBloqueado = ref(true);
+    const idColoniaSolicitanteBloqueado = ref(true);
+    const idLocalidadSolicitanteBloqueado = ref(true);
+    const telefonoSolicitanteBloqueado = ref(true);
+    const emailSolicitanteBloqueado = ref(true);
 
-    const curpCompletaPropietario = ref(false);
-    const curpInvalidaPropietario = ref(false);   
+    const LONGITUD_CURP = ref(18);
+
+    const idPersonaPropietario = ref('');
+    const curpPropietarioCompleta = ref(false);
+    const curpPropietarioInvalida = ref(false);   
     const curpPropietario = ref('');
     const nomPropietario = ref('');
     const apePropietario = ref('');
@@ -225,6 +539,27 @@
     const nombreLocalidadPropietario = ref('');
     const telefonoPropietario = ref('');
     const emailPropietario = ref('');
+    const esSolicitante = ref('1');
+    const esSolicitanteEditable = ref(true);
+    const curpPropietarioEditable = ref(true);
+    const nomPropietarioEditable = ref(true);
+    const apePropietarioEditable = ref(true);
+    const callePropietarioEditable = ref(true);
+    const numeroPropietarioEditable = ref(true);
+    const idColoniaPropietarioEditable = ref(true);
+    const idLocalidadPropietarioEditable = ref(true);
+    const telefonoPropietarioEditable = ref(true);
+    const emailPropietarioEditable = ref(true);
+
+    const curpPropietarioBloqueado = ref(true);
+    const nomPropietarioBloqueado = ref(true);
+    const apePropietarioBloqueado = ref(true);
+    const callePropietarioBloqueado = ref(true);
+    const numeroPropietarioBloqueado = ref(true);
+    const idColoniaPropietarioBloqueado = ref(true);
+    const idLocalidadPropietarioBloqueado = ref(true);
+    const telefonoPropietarioBloqueado = ref(true);
+    const emailPropietarioBloqueado = ref(true);
 
     const propiedad = ref([]);
     const tipoPropiedad = ref('');
@@ -240,17 +575,32 @@
     const idLocalidadPropiedad = ref('');
     const nombreLocalidadPropiedad = ref('');
     const tipoPropiedadEditable = ref(true);
-    const claveCatastralEditable = ref(true);
+    const claveCatastralEditable = ref(true);    
     const superficiePropiedadEditable = ref(true);
     const superficieConstruccionPropiedadEditable = ref(true);
     const callePropiedadEditable = ref(true);
     const numeroPropiedadEditable = ref(true);
     const idColoniaPropiedadEditable = ref(true);
     const idLocalidadPropiedadEditable = ref(true);
+    const tipoPropiedadBloqueado = ref(true);
+    const claveCatastralBloqueado = ref(true);
+    const superficiePropiedadBloqueado = ref(true);
+    const superficieConstruccionPropiedadBloqueado = ref(true);
+    const callePropiedadBloqueado = ref(true);
+    const numeroPropiedadBloqueado = ref(true);
+    const idColoniaPropiedadBloqueado = ref(true);
+    const idLocalidadPropiedadBloqueado = ref(true);
+
     const croquis = ref('');
 
-    const tramitesSeleccionados = ref([]); 
-    const destinoObra = ref('');
+    const handleCloseModalCroquis = () => {
+        previewDialogVisible.value = false;
+    };
+
+    const tramitesSeleccionados = ref([]);
+    const idDestinoObraEditable = ref(true);
+    const nombreDestinoObra = ref('');
+    const idDestinoObraBloqueado = ref(true);
 
     const obtenerPropiedad = async (claveCatastral) => {
         try {
@@ -278,8 +628,6 @@
 
             const data = await response.json();
             propiedad.value = data.propiedad; // Aquí se almacenan los datos en la variable puestos
-            croquis.value = data.croquis;
-
         } catch (error) {
             console.error('Error al obtener los datos:', error);
         }
@@ -290,8 +638,7 @@
         }
     };
 
-
-    const obtenerPersona = async (curp) => {
+    const obtenerPersona = async (curp, tipo) => {
         try {
             if (dialogVisible.value)
             {
@@ -304,7 +651,7 @@
                 isLoadingModal.value = false;
             }
 
-            const response = await fetch(`/solicitudes/get-persona/${encodeURIComponent(curp)}`, { // Agrega las comillas
+            const response = await fetch(`/solicitudes/get-persona/${encodeURIComponent(curp)}?tipo=${encodeURIComponent(tipo)}`, { // Agrega las comillas
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -312,8 +659,10 @@
             });
 
             if (!response.ok) {
-                throw new Error('Error en la respuesta del servidor');
-            }
+            const errorData = await response.json(); // Intenta obtener más detalles del error del servidor
+            const errorMessage = errorData?.message || `Error en la respuesta del servidor: ${response.status} ${response.statusText}`;
+            throw new Error(errorMessage);
+        }
 
             const data = await response.json();
             persona.value = data.persona; // Aquí se almacenan los datos en la variable puestos
@@ -327,93 +676,101 @@
         }
     };
 
+    watch(esSolicitante, async (newValue) => {
+        if (newValue == 0)
+        {
+            if (!curpSolicitanteCompleta.value)
+            {
+                inicializaSolicitante();
+            }
+        }
+   });
+
    // Expresión regular para validar CURP
     const curpRegex = /^([A-Z][AEIOUX][A-Z]{2}\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])[HM](?:AS|B[CS]|C[CLMSH]|D[FG]|G[TR]|HG|JC|M[CNS]|N[ETL]|OC|PL|Q[TR]|S[PLR]|T[CSL]|VZ|YN|ZS)[B-DF-HJ-NP-TV-Z]{3}[A-Z\d])(\d)$/;
 
-    watch(curp, async (newValue) => {
-        if (newValue.length >= longitud_curp.value)
+    const inputCurpSolicitante = async(event) => 
+    {
+        if (event.isTrusted)  //Sólo si se capturó/copió la clave catastral
         {
-            if (newValue.length > longitud_curp.value)
+            if (curpSolicitante.value.length >= LONGITUD_CURP.value)
             {
-                curpInvalida.value = true;
-                curpCompleta.value = false;
-                return;
-            }
-            if (!curpRegex.test(newValue)) 
-            {
-                curpInvalida.value = true;
-                curpCompleta.value = false;
-                return;
-            }            
+                if (curpSolicitante.value.length > LONGITUD_CURP.value)
+                {
+                    curpSolicitanteInvalida.value = true;
+                    curpSolicitanteCompleta.value = false;
+                    return;
+                }
+                if (!curpRegex.test(curpSolicitante.value)) 
+                {
+                    curpSolicitanteInvalida.value = true;
+                    curpSolicitanteCompleta.value = false;
+                    return;
+                }            
 
-            isLoadingModal.value = true; // Muestra el cargador
-            if (paraNuevaSolicitud)
-            {
-                await obtenerPersona(newValue);
-                curpCompleta.value = true;
-                curpInvalida.value = false;
+                isLoadingModal.value = true; // Muestra el cargador
+                await obtenerPersona(curpSolicitante.value, 'solicitante');
+                curpSolicitanteCompleta.value = true;
+                curpSolicitanteInvalida.value = false;
 
-                if (persona.value && persona.value.length > 0) {
-                    nomSolicitante.value = persona.value[0].nombre;
-                    apeSolicitante.value = persona.value[0].apellidos;
-                    telefonoSolicitante.value = persona.value[0].solicitante.telefono;
-                    emailSolicitante.value = persona.value[0].solicitante.email;
-                    calleSolicitante.value = persona.value[0].solicitante.calle;
-                    numeroSolicitante.value = persona.value[0].solicitante.num_casa;
-                    idColoniaSolicitante.value = persona.value[0].solicitante.id_colonia;
-                    idLocalidadSolicitante.value = persona.value[0].solicitante.id_localidad;
-                    nombreColoniaSolicitante.value = persona.value[0].solicitante.colonia?.nombre ?? '';
-                    nombreLocalidadSolicitante.value = persona.value[0].solicitante.localidad?.nombre ?? '';
+                if (persona.value) 
+                {
+                    idSolicitanteSolicitud.value = persona.value.solicitante?.id || null;
+                    idPersonaSolicitante.value = persona.value.id;
+                    nomSolicitante.value = persona.value.nombre;
+                    apeSolicitante.value = persona.value.apellidos;
+                    telefonoSolicitante.value = persona.value.solicitante?.telefono || null;
+                    emailSolicitante.value = persona.value.solicitante?.email || null;
+                    calleSolicitante.value = persona.value.solicitante?.calle || null;
+                    numeroSolicitante.value = persona.value.solicitante?.num_casa || null;
+                    idColoniaSolicitante.value = persona.value.solicitante?.id_colonia || null;
+                    idLocalidadSolicitante.value = persona.value.solicitante?.id_localidad || null;
+                    nombreColoniaSolicitante.value = persona.value.solicitante?.colonia?.nombre ?? '';
+                    nombreLocalidadSolicitante.value = persona.value.solicitante?.localidad?.nombre ?? '';
                     nuevoSolicitante.value = false;
-                    nomSolicitanteEditable.value = false;
-                    apeSolicitanteEditable.value = false;
-                    telefonoSolicitanteEditable.value = false;
-                    emailSolicitanteEditable.value = false;
-                    calleSolicitanteEditable.value = false;
-                    numeroSolicitanteEditable.value = false;
-                    idColoniaSolicitanteEditable.value = false;
-                    idLocalidadSolicitanteEditable.value = false;
+
+                    if (!solicitudBloqueada.value)
+                    { 
+                        nomSolicitanteBloqueado.value = !persona.value.editable;
+                        apeSolicitanteBloqueado.value = !persona.value.editable;
+
+                        telefonoSolicitanteBloqueado.value = persona.value.solicitante ? !persona.value.solicitante.editable : true;
+                        emailSolicitanteBloqueado.value = persona.value.solicitante ? !persona.value.solicitante.editable : true;
+                        calleSolicitanteBloqueado.value = persona.value.solicitante ? !persona.value.solicitante.editable : true;
+                        numeroSolicitanteBloqueado.value = persona.value.solicitante ? !persona.value.solicitante.editable : true;
+                        idColoniaSolicitanteBloqueado.value = persona.value.solicitante ? !persona.value.solicitante.editable : true;
+                        idLocalidadSolicitanteBloqueado.value = persona.value.solicitante ? !persona.value.solicitante.editable : true;
+                    }
                 } 
                 else
                 {
                     nuevoSolicitante.value = true;
-                    nomSolicitante.value = '';
-                    apeSolicitante.value = '';
-                    telefonoSolicitante.value = '';
-                    emailSolicitante.value = '';
-                    calleSolicitante.value = '';
-                    numeroSolicitante.value = '';
-                    idColoniaSolicitante.value = '';
-                    nombreColoniaSolicitante.value = '';
-                    idLocalidadSolicitante.value = '';
-                    nombreLocalidadSolicitante.value = '';
-                    nomSolicitanteEditable.value = true;
-                    apeSolicitanteEditable.value = true;
-                    telefonoSolicitanteEditable.value = true;
-                    emailSolicitanteEditable.value = true;
-                    calleSolicitanteEditable.value = true;
-                    numeroSolicitanteEditable.value = true;
-                    idColoniaSolicitanteEditable.value = true;
-                    idLocalidadSolicitanteEditable.value = true;
+                    inicializaSolicitante();
+                    editablesPersonaSolicitante(true);
+                    bloqueadosPersonaSolicitante(false);
+                    editablesSolicitante(true);
+                    bloqueadosSolicitante(false);
                     setTimeout(() => {
-                        floatingNombreRef.value?.focus();
+                        floatingNomSolicitanteRef.value?.focus();
                     }, 50);
                 }
+                isLoadingModal.value = false; 
+            } 
+            else 
+            {
+                curpSolicitanteInvalida.value = false;
+                curpSolicitanteCompleta.value = false;
             }
-            isLoadingModal.value = false; 
-        } 
-        else 
-        {
-            curpInvalida.value = false;
-            curpCompleta.value = false;
         }
-    });
+    }
 
-    const activeTab = ref('solicitante');
+    const activeTab = ref('propiedad');
+    const cambiaTabError = ref(false);
     
     const nombreColoniaBuscar = ref('');
     const coloniasFiltradas = ref(null);
     const tipoColonia = ref('');
+    const tipoLocalidad = ref('');
 
     const focusInputSuperficiePropiedad = () =>
     {
@@ -492,12 +849,31 @@
                         showConfirmButton: false,
                         title: page.props.flash.success,
                         timer: 2000,
-                        timerProgressBar: true
+                        timerProgressBar: true,
+                        didOpen: () => {
+                            const swalContainer = document.querySelector('.swal2-container');
+                            if (swalContainer) {
+                                swalContainer.style.setProperty('z-index', '99999', 'important');
+                            }
+                        }
                     });
                     modalBuscarColoniaVisible.value = false;
-                    idColoniaSolicitante.value = page.props.flash.idColonia;
-                    nombreColoniaSolicitante.value = nombreColoniaBuscar.value.toUpperCase().trim();
-                    // resetFormData();
+
+                    if (tipoColonia.value == 'solicitante')
+                    {
+                        idColoniaSolicitante.value = page.props.flash.idColonia;
+                        nombreColoniaSolicitante.value = nombreColoniaBuscar.value.toUpperCase().trim();
+                    }
+                    else if (tipoColonia.value == 'propietario')
+                    {
+                        idColoniaPropietario.value = page.props.flash.idColonia;
+                        nombreColoniaPropietario.value = nombreColoniaBuscar.value.toUpperCase().trim();
+                    }
+                    else if (tipoColonia.value == 'propiedad')
+                    {
+                        idColoniaPropiedad.value = page.props.flash.idColonia;
+                        nombreColoniaPropiedad.value = nombreColoniaBuscar.value.toUpperCase().trim();
+                    }
                     isLoadingModal2.value = false;
                 },
                 onFinish: () => {
@@ -563,7 +939,7 @@
     const nombreLocalidadBuscar = ref('');
     const localidadesFiltradas = ref(null);
 
-    const abreModalBuscarLocalidad = () =>
+    const abreModalBuscarLocalidad = (tipo) =>
     {
         modalBuscarLocalidadVisible.value = true;
 
@@ -571,6 +947,8 @@
         isLoadingModal.value = false;
         nombreLocalidadBuscar.value = '';
         localidadesFiltradas.value = null;
+
+        tipoLocalidad.value = tipo;
 
         setTimeout(() => {
             floatingNombreLocalidadRef.value?.focus();
@@ -613,12 +991,30 @@
                         showConfirmButton: false,
                         title: page.props.flash.success,
                         timer: 2000,
-                        timerProgressBar: true
+                        timerProgressBar: true,
+                        didOpen: () => {
+                            const swalContainer = document.querySelector('.swal2-container');
+                            if (swalContainer) {
+                                swalContainer.style.setProperty('z-index', '99999', 'important');
+                            }
+                        }
                     });
                     modalBuscarLocalidadVisible.value = false;
-                    idLocalidadSolicitante.value = page.props.flash.idLocalidad;
-                    nombreLocalidadSolicitante.value = nombreLocalidadBuscar.value.toUpperCase().trim();
-                    // resetFormData();
+                    if (tipoLocalidad.value == 'solicitante')
+                    {
+                        idLocalidadSolicitante.value = page.props.flash.idLocalidad;
+                        nombreLocalidadSolicitante.value = nombreLocalidadBuscar.value.toUpperCase().trim();
+                    }
+                    else if (tipoLocalidad.value == 'propietario')
+                    {
+                        idLocalidadPropietario.value = page.props.flash.idLocalidad;
+                        nombreLocalidadPropietario.value = nombreLocalidadBuscar.value.toUpperCase().trim();
+                    }
+                    else if (tipoLocalidad.value == 'propiedad')
+                    {
+                        idLocalidadPropiedad.value = page.props.flash.idLocalidad;
+                        nombreLocalidadPropiedad.value = nombreLocalidadBuscar.value.toUpperCase().trim();
+                    }
                     isLoadingModal2.value = false;
                 },
                 onFinish: () => {
@@ -664,118 +1060,106 @@
     {
         modalBuscarLocalidadVisible.value = false;
 
+        if (tipoLocalidad.value == 'solicitante')
+        {
+            idLocalidadSolicitante.value = idLocalidad;
+            nombreLocalidadSolicitante.value = nombreLocalidad;
+        }
+        else if (tipoLocalidad.value == 'propietario')
+        {
+            idLocalidadPropietario.value = idLocalidad;
+            nombreLocalidadPropietario.value = nombreLocalidad;
+        }
+        else if (tipoLocalidad.value == 'propiedad')
+        {
+            idLocalidadPropiedad.value = idLocalidad;
+            nombreLocalidadPropiedad.value = nombreLocalidad;
+        }
+
         idLocalidadSolicitante.value = idLocalidad;
         nombreLocalidadSolicitante.value = nombreLocalidad;
     }
 
-    watch(claveCatastral, async (newValue) => {
-        if (!newValue) { // Verifica si es null, undefined o vacío
-            claveCatastral.value = ''; // O maneja el caso como prefieras
-            return;
-        }
-        
-        if (newValue.length >= 23)
+    const inputCurpPropietario = async(event) => 
+    {
+        if (event.isTrusted)  //Sólo si se capturó/copió la clave catastral
         {
-            if (newValue.length != 23)
+            if (curpPropietario.value && curpPropietario.value.length >= LONGITUD_CURP.value)
             {
-                claveCatastralCompleta.value = false;
-                return;
-            }
+                isLoadingModal.value = true;
+                if (curpPropietario.value.length > LONGITUD_CURP.value)
+                {
+                    curpPropietarioInvalida.value = true;
+                    curpPropietarioCompleta.value = false;
+                    isLoadingModal.value = false;
+                    return;
+                }
+                if (!curpRegex.test(curpPropietario.value)) 
+                {
+                    curpPropietarioInvalida.value = true;
+                    curpPropietarioCompleta.value = false;
+                    isLoadingModal.value = false;
+                    return;
+                } 
 
-            const claveCatastralSinEspacios = newValue.replace(/\s/g, '');
+                await obtenerPersona(curpPropietario.value, 'propietario');
+                curpPropietarioCompleta.value = true;
+                curpPropietarioInvalida.value = false;
 
-            isLoadingModal.value = true; // Muestra el cargador
-            propiedad.value = null;
-            await obtenerPropiedad(claveCatastralSinEspacios);
+                if (persona.value) 
+                {
+                    nuevoPropietario.value = false;
+                    idPersonaPropietario.value = persona.value.id;
+                    idPropietarioSolicitud.value = persona.value.propietario?.id || null;
+                    cargaDatosPersonaPropietario(persona.value);
+                    cargaDatosPropietario(persona.value.propietario);
 
-            claveCatastralCompleta.value = true;
+                    if (!solicitudBloqueada.value)
+                    { 
+                        
+                        bloqueadosPersonaPropietario(!persona.value.propietario?.editable);
+                        editablesPersonaPropietario(false);                        
+                        editablesPropietario(false);
+                        bloqueadosPropietario(false);
 
-            if (propiedad.value) 
-            {
-                tipoPropiedad.value = propiedad.value.id_tipo;
-                nombreTipoPropiedad.value = propiedad?.value?.tipo?.nombre || '';
-                superficiePropiedad.value = propiedad.value.superficie;
-                superficieConstruccionPropiedad.value = propiedad.value.superficie_construccion;
-                callePropiedad.value = propiedad.value.calle;
-                numeroPropiedad.value = propiedad.value.numero;
-                idColoniaPropiedad.value = propiedad.value.id_colonia;
-                nombreColoniaPropiedad.value = propiedad?.value?.colonia?.nombre || '';
-                idLocalidadPropiedad.value = propiedad.value.id_localidad;
-                nombreLocalidadPropiedad.value = propiedad?.value?.localidad?.nombre || '';               
-                nuevaPropiedad.value = false;              
-                acceptFile();
-                imageSrc.value = '/storage/croquis/' + croquis.value;
+                        // editablesSolicitante(false);
+                        // bloqueadosSolicitante(false);
+                        // editablesPersonaSolicitante(persona.value.solicitante?.editable);
+                        // bloqueadosPersonaSolicitante(!persona.value.solicitante?.editable);
+                    }
+                } 
+                else
+                {
+                    nuevoPropietario.value = true;
+                    inicializaPropietario();
+                    editablesPersonaPropietario(true);
+                    editablesPropietario(true);
+
+                    inicializaSolicitante();
+                    editablesPersonaSolicitante(true);
+                    editablesSolicitante(true);
+                    setTimeout(() => {
+                        floatingNomPropietarioRef.value?.focus();
+                    }, 50);
+                }
+
+                isLoadingModal.value = false; 
             } 
-            else
+            else 
             {
-                resetFormData();
-                nuevaPropiedad.value = true;
-                setTimeout(() => {
-                    floatingTipoPropiedadRef.value?.focus();
-                }, 50);
+                curpPropietarioInvalida.value = false;
+                curpPropietarioCompleta.value = false;
             }
-
-            tipoPropiedadEditable.value = nuevaPropiedad;
-            claveCatastralEditable.value = nuevaPropiedad;
-            superficiePropiedadEditable.value = nuevaPropiedad;
-            superficieConstruccionPropiedadEditable.value = nuevaPropiedad;
-            callePropiedadEditable.value = nuevaPropiedad;
-            numeroPropiedadEditable.value = nuevaPropiedad;
-            idColoniaPropiedadEditable.value = nuevaPropiedad;
-            idLocalidadPropiedadEditable.value = nuevaPropiedad;
-        } 
-        else 
-        {
-            claveCatastralCompleta.value = false;
         }
-    });
+    }
 
-    watch(curpPropietario, async (newValue) => {
-        if (newValue.length >= longitud_curp.value)
-        {
-            if (newValue.length > longitud_curp.value)
-            {
-                curpInvalidaPropietario.value = true;
-                curpCompletaPropietario.value = false;
-                return;
-            }
-            if (!curpRegex.test(newValue)) 
-            {
-                curpInvalidaPropietario.value = true;
-                curpCompletaPropietario.value = false;
-                return;
-            }
-            
-            isLoadingModal.value = true; // Muestra el cargador
-            await obtenerPersona(newValue);
-            curpCompletaPropietario.value = true;
-            curpInvalidaPropietario.value = false;
-
-            if (persona.value && persona.value.length > 0) {
-                // nomPropietario.value = persona.value[0].nombre;
-                // apePropietario.value = persona.value[0].apellidos;
-                // callePropietario.value = persona.value[0].solicitante.calle;
-                // nuevoPropietario.value = false;
-            } else
-            {
-                nuevoPropietario.value = true;
-                setTimeout(() => {
-                    floatingNombrePropietarioRef.value?.focus();
-                }, 50);
-            }
-        } 
-        else 
-        {
-            curpInvalidaPropietario.value = false;
-            curpCompletaPropietario.value = false;
-        }
-    });
-
-    const cveMunicipio = ref('012');
+    const CVE_MUNICIPIO = ref('012');
 
     onMounted(() => {
-        claveCatastral.value = cveMunicipio.value + '  000'; // Inicializa con cveMunicipio seguido de un espacio
+        claveCatastral.value = CVE_MUNICIPIO.value + '  000'; // Inicializa con CVE_MUNICIPIO seguido de un espacio
+        asignarLocalidad(claveCatastral);
         document.addEventListener('click', handleClickOutside);
+        window.addEventListener("resize", updateSize);
     });
 
     onBeforeUnmount(() => {
@@ -783,14 +1167,101 @@
     });
 
     // Método para dar formato y permitir edición completa
-    const formatClaveCatastral = (event) => {
+    const formatClaveCatastral = async(event) => {
         let value = event.target.value.replace(/\D/g, ''); // Elimina todo lo que no sean dígitos
         value = value.substring(0, 18);
 
         // Formatear en grupos de tres dígitos separados por espacios
         value = value.replace(/(\d{3})(?=\d)/g, '$1 ');
         claveCatastral.value = value.trim();
+
+        if (event.isTrusted)  //Sólo si se capturó/copió la clave catastral
+        {
+            if (!claveCatastral) { // Verifica si es null, undefined o vacío
+                claveCatastral.value = ''; // O maneja el caso como prefieras
+                return;
+            }
+            
+            if (claveCatastral.value.length >= 23)
+            {
+                if (claveCatastral.value.length != 23)
+                {
+                    claveCatastralCompleta.value = false;
+                    return;
+                }
+
+                asignarLocalidad(claveCatastral);
+
+                const claveCatastralSinEspacios = claveCatastral.value.replace(/\s/g, '');
+
+                propiedad.value = null;
+                await obtenerPropiedad(claveCatastralSinEspacios);
+                isLoadingModal.value = true; // Muestra el cargador
+
+                claveCatastralCompleta.value = true;
+
+                if (propiedad.value) 
+                {
+                    idPropiedadSolicitud.value = propiedad.value.id;
+                    tipoPropiedad.value = propiedad.value.id_tipo;
+                    nombreTipoPropiedad.value = propiedad?.value?.tipo?.nombre || '';
+                    superficiePropiedad.value = propiedad.value.superficie;
+                    superficieConstruccionPropiedad.value = propiedad.value.superficie_construccion;
+                    callePropiedad.value = propiedad.value.calle;
+                    numeroPropiedad.value = propiedad.value.numero;
+                    idColoniaPropiedad.value = propiedad.value.id_colonia;
+                    nombreColoniaPropiedad.value = propiedad.value?.colonia?.nombre || '';
+                    idLocalidadPropiedad.value = propiedad.value.id_localidad;
+                    nombreLocalidadPropiedad.value = propiedad?.value?.localidad?.nombre || '';
+                    croquis.value = propiedad?.value?.croquis || null;             
+                    nuevaPropiedad.value = false;
+                    if (croquis.value != null)
+                    {
+                        acceptFile();
+                        imageSrc.value = '/storage/croquis/' + croquis.value;
+                    }
+
+                    bloqueadosPropiedad(false);
+                    if (solicitudBloqueada.value)
+                    {
+                        bloqueadosPropiedad(true);
+                    }
+
+                   editablesPropiedad(false);
+                } 
+                else
+                {
+                    nuevaPropiedad.value = true;
+                    idPropiedadSolicitud.value = null;
+                    inicializaSolicitud();
+                    inicializaPropiedad();
+                    editablesPropiedad(true);
+
+                    setTimeout(() => {
+                        floatingTipoPropiedadRef.value?.focus();
+                    }, 50);
+                }
+                isLoadingModal.value = false;
+            } 
+            else 
+            {
+                claveCatastralCompleta.value = false;
+            }
+        }
     };
+
+    function asignarLocalidad(claveCatastral)
+    {
+        const localidades = props.localidades;
+
+        if (claveCatastral.value.length > 6)
+        {
+            const idLocalidad = parseInt(claveCatastral.value.substring(4, 7), 10);
+            const localidadPropiedad = localidades.find(l => l.id === idLocalidad);
+            idLocalidadPropiedad.value = localidadPropiedad?.id;
+            nombreLocalidadPropiedad.value = localidadPropiedad?.nombre;
+        }
+    }
 
     watch(claveCatastral, (newValue) => {
         if (!newValue) { // Verifica si es null, undefined o vacío
@@ -813,11 +1284,36 @@
 
     const claveCatastralRef = ref(null);
 
-    watch(activeTab, (newValue) => {
-        if (newValue === 'propiedad') {
-            setTimeout(() => {
-                claveCatastralRef.value?.focus();
-            }, 50);
+    watch(activeTab, (newValue) => 
+    {
+        if (newValue === 'propiedad') 
+        {
+            if (!cambiaTabError.value)
+            {
+                setTimeout(() => {
+                    claveCatastralRef.value?.focus();
+                }, 50);
+            }
+        }
+
+        if (newValue === 'propietario') 
+        {
+            if (!cambiaTabError.value)
+            {
+                setTimeout(() => {
+                    floatingCURPPropietarioRef.value?.focus();
+                }, 50);
+            }
+        }
+
+        if (newValue === 'solicitante') 
+        {
+            if (!cambiaTabError.value)
+            {
+                setTimeout(() => {
+                    floatingCURPSolicitanteRef.value?.focus();
+                }, 50);
+            }
         }
     });
 
@@ -829,6 +1325,7 @@
     const fileInput = ref(null);
     const fileIcon = ref(null); // Para almacenar el componente del icono
     const fileName = ref('');
+    const borraArchivoCroquis = ref(false);
 
     const triggerFileInput = () => {
         fileInput.value.click();
@@ -852,48 +1349,127 @@
         handleFile(droppedFile);
     };
 
-    const handleFileChange = (event) => {
+    // Función para crear un retraso utilizando una promesa
+    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+    const handleFileChange = async (event) => {
+        isLoadingModal.value = true;
+
+        // Retraso para simular la espera de carga
+        await delay(50); // Simulando el retraso antes de procesar el archivo
         const selectedFile = event.target.files[0];
-        handleFile(selectedFile);
+        await handleFile(selectedFile);
     };
 
-    const handleFile = (selectedFile) => {
+    const uploadProgress = ref(0);
+    const isUploading = ref(false);
+    const isProcessingFile = ref(false);
+    const permiteDescartarCroquis = ref(false);
+
+    const uploadFile = async () =>
+    {
+        const formData = new FormData();
+        let claveCatastralSinEspacios = { value: claveCatastral.value.replace(/\s/g, '') };
+        if (claveCatastralSinEspacios.length <= 6)  
+        {
+            claveCatastralSinEspacios.value = null;
+        }
+
+        formData.append('archivo', file.value);
+        formData.append('claveCatastral', claveCatastralSinEspacios.value);
+
+        isUploading.value = true;
+        uploadProgress.value = 0;
+        isProcessingFile.value = false;
+
+        await router.post('/solicitudes/upload-croquis/' + idSolicitudEditar.value, formData, { 
+            onProgress: (progress) => {
+                if (progress) uploadProgress.value = Math.round(progress.percentage);
+                if (uploadProgress.value == 100)
+                {
+                    isUploading.value = false;
+                    isProcessingFile.value = true;
+                }
+            },
+            onSuccess: (page) => {
+                isUploading.value = false;
+                isProcessingFile.value = true;
+
+                const successMessage = page.props?.flash?.success;
+                if (successMessage)
+                {
+                    Swal.fire({
+                        toast: true,
+                        icon: 'success',
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        title: page.props.flash.success,
+                        timer: 2000,
+                        timerProgressBar: true,
+                        didOpen: () => {
+                        const swalContainer = document.querySelector('.swal2-container');
+                        if (swalContainer) {
+                            swalContainer.style.setProperty('z-index', '99999', 'important');
+                        }
+                    }
+                    });
+                    isProcessingModal.value = false;
+                }
+                uploadProgress.value = 100;
+
+            },
+            onFinish:() => {
+                isProcessingFile.value = false;
+                permiteDescartarCroquis.value = false;
+            },  
+            onError: () => {
+                isUploading.value = false;
+                isProcessingFile.value = true;
+                uploadProgress.value = 0;
+            },
+            forceFormData: true
+        });
+    }
+
+    const handleFile = async (selectedFile) => {
         if (selectedFile) {
             file.value = selectedFile;
             fileName.value = selectedFile.name;
-            if (selectedFile.type.startsWith('image/')) 
-            {
+
+            if (selectedFile.type.startsWith('image/')) {
                 const reader = new FileReader();
-                reader.onloadend = () => 
-                {
+                reader.onloadend = async () => {
                     imageSrc.value = reader.result;
-                    previewDialogVisible.value = true;
+                    isLoadingModal.value = false;     
+                    previewDialogVisible.value = true;  
+                    await delay(50); 
                 };
                 reader.readAsDataURL(selectedFile);
                 archivoInvalido.value = false;
-            } 
-            else 
-            {
+                permiteDescartarCroquis.value = true;
+            } else {
                 isFileLoaded.value = false;
                 previewDialogVisible.value = true;
                 file.value = null;
                 fileName.value = '';
                 imageSrc.value = '';
-                if (fileInput.value) 
-                {
+                if (fileInput.value) {
                     fileInput.value.value = '';
                 }
                 archivoInvalido.value = true;
+                isLoadingModal.value = false; // Apagar el spinner si el archivo no es válido
             }
-        }
-        else 
-        {
-            fileName.value = ''; // Limpiar el nombre si no hay archivo seleccionado
+        } else {
+            fileName.value = '';
+            isLoadingModal.value = false;
         }
     };
 
     const acceptFile = () => {
+        isUploading.value = true;
+        isProcessingFile.value = false;
         previewDialogVisible.value = false;
+        uploadFile();
         isFileLoaded.value = true;
         const fileIconTemplate = {
             template: `
@@ -901,7 +1477,7 @@
             </svg>
             `
         };
-        fileIcon.value = markRaw(fileIconTemplate); // Marca el objeto como "raw"
+        fileIcon.value = markRaw(fileIconTemplate);
     };
 
         const rejectFile = () => 
@@ -917,59 +1493,139 @@
             }
         };
 
-    const showPreviewDialog = () => {
+    const showPreviewDialog = async () => {
+        isLoadingModal.value = true;
+
         if (file.value) {
-            if (file.value.type.startsWith('image/')) 
-            {
+            if (file.value.type.startsWith('image/')) {
                 const reader = new FileReader();
-                reader.onloadend = () => {
+
+                reader.onloadend = async () => {
+                    await delay(150);
                     imageSrc.value = reader.result;
                     previewDialogVisible.value = true;
+                    isLoadingModal.value = false;
                 };
+
                 reader.readAsDataURL(file.value);
-            } 
-            else 
-            {
+            } else {
                 previewDialogVisible.value = true;
                 isFileLoaded.value = false;
                 file.value = null;
                 imageSrc.value = '';
                 fileName.value = '';
-                if (fileInput.value) 
-                {
+
+                if (fileInput.value) {
                     fileInput.value.value = '';
                 }
+                isLoadingModal.value = false;
             }
-        }
-        else 
-        {
-            if (!nuevaPropiedad.value)
-            {
+        } else {
+            if (!nuevaPropiedad.value) {
+                await delay(150);
                 previewDialogVisible.value = true;
                 isFileLoaded.value = true;
-            }
-            else
-            {    
+                isLoadingModal.value = false;
+            } else {
                 file.value = null;
                 imageSrc.value = '';
                 fileName.value = '';
-                if (fileInput.value) 
-                {
+                if (fileInput.value) {
                     fileInput.value.value = '';
                 }
             }
         }
     };
 
-    const removeFile = () => {
-        isFileLoaded.value = false;
-        file.value = null;
-        imageSrc.value = '';
-        fileName.value = '';
-        if (fileInput.value) 
-        {
-            fileInput.value.value = '';
-        }
+    const removeFile = async () => 
+    {
+        previewDialogVisible.value = false;  
+
+        Swal.fire({
+            icon: 'warning',
+            title: 'Advertencia',
+            html: `<div style="text-align: center; font-size: 13pt">
+                ¿Deseas eliminar el archivo del croquis? <br> Una vez eliminado no podrás recuperar el archivo.  </div>`,
+            showCancelButton: true,
+            confirmButtonText: 'Aceptar',
+            cancelButtonText: 'Cancelar',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                const swalContainer = document.querySelector('.swal2-container');
+                if (swalContainer) {
+                    swalContainer.style.setProperty('z-index', '99999', 'important');
+                }
+            }
+            }).then(async(result) => {
+            if (result.isConfirmed) {
+                isFileLoaded.value = false;
+                file.value = null;
+                imageSrc.value = '';
+                fileName.value = '';
+                borraArchivoCroquis.value = true;
+                imgCroquisPropiedad.value = null;
+                if (fileInput.value) 
+                {
+                    fileInput.value.value = '';
+                }
+                const formData2 = new FormData();
+                formData2.append('imgCroquisPropiedad', imgCroquisPropiedad.value);
+                isProcessingModal.value = true;
+                await router.post('/solicitudes/delete-croquis/' + idSolicitudEditar.value, formData2, {
+                    onSuccess: (page) => {
+                        const successMessage = page.props?.flash?.success;
+                        if (successMessage)
+                        {
+                            Swal.fire({
+                                toast: true,
+                                icon: 'success',
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                title: page.props.flash.success,
+                                timer: 2000,
+                                timerProgressBar: true,
+                                didOpen: () => {
+                                const swalContainer = document.querySelector('.swal2-container');
+                                if (swalContainer) {
+                                    swalContainer.style.setProperty('z-index', '99999', 'important');
+                                }
+                            }
+                            });
+                            isProcessingModal.value = false;
+                        }
+                    },
+                    onFinish: () => {
+                        isProcessingModal.value = false;
+                        permiteDescartarCroquis.value = true;
+                    },
+                    preserveScroll: true,
+                    preserveState: true,
+                    replace: true,
+                    onError: () => {
+                        isProcessingModal.value = false;
+                        const errorMessage = 'Hubo un error al borrar el archivo.';
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            html: `<div style="text-align: justify; font-size: 12pt"><ul>${errorMessage}</ul></div>`,
+                            confirmButtonText: 'Aceptar',
+                            width: '400px',
+                            target: 'body', // Renderizar en el body
+                            didOpen: () => {
+                                const swalContainer = document.querySelector('.swal2-container');
+                                if (swalContainer) {
+                                    swalContainer.style.setProperty('z-index', '99999', 'important');
+                                }
+                            }
+                        });
+                    },
+                });
+            } else {
+                // El usuario canceló
+            }
+        });
+
     };
 
     const generarNombreArchivo = (nombreOriginal) => 
@@ -982,29 +1638,35 @@
     const agregarSolicitud = async() => {
         isSavingModal.value = true;
         const formData = new FormData();
-        formData.append('curp', curp.value);
-        formData.append('curpInvalida', curpInvalida.value);
-        formData.append('nomSolicitante', nomSolicitante.value);
-        formData.append('apeSolicitante', apeSolicitante.value);
-        formData.append('calleSolicitante', calleSolicitante.value);
-        formData.append('idColoniaSolicitante', idColoniaSolicitante.value);
-        formData.append('numeroSolicitante', numeroSolicitante.value);
-        formData.append('idLocalidadSolicitante', idLocalidadSolicitante.value);
-        formData.append('telefonoSolicitante', telefonoSolicitante.value);
-        formData.append('emailSolicitante', emailSolicitante.value);
-        formData.append('esPropietario', esPropietario.value);
-        if (!esPropietario.value)
-        {
-            formData.append('curpPropietario', curpPropietario.value);
-            formData.append('nomPropietario', nomPropietario.value);
-            formData.append('apePropietario', apePropietario.value);
-            formData.append('callePropietario', callePropietario.value);
-            formData.append('idColoniaPropietario', idColoniaPropietario.value);
-            formData.append('numeroPropietario', numeroPropietario.value);
-            formData.append('idLocalidadPropietario', idLocalidadPropietario.value);
-            formData.append('telefonoPropietario', telefonoPropietario.value);
-            formData.append('emailPropietario', emailPropietario.value);
+
+        formData.append('idPersonaPropietario', idPersonaPropietario.value);
+        formData.append('curpPropietario', curpPropietario.value);
+        formData.append('curpPropietarioInvalida', curpPropietarioInvalida.value);
+        formData.append('nomPropietario', nomPropietario.value);
+        formData.append('apePropietario', apePropietario.value);
+        // formData.append('callePropietario', callePropietario.value);
+        // formData.append('idColoniaPropietario', idColoniaPropietario.value);
+        // formData.append('numeroPropietario', numeroPropietario.value);
+        // formData.append('idLocalidadPropietario', idLocalidadPropietario.value);
+        formData.append('telefonoPropietario', telefonoPropietario.value);
+        formData.append('emailPropietario', emailPropietario.value);
+        formData.append('esSolicitante', esSolicitante.value);
+        
+        if (esSolicitante.value === '0')
+        { 
+            formData.append('idPersonaSolicitante', idPersonaSolicitante.value);
+            formData.append('curpSolicitante', curpSolicitante.value);
+            formData.append('curpSolicitanteInvalida', curpSolicitanteInvalida.value);
+            formData.append('nomSolicitante', nomSolicitante.value);
+            formData.append('apeSolicitante', apeSolicitante.value);
+            // formData.append('calleSolicitante', calleSolicitante.value);
+            // formData.append('idColoniaSolicitante', idColoniaSolicitante.value);
+            // formData.append('numeroSolicitante', numeroSolicitante.value);
+            // formData.append('idLocalidadSolicitante', idLocalidadSolicitante.value);
+            formData.append('telefonoSolicitante', telefonoSolicitante.value);
+            formData.append('emailSolicitante', emailSolicitante.value);
         }
+
         formData.append('tipoPropiedad', tipoPropiedad.value);
         let claveCatastralSinEspacios = { value: claveCatastral.value.replace(/\s/g, '') };
         if (claveCatastralSinEspacios.length <= 6)  //Si no capturaron más del inicio de la clave
@@ -1019,13 +1681,15 @@
         formData.append('superficiePropiedad', superficiePropiedad.value);
         formData.append('superficieConstruccionPropiedad', superficieConstruccionPropiedad.value);
 
-        formData.append('destinoObra', destinoObra.value);
-        formData.append('fechaIngreso', fecha_ingreso.value);
+        formData.append('idDestinoObra', idDestinoObra.value);
+        formData.append('fecha_ingreso', fecha_ingreso.value);
         formData.append('idEstatusSolicitud', idEstatusSolicitud.value);
 
         tramitesSeleccionados.value.forEach(tramiteId => {
             formData.append('tramitesSeleccionados[]', tramiteId);
         });
+
+        cambiaTabError.value = false;  //Indica que NO Cambia el tab por error
 
         if (file.value)
         {
@@ -1051,6 +1715,8 @@
                 },
                 onFinish: () => {
                     isSavingModal.value = false;
+                    activeTab.value = router.page.props.flash.activeTab;
+                    cambiaTabError.value = true;  //Cambia el tab por error
                 },
                 preserveScroll: true,
                 preserveState: true,
@@ -1158,18 +1824,16 @@
             return `${day}/${month}/${year}`; // Construye la fecha en formato "dd/mm/yyyy"
         };
 
-    const actualizarTramitesSeleccionados = (tramiteId, isChecked) => {
-        if (isChecked) {
-            if (!tramitesSeleccionados.value.includes(tramiteId)) {
-            tramitesSeleccionados.value.push(tramiteId);
-            }
+        const actualizarTramitesSeleccionados = (tramiteId) => {
+        if (tramitesSeleccionados.value.includes(tramiteId)) {
+            // Si ya está seleccionado, lo quitamos
+            tramitesSeleccionados.value = tramitesSeleccionados.value.filter(id => id !== tramiteId);
         } else {
-            const index = tramitesSeleccionados.value.indexOf(tramiteId);
-            if (index > -1) {
-            tramitesSeleccionados.value.splice(index, 1);
-            }
+            // Si no está seleccionado, lo agregamos
+            tramitesSeleccionados.value.push(tramiteId);
         }
-    };
+        };
+
 
     function toggleDropdown(solicitudId, event) {
         if (dropdownVisible.value === solicitudId) {
@@ -1200,91 +1864,346 @@
 
     const getColorById = (id) => {
         const estatus = props.estatusSolicitud?.find((item) => item.id === id);
-        return estatus ? estatus.color : "#766e76";
+        return estatus ? estatus.color : "#ffffff";
     };
 
     const habilitarCaptura = (control) => {
         if (control == 'nomSolicitanteEditable')
         {
-             nomSolicitanteEditable.value = !nomSolicitanteEditable.value;
+            nomSolicitanteEditable.value = !nomSolicitanteEditable.value;
+            setTimeout(() => {
+                floatingNomSolicitanteRef.value?.focus();
+            }, 50);
         }
         else if (control == 'apeSolicitanteEditable')
         {
-             apeSolicitanteEditable.value = !apeSolicitanteEditable.value;
+            apeSolicitanteEditable.value = !apeSolicitanteEditable.value;
+            setTimeout(() => {
+                floatingApeSolicitanteRef.value?.focus();
+            }, 50);
         }
         else if (control == 'telefonoSolicitanteEditable')
         {
-             telefonoSolicitanteEditable.value = !telefonoSolicitanteEditable.value;
+            telefonoSolicitanteEditable.value = !telefonoSolicitanteEditable.value;
+            setTimeout(() => {
+                floatingTelefonoSolicitanteRef.value?.focus();
+            }, 50);
         }
         else if (control == 'emailSolicitanteEditable')
         {
-             emailSolicitanteEditable.value = !emailSolicitanteEditable.value;
+            emailSolicitanteEditable.value = !emailSolicitanteEditable.value;
+            setTimeout(() => {
+                floatingEmailSolicitanteRef.value?.focus();
+            }, 50);
         }
-        else if (control == 'calleSolicitanteEditable')
+        // else if (control == 'calleSolicitanteEditable')
+        // {
+        //      calleSolicitanteEditable.value = !calleSolicitanteEditable.value;
+        // }
+        // else if (control == 'numeroSolicitanteEditable')
+        // {
+        //      numeroSolicitanteEditable.value = !numeroSolicitanteEditable.value;
+        // }
+        // else if (control == 'idColoniaSolicitanteEditable')
+        // {
+        //      idColoniaSolicitanteEditable.value = !idColoniaSolicitanteEditable.value;
+        // }
+        // else if (control == 'idLocalidadSolicitanteEditable')
+        // {
+        //      idLocalidadSolicitanteEditable.value = !idLocalidadSolicitanteEditable.value;
+        // }
+        else if (control == 'nomPropietarioEditable')
         {
-             calleSolicitanteEditable.value = !calleSolicitanteEditable.value;
+             nomPropietarioEditable.value = !nomPropietarioEditable.value;
+            setTimeout(() => {
+                    floatingNomPropietarioRef.value?.focus();
+                }, 50);
         }
-        else if (control == 'numeroSolicitanteEditable')
+        else if (control == 'apePropietarioEditable')
         {
-             numeroSolicitanteEditable.value = !numeroSolicitanteEditable.value;
+             apePropietarioEditable.value = !apePropietarioEditable.value;
+            setTimeout(() => {
+                    floatingApePropietarioRef.value?.focus();
+                }, 50);
         }
-        else if (control == 'idColoniaSolicitanteEditable')
+        else if (control == 'telefonoPropietarioEditable')
         {
-             idColoniaSolicitanteEditable.value = !idColoniaSolicitanteEditable.value;
+             telefonoPropietarioEditable.value = !telefonoPropietarioEditable.value;
+              setTimeout(() => {
+                    floatingTelefonoPropietarioRef.value?.focus();
+                }, 50);
         }
-        else if (control == 'idLocalidadSolicitanteEditable')
+        else if (control == 'emailPropietarioEditable')
         {
-             idLocalidadSolicitanteEditable.value = !idLocalidadSolicitanteEditable.value;
+            emailPropietarioEditable.value = !emailPropietarioEditable.value;
+            setTimeout(() => {
+                    floatingEmailPropietarioRef.value?.focus();
+                }, 50);
         }
+        // else if (control == 'callePropietarioEditable')
+        // {
+        //      callePropietarioEditable.value = !callePropietarioEditable.value;
+        // }
+        // else if (control == 'numeroPropietarioEditable')
+        // {
+        //      numeroPropietarioEditable.value = !numeroPropietarioEditable.value;
+        // }
+        // else if (control == 'idColoniaPropietarioEditable')
+        // {
+        //      idColoniaPropietarioEditable.value = !idColoniaPropietarioEditable.value;
+        // }
+        // else if (control == 'idLocalidadPropietarioEditable')
+        // {
+        //      idLocalidadPropietarioEditable.value = !idLocalidadPropietarioEditable.value;
+        // }
+        else if (control == 'tipoPropiedadEditable')
+        {
+            tipoPropiedadEditable.value = !tipoPropiedadEditable.value;
+            setTimeout(() => {
+                    floatingTipoPropiedadRef.value?.focus();
+                }, 50);
+        }
+        else if (control == 'superficiePropiedadEditable')
+        {
+            superficiePropiedadEditable.value = !superficiePropiedadEditable.value;
+            setTimeout(() => {
+                floatingSuperficiePropiedadRef.value?.focus();
+            }, 50);
+        }
+        else if (control == 'superficieConstruccionPropiedadEditable')
+        {
+            superficieConstruccionPropiedadEditable.value = !superficieConstruccionPropiedadEditable.value;
+            setTimeout(() => {
+                floatingSuperficieConstruccionPropiedadRef.value?.focus();
+            }, 50);
+        }
+        else if (control == 'callePropiedadEditable')
+        {
+            callePropiedadEditable.value = !callePropiedadEditable.value;
+            superficieConstruccionPropiedadEditable.value = !superficieConstruccionPropiedadEditable.value;
+            setTimeout(() => {
+                floatingCallePropiedadRef.value?.focus();
+            }, 50);
+        }
+        else if (control == 'numeroPropiedadEditable')
+        {
+            numeroPropiedadEditable.value = !numeroPropiedadEditable.value;
+            setTimeout(() => {
+                floatingNumeroPropiedadRef.value?.focus();
+            }, 50);
+        }
+        else if (control == 'idColoniaPropiedadEditable')
+        {
+            idColoniaPropiedadEditable.value = !idColoniaPropiedadEditable.value;
+            if (idColoniaPropiedadEditable.value)
+            {
+                abreModalBuscarColonia('propiedad');
+            }
+        }
+        else if (control == 'idLocalidadPropiedadEditable')
+        {
+            idLocalidadPropiedadEditable.value = !idLocalidadPropiedadEditable.value;
+            if ( idLocalidadPropiedadEditable.value)
+            {
+                abreModalBuscarLocalidad('propiedad');
+            }
+        }
+        else if (control == 'idDestinoObraEditable')
+        {
+            idDestinoObraEditable.value = !idDestinoObraEditable.value;
+            setTimeout(() => {
+                floatingDestinoObraRef.value?.focus();
+            }, 50);
+        }
+
     }
 
-    const actualizarSolicitud = async() => {
-        isSavingModal.value = true;
-        const formData = new FormData();
-        formData.append('curp', curp.value);
-        formData.append('curpInvalida', curpInvalida.value);
-        formData.append('nomSolicitante', nomSolicitante.value);
-        formData.append('apeSolicitante', apeSolicitante.value);
-        formData.append('calleSolicitante', calleSolicitante.value);
-        formData.append('idColoniaSolicitante', idColoniaSolicitante.value);
-        formData.append('numeroSolicitante', numeroSolicitante.value);
-        formData.append('idLocalidadSolicitante', idLocalidadSolicitante.value);
-        formData.append('telefonoSolicitante', telefonoSolicitante.value);
-        formData.append('emailSolicitante', emailSolicitante.value);
-        formData.append('esPropietario', esPropietario.value);
-        if (!esPropietario.value)
-        {
-            formData.append('curpPropietario', curpPropietario.value);
-            formData.append('nomPropietario', nomPropietario.value);
-            formData.append('apePropietario', apePropietario.value);
-            formData.append('callePropietario', callePropietario.value);
-            formData.append('idColoniaPropietario', idColoniaPropietario.value);
-            formData.append('numeroPropietario', numeroPropietario.value);
-            formData.append('idLocalidadPropietario', idLocalidadPropietario.value);
-            formData.append('telefonoPropietario', telefonoPropietario.value);
-            formData.append('emailPropietario', emailPropietario.value);
-        }
-        formData.append('tipoPropiedad', tipoPropiedad.value);
+    const actualizarSolicitud = async() => 
+    {
+        const debeSubirNuevoCroquis = ref(false);
+
         let claveCatastralSinEspacios = { value: claveCatastral.value.replace(/\s/g, '') };
         if (claveCatastralSinEspacios.length <= 6)  //Si no capturaron más del inicio de la clave
         {
             claveCatastralSinEspacios.value = null;
         }
-        formData.append('claveCatastral', claveCatastralSinEspacios.value);      
+
+        if (imgCroquisPropiedad.value && claveCatastralCompleta.value &&
+        imgCroquisPropiedad.value.substring(0, 18) !== claveCatastralSinEspacios.value) 
+        {
+            const result = await Swal.fire({
+                icon: 'warning',
+                title: 'Advertencia',
+                html: `<div style="text-align: center; font-size: 12pt">
+                    La imagen previamente almacenada correspondía a la clave catastral <b> ${imgCroquisPropiedad.value.substring(0, 18)} </b> <br>
+                    Se eliminará esa imagen y tendrás que subir una nueva.</div>`,
+                showCancelButton: true,
+                confirmButtonText: 'Aceptar',
+                cancelButtonText: 'Cancelar',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                    const swalContainer = document.querySelector('.swal2-container');
+                    if (swalContainer) {
+                        swalContainer.style.setProperty('z-index', '99999', 'important');
+                    }
+                }
+            });
+
+            if (result.isConfirmed) {
+                borraArchivoCroquis.value = true;
+                debeSubirNuevoCroquis.value = true;
+                isFileLoaded.value = false;
+                file.value = null;
+                imageSrc.value = '';
+                fileName.value = '';
+                activeTab.value = 'croquis';
+                isProcessingModal.value = true;
+                const formData2 = new FormData();
+                formData2.append('imgCroquisPropiedad', imgCroquisPropiedad.value);
+                await router.post('/solicitudes/delete-croquis/' + idSolicitudEditar.value, formData2, {
+                    onSuccess: (page) => {
+                        const successMessage = page.props?.flash?.success;
+                        if (successMessage) {
+                            Swal.fire({
+                                toast: true,
+                                icon: 'success',
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                title: page.props.flash.success,
+                                timer: 2000,
+                                timerProgressBar: true,
+                                didOpen: () => {
+                                    const swalContainer = document.querySelector('.swal2-container');
+                                    if (swalContainer) {
+                                        swalContainer.style.setProperty('z-index', '99999', 'important');
+                                    }
+                                }
+                            });
+                            isProcessingModal.value = false;
+                            imgCroquisPropiedad.value = null;
+                        }
+                    },
+                    onFinish: () => {
+                        isProcessingModal.value = false;
+                    },
+                    preserveScroll: true,
+                    preserveState: true,
+                    replace: true,
+                    onError: () => {
+                        isProcessingModal.value = false;
+                        const errorMessage = 'Hubo un error al borrar el archivo.';
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            html: `<div style="text-align: justify; font-size: 12pt"><ul>${errorMessage}</ul></div>`,
+                            confirmButtonText: 'Aceptar',
+                            width: '400px',
+                            target: 'body', // Renderizar en el body
+                            didOpen: () => {
+                                const swalContainer = document.querySelector('.swal2-container');
+                                if (swalContainer) {
+                                    swalContainer.style.setProperty('z-index', '99999', 'important');
+                                }
+                            }
+                        });
+                    },
+                });
+                return;
+            } 
+            else 
+            {
+                borraArchivoCroquis.value = false;
+                debeSubirNuevoCroquis.value = false;
+                return;
+            }
+        }
+
+        if (idEstatusSolicitud.value == 99) 
+        {
+            const result = await Swal.fire({
+                icon: 'warning',
+                title: '¿Deseas concluir el trámite?',
+                html: `<div style="text-align: center; font-size: 12pt">
+                    Si ACEPTAS, a la solicitud ya no se le podrá hacer cambios. </div>`,
+                showCancelButton: true,
+                confirmButtonText: 'Aceptar',
+                cancelButtonText: 'Cancelar',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                    const swalContainer = document.querySelector('.swal2-container');
+                    if (swalContainer) {
+                        swalContainer.style.setProperty('z-index', '99999', 'important');
+                    }
+                }
+            });
+
+            if (result.isDismissed)
+            {
+                return;
+            }
+        }
+
+        isSavingModal.value = true;
+        const formData = new FormData();
+
+        if (esSolicitante.value === '0')
+        {
+            formData.append('curpSolicitante', curpSolicitante.value);
+            formData.append('curpSolicitanteInvalida', curpSolicitanteInvalida.value);
+            formData.append('idPersonaSolicitante', idPersonaSolicitante.value);
+            formData.append('nomSolicitante', nomSolicitante.value);
+            formData.append('apeSolicitante', apeSolicitante.value);
+            // formData.append('calleSolicitante', calleSolicitante.value);
+            // formData.append('idColoniaSolicitante', idColoniaSolicitante.value);
+            // formData.append('numeroSolicitante', numeroSolicitante.value);
+            // formData.append('idLocalidadSolicitante', idLocalidadSolicitante.value);
+            formData.append('telefonoSolicitante', telefonoSolicitante.value);
+            formData.append('emailSolicitante', emailSolicitante.value);
+            formData.append('nuevoSolicitante', nuevoSolicitante.value);
+        }
+  
+        formData.append('curpPropietario', curpPropietario.value);
+        formData.append('curpPropietarioInvalida', curpPropietarioInvalida.value);
+        formData.append('idPersonaPropietario', idPersonaPropietario.value);
+        formData.append('curpPropietario', curpPropietario.value);
+        formData.append('nomPropietario', nomPropietario.value);
+        formData.append('apePropietario', apePropietario.value);
+        // formData.append('callePropietario', callePropietario.value);
+        // formData.append('idColoniaPropietario', idColoniaPropietario.value);
+        // formData.append('numeroPropietario', numeroPropietario.value);
+        // formData.append('idLocalidadPropietario', idLocalidadPropietario.value);
+        formData.append('telefonoPropietario', telefonoPropietario.value);
+        formData.append('emailPropietario', emailPropietario.value);
+        formData.append('esSolicitante', esSolicitante.value);
+        
+        formData.append('tipoPropiedad', tipoPropiedad.value);
+
+        formData.append('claveCatastral', claveCatastralSinEspacios.value);
+        formData.append('tipoPropiedad', tipoPropiedad.value);
         formData.append('callePropiedad', callePropiedad.value);
         formData.append('numeroPropiedad', numeroPropiedad.value);
         formData.append('idColoniaPropiedad', idColoniaPropiedad.value);
         formData.append('idLocalidadPropiedad', idLocalidadPropiedad.value);
         formData.append('superficiePropiedad', superficiePropiedad.value);
         formData.append('superficieConstruccionPropiedad', superficieConstruccionPropiedad.value);
+        formData.append('imgCroquisPropiedad', imgCroquisPropiedad.value);
+        formData.append('borraArchivoCroquis', borraArchivoCroquis.value);
+        formData.append('debeSubirNuevoCroquis', debeSubirNuevoCroquis.value);
 
-        formData.append('destinoObra', destinoObra.value);
-        formData.append('fechaIngreso', fecha_ingreso.value);
+        formData.append('idDestinoObra', idDestinoObra.value);
+        formData.append('fecha_ingreso', fecha_ingreso.value);
         formData.append('idEstatusSolicitud', idEstatusSolicitud.value);
+        formData.append('idSolicitanteSolicitud', idSolicitanteSolicitud.value);
+        formData.append('idPropietarioSolicitud', idPropietarioSolicitud.value);
+        formData.append('idPropiedadSolicitud', idPropiedadSolicitud.value);
 
         tramitesSeleccionados.value.forEach(tramiteId => {
             formData.append('tramitesSeleccionados[]', tramiteId);
         });
+
+        cambiaTabError.value = false;  //Indica que NO cambia el tab por error
 
         if (file.value)
         {
@@ -1292,24 +2211,35 @@
             formData.append('croquis', file.value, nombreArchivoCroquis);
         }
         try {
-            await router.post('/solicitudes/update/' + folio.value, formData, {
+            await router.post('/solicitudes/update/' + idSolicitudEditar.value, formData, {
                 onSuccess: (page) => {
-                    Swal.fire({
-                        toast: true,
-                        icon: 'success',
-                        position: 'top-end',
-                        showConfirmButton: false,
-                        title: page.props.flash.success,
-                        timer: 2000,
-                        timerProgressBar: true
-                    });
-                    modalBuscarColoniaVisible.value = false;
-                    resetFormData();
-                    isSavingModal.value = false;
-                    dialogVisible.value = false;
+                    if (borraArchivoCroquis.value && debeSubirNuevoCroquis.value)
+                    {
+                        isSavingModal.value = false;
+                        dialogVisible.value = true;
+                    }
+                    else
+                    {
+                        Swal.fire({
+                            toast: true,
+                            icon: 'success',
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            title: page.props.flash.success,
+                            timer: 2000,
+                            timerProgressBar: true
+                        });
+                        modalBuscarColoniaVisible.value = false;
+                        modalBuscarLocalidadVisible.value = false;
+                        isSavingModal.value = false;
+                        dialogVisible.value = false;
+                        resetFormData();
+                    }
                 },
                 onFinish: () => {
                     isSavingModal.value = false;
+                    activeTab.value = router.page.props.flash.activeTab;
+                    cambiaTabError.value = true;  //Cambia el tab por error
                 },
                 preserveScroll: true,
                 preserveState: true,
@@ -1342,21 +2272,43 @@
             console.error('Error inesperado:', err);
         }
     };
+
+    const isMobile = ref(window.innerWidth <= 450);
+
+    const updateSize = () => {
+    isMobile.value = window.innerWidth <= 450;
+    };
+
+    onUnmounted(() => {
+    window.removeEventListener("resize", updateSize);
+    });
+
+    const handleTabClick = (tabName) => {
+        cambiaTabError.value = false;
+        activeTab.value = tabName; // Cambia el tab activo
+    };
 </script>
 
-   <template>
+<template>
         <el-dialog
             v-model="dialogVisible"
             :width="dialogWidth"
             :before-close="handleClose"
+            :close-on-click-modal="false"
+            :close-on-press-escape="false"
             top="6vh">
             <template #header>
-                <span v-if="paraEditarSolicitud">
-                    Editar solicitud 
-                    <span class="bg-color1 text-white text-sm font-semibold px-2 py-1 ml-2 rounded-r-md rounded-l-none">
+                <div v-if="paraEditarSolicitud" class="inline-flex items-center justify-center text-base font-medium">
+                    <span v-if="solicitudBloqueada" class="pl-0 pr-2 py-0 flex items-center justify-center">
+                        Solicitud
+                    </span>
+                    <span v-else class="pl-0 pr-2 py-0 flex items-center justify-center">
+                        Editar solicitud
+                    </span>
+                    <span class="bg-color1 text-white px-3 py-0 rounded-r-md flex items-center justify-center">
                         N° {{ (idSolicitudEditar % 10000).toString().padStart(4, '0') }}
                     </span>
-                </span>
+                </div>
                 <span v-else>
                     Nueva solicitud
                 </span>
@@ -1368,13 +2320,39 @@
                 </svg>
                 <span style="margin-left: 0.5rem; color: gray;">Cargando...</span>
             </div>
-            <div v-if="isSavingModal" style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; z-index: 50; background-color: rgba(255, 255, 255, 0.7); width: 100%; height: 100%;">
+            <div v-if="isSavingModal" style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; z-index: 50; background-color: rgba(255, 255, 255, 0.75); width: 100%; height: 100%;">
                 <svg class="animate-bounce" style="width: 2rem; height: 2rem; color: gray;" xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="24px" fill="currentColor">
                     <path d="M840-680v480q0 33-23.5 56.5T760-120H200q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h480l160 160Zm-80 34L646-760H200v560h560v-446ZM480-240q50 0 85-35t35-85q0-50-35-85t-85-35q-50 0-85 35t-35 85q0 50 35 85t85 35ZM240-560h360v-160H240v160Zm-40-86v446-560 114Z"/>
                 </svg>
                 <span style="margin-left: 0.5rem; color: gray;">Guardando...</span>
             </div>
-            <div class="flex flex-col mb-5 md:flex-row items-center justify-between space-y-4 md:space-y-0 md:space-x-4">
+            <div v-if="isProcessingModal" style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; background-color: rgba(255, 255, 255, 0.8); width: 100%; height: 100%;">
+                <svg style="width: 3rem; height: 3rem; color: #4B5563;" class="animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+                <span style="margin-top: 0.75rem; font-size: 1.1rem; font-weight: 500; color: #4B5563;">Procesando...</span>
+            </div>
+            <div v-if="isUploading || isProcessingFile" 
+                style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; background-color: rgba(255, 255, 255, 0.8); width: 100%; height: 100%;">
+                <svg v-if="isProcessingFile" style="width: 3rem; height: 3rem; color: #4B5563;" class="animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+                <span style="margin-top: 0.75rem; font-size: 1.1rem; font-weight: 500; color: #4B5563;">
+                    {{ isUploading ? 'Subiendo archivo...' : 'Procesando archivo en el servidor...' }}
+                </span>
+                <div v-if="isUploading" style="margin-top: 1rem; width: 300px;">
+                    <div class="w-full bg-gray-200 rounded h-4 overflow-hidden">
+                        <div class="bg-color2-600 h-4 transition-all duration-500 ease-in-out"
+                            :style="{ width: uploadProgress + '%', opacity: 1 }"></div>
+                    </div>
+                    <div style="margin-top: 0.5rem; text-align: center; font-size: 0.9rem; color: #4B5563;">
+                        {{ uploadProgress }}%
+                    </div>
+                </div>
+            </div>
+            <!-- <div class="flex flex-col mb-5 md:flex-row items-center justify-between space-y-4 md:space-y-0 md:space-x-4">
                 <div class="relative w-full md:w-auto">
                     <label
                         class="block text-sm text-gray-500 dark:text-gray-400">
@@ -1383,22 +2361,26 @@
                     <input
                     v-model="fecha_ingreso"
                     type="date"
-                    name="floating_fecha"
-                    id="floating_fecha"
-                    class="block w-full md:w-auto py-2.5 pb-1 px-0 text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-color1 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                    :class="{
+                        'block w-full md:w-auto py-2.5 pb-1 px-0 text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-color1 focus:outline-none focus:ring-0 focus:border-color1 peer': !solicitudBloqueada,
+                        'block w-full md:w-auto p-0 m-0 text-sm text-gray-900 bg-color3-50 border-0 appearance-none dark:text-gray-400 focus:outline-none focus:ring-0 peer': solicitudBloqueada
+                    }"
+                    :disabled="solicitudBloqueada"
                     required/>
                 </div>
-                <div class="flex flex-col w-full md:w-90 lg:w-[18rem]">
+                <div class="flex flex-col w-full md:w-90 lg:w-[16rem]">
                     <label
-                        for="estatus-solicitud"
-                        class="block text-sm text-gray-500 dark:text-gray-400 mb-1">
+                        :class="[
+                            'block text-sm text-gray-500 dark:text-gray-400 mb-1',!idEstatusSolicitudEditable ? 'text-center' : '']">
                         Estatus
                         <span
+                            v-if="idEstatusSolicitudEditable"
                             class="w-2 h-2 rounded-sm inline-block mr-2"
                             :style="{ backgroundColor: getColorById(idEstatusSolicitud) }"></span>
-                    </label>
+                        </label>
                     <el-select
                         v-model="idEstatusSolicitud"
+                        v-if="idEstatusSolicitudEditable"
                         placeholder="Selecciona un ESTATUS"
                         class="custom-select w-full md:w-60 lg:w-[18rem]">
                         <el-option
@@ -1415,56 +2397,97 @@
                         {{ item.nombre }}
                         </el-option>
                     </el-select>
+                    <div v-else
+                        class="w-full md:w-60 lg:w-[16rem] py-1 px-1 text-center text-white font-bold rounded-full"
+                        :style="{ backgroundColor: colorEstatusSolicitud }">
+                        {{ nombreEstatusSolicitud }}
+                    </div>
                 </div>
                 <el-switch
                     v-if="!paraEditarSolicitud"
-                    v-model="value"
+                    v-model="folioAutomatico"
                     class="custom-switch self-end w-auto"
                     size="large"
-                    active-text="Folio manual"
+                    active-text="Folio automático"
+                    inactive-text="Folio manual"/>
+            </div> -->
+            <div class="flex flex-col mb-5 md:flex-row items-center justify-between space-y-4 md:space-y-0 md:space-x-4">
+                <div class="relative w-full md:w-auto">
+                    <label class="block text-sm text-gray-500 dark:text-gray-400">
+                    Fecha
+                    </label>
+                    <input
+                    v-model="fecha_ingreso"
+                    type="date"
+                    :class="{
+                        'block w-full md:w-auto py-2.5 pb-1 px-0 text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-color1 focus:outline-none focus:ring-0 focus:border-color1 peer': !solicitudBloqueada,
+                        'block w-full md:w-auto p-0 m-0 text-sm text-gray-900 bg-color3-50 border-0 appearance-none dark:text-gray-400 focus:outline-none focus:ring-0 peer': solicitudBloqueada
+                    }"
+                    :disabled="solicitudBloqueada"
+                    required
+                    />
+                </div>
+                <div class="flex flex-col w-full md:w-60 lg:w-[18rem] p-0 m-0">
+                    <div
+                    :class="[
+                        'flex items-center text-sm text-gray-500 dark:text-gray-400',
+                        solicitudBloqueada ? 'justify-center p-2 mb-1' : 'justify-start m-0 p-0'
+                    ]"
+                    style="margin: 0; padding: 0;">
+                        <span class="ml-0 pl-1 mb-2 mr-2 leading-none">Estatus</span>
+                        <span v-if="idEstatusSolicitudEditable && idEstatusSolicitud"
+                            class="w-2 h-2 rounded-sm inline-block  mb-2"
+                            :style="{ backgroundColor: getColorById(idEstatusSolicitud) }">
+                        </span>
+                    </div>
+                    <el-select
+                    v-if="idEstatusSolicitudEditable"
+                    v-model="idEstatusSolicitud"
+                    placeholder="Selecciona un ESTATUS"
+                    class="custom-select">
+                        <el-option
+                        class="custom-option"
+                        v-for="item in estatusSolicitud"
+                        :key="item.id"
+                        :label="item.nombre"
+                        :value="item.id"
+                        :style="{ color: item.color }">
+                        <span class="w-3 h-3 rounded-sm inline-block mr-2"
+                                :style="{ backgroundColor: item.color }"></span>
+                        {{ item.nombre }}
+                        </el-option>
+                    </el-select>
+
+                    <div v-else
+                        class="py-1 px-1 text-center text-white font-bold rounded-full"
+                        :style="{ backgroundColor: colorEstatusSolicitud }">
+                        {{ nombreEstatusSolicitud }}
+                    </div>
+                </div>
+
+                <div class="flex flex-col items-end w-full md:w-auto" v-if="!paraEditarSolicitud">
+                    <el-switch
+                    v-model="esFolioManual"
+                    class="custom-switch w-full md:w-auto"
+                    size="large"
                     inactive-text="Folio automático"
-                />
+                    active-text="Folio manual"/>
+                    <div v-if="esFolioManual" class="mt-0 w-90">
+                        <input
+                        id="folioManual"
+                        v-model="folioManual"
+                        type="text"
+                        class="block w-full py-0.5 pb-1 px-0 text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-color1 focus:outline-none focus:ring-0 focus:border-color1 peer text-right"
+                        placeholder="Ingresa el folio"/>
+                    </div>
+                </div>
             </div>
             <div class="border-b-2 mb-4 border-gray-200 dark:border-gray-700">
                 <ul class="flex flex-wrap -mb-px text-sm font-medium text-center text-gray-500 dark:text-gray-400">
                     <li class="me-2">
                         <a
                             href="#"
-                            @click.prevent="activeTab = 'solicitante'"
-                            :class="activeTab === 'solicitante' ? 'text-color1 border-color1' : 'hover:text-gray-700 hover:border-gray-400 dark:hover:text-gray-400'"
-                            class="inline-flex items-center justify-center p-4 border-b-2 border-transparent rounded-t-lg group">
-                            <svg
-                                :class="activeTab === 'solicitante' ? 'text-color1' : 'text-gray-500 group-hover:text-gray-600 dark:text-gray-600 dark:group-hover:text-gray-400'"
-                                class="w-4 h-4 me-2"
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="currentColor"
-                                viewBox="0 0 20 20">
-                                <path d="M10 0a10 10 0 1 0 10 10A10.011 10.011 0 0 0 10 0Zm0 5a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm0 13a8.949 8.949 0 0 1-4.951-1.488A3.987 3.987 0 0 1 9 13h2a3.987 3.987 0 0 1 3.951 3.512A8.949 8.949 0 0 1 10 18Z" />
-                            </svg>
-                            Solicitante
-                        </a>
-                    </li>
-                    <li v-if="esPropietario == 0" class="me-2">
-                        <a
-                            href="#"
-                            @click.prevent="activeTab = 'propietario'"
-                            :class="activeTab === 'propietario' ? 'text-color1 border-color1' : 'hover:text-gray-700 hover:border-gray-400 dark:hover:text-gray-400'"
-                            class="inline-flex items-center justify-center p-4 border-b-2 border-transparent rounded-t-lg group">
-                            <svg
-                                :class="activeTab === 'propietario' ? 'text-color1' : 'text-gray-500 group-hover:text-gray-600 dark:text-gray-600 dark:group-hover:text-gray-400'"
-                                class="w-4 h-4 me-2"
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="currentColor"
-                                viewBox="0 0 16 16">
-                                <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zm4.5 0a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1zM8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6m5 2.755C12.146 12.825 10.623 12 8 12s-4.146.826-5 1.755V14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1z"/>
-                            </svg>
-                            Propietario
-                        </a>
-                    </li>
-                    <li class="me-2">
-                        <a
-                            href="#"
-                            @click.prevent="activeTab = 'propiedad'"
+                             @click.prevent="handleTabClick('propiedad')"
                             :class="activeTab === 'propiedad' ? 'text-color1 border-color1' : 'hover:text-gray-700 hover:border-gray-400 dark:hover:text-gray-400'"
                             class="inline-flex items-center justify-center p-4 border-b-2 border-transparent rounded-t-lg group">
                             <svg
@@ -1481,7 +2504,41 @@
                     <li class="me-2">
                         <a
                             href="#"
-                            @click.prevent="activeTab = 'tramite'"
+                            @click.prevent="handleTabClick('propietario')"
+                            :class="activeTab === 'propietario' ? 'text-color1 border-color1' : 'hover:text-gray-700 hover:border-gray-400 dark:hover:text-gray-400'"
+                            class="inline-flex items-center justify-center p-4 border-b-2 border-transparent rounded-t-lg group">
+                            <svg
+                                :class="activeTab === 'propietario' ? 'text-color1' : 'text-gray-500 group-hover:text-gray-600 dark:text-gray-600 dark:group-hover:text-gray-400'"
+                                class="w-4 h-4 me-2"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="currentColor"
+                                viewBox="0 0 16 16">
+                                <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zm4.5 0a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1zM8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6m5 2.755C12.146 12.825 10.623 12 8 12s-4.146.826-5 1.755V14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1z"/>
+                            </svg>
+                            Propietario
+                        </a>
+                    </li>
+                    <li v-if="esSolicitante === '0'" class="me-2">
+                         <a
+                            href="#"
+                             @click.prevent="handleTabClick('solicitante')"
+                            :class="activeTab === 'solicitante' ? 'text-color1 border-color1' : 'hover:text-gray-700 hover:border-gray-400 dark:hover:text-gray-400'"
+                            class="inline-flex items-center justify-center p-4 border-b-2 border-transparent rounded-t-lg group">
+                            <svg
+                                :class="activeTab === 'solicitante' ? 'text-color1' : 'text-gray-500 group-hover:text-gray-600 dark:text-gray-600 dark:group-hover:text-gray-400'"
+                                class="w-4 h-4 me-2"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="currentColor"
+                                viewBox="0 0 20 20">
+                                <path d="M10 0a10 10 0 1 0 10 10A10.011 10.011 0 0 0 10 0Zm0 5a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm0 13a8.949 8.949 0 0 1-4.951-1.488A3.987 3.987 0 0 1 9 13h2a3.987 3.987 0 0 1 3.951 3.512A8.949 8.949 0 0 1 10 18Z" />
+                            </svg>
+                            Solicitante
+                        </a>
+                    </li>
+                    <li v-if="!(idEstatusSolicitud === 6 && tramitesSeleccionados.length === 0)" class="me-2">
+                        <a
+                            href="#"
+                             @click.prevent="handleTabClick('tramite')"
                             :class="activeTab === 'tramite' ? 'text-color1 border-color1' : 'hover:text-gray-700 hover:border-gray-400 dark:hover:text-gray-400'"
                             class="inline-flex items-center justify-center p-4 border-b-2 border-transparent rounded-t-lg group">
                             <svg
@@ -1496,10 +2553,10 @@
                             Trámite(s)
                         </a>
                     </li>
-                    <li class="me-2">
+                    <li v-if="claveCatastral.length == 23 && !(idEstatusSolicitud === 6 && !isFileLoaded)" class="me-2">
                         <a
                             href="#"
-                            @click.prevent="activeTab = 'croquis'"
+                             @click.prevent="handleTabClick('croquis')"
                             :class="activeTab === 'croquis' ? 'text-color1 border-color1' : 'hover:text-gray-700 hover:border-gray-400 dark:hover:text-gray-400'"
                             class="inline-flex items-center justify-center p-4 border-b-2 border-transparent rounded-t-lg group">
                             <svg
@@ -1515,6 +2572,328 @@
                     </li>
                 </ul>
             </div>
+            <div v-if="activeTab === 'propiedad'" class="space-y-4">
+                <h3 
+                    class="flex items-center text-lg font-semibold text-gray-800 dark:text-white">
+                    <span>Datos de la propiedad</span>
+                    <span v-if="nuevaPropiedad"
+                        style="letter-spacing:0.5px" class="flex items-center bg-color2-600 text-xs text-white py-1 font-thin px-2 rounded-lg ml-2">
+                        Nueva
+                    </span>
+                </h3>
+                <div class="flex items-center space-x-4">
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 22%;">
+                        <input
+                            v-model="claveCatastral"
+                            ref="claveCatastralRef" 
+                            type="text"
+                            maxlength="23"
+                            @focus="handleFocusClaveCatastral"
+                            @input="formatClaveCatastral"                            
+                            class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
+                            :class="[{
+                                'pb-1 py-2.5 px-0': claveCatastralEditable,
+                                'bg-color3-50 p-0 m-0 mt-2': !claveCatastralEditable,
+                                'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': claveCatastralEditable
+                            }]"
+                            :disabled="!claveCatastralEditable"
+                            required
+                            />
+                        <label style="z-index: 10;"
+                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                        <span class="hidden sm:block"> Clave catastral</span>
+                        <span class="block sm:hidden">Cve. cat</span>
+                        </label>
+                    </div>
+                    <div v-if="claveCatastralCompleta" class="relative z-0 mb-5 group peer w-full" style="flex-basis: 24%;">
+                        <template v-if="tipoPropiedadEditable">
+                            <select
+                                ref="floatingTipoPropiedadRef"
+                                v-model="tipoPropiedad"
+                                @focus="handleFocusTipoPropiedad(true)"
+                                @blur="handleFocusTipoPropiedad(false)"
+                                class="pt-[10px] pl-0 pb-1 bg-transparent border-0 border-b-2 appearance-none text-gray-900 border-gray-300 w-full text-sm focus:outline-none focus:ring-0 focus:border-color1 block dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500 peer bg-gray-50 p-2.5"
+                                required>
+                                <option value="" disabled selected style="display: none;"></option>
+                                <option v-for="(tipo, index) in tiposPropiedades" :key="index" :value="tipo.id">
+                                    {{ tipo.nombre }}
+                                </option>
+                            </select>
+                            <label style="z-index: 10;"
+                            class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-9 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1"
+                            :class="{
+                                'scale-85 -translate-y-9': tipoPropiedad || isFocusedTipoPropiedad,
+                                'scale-90 translate-y-[-11px]': !tipoPropiedad && !isFocusedTipoPropiedad
+                            }"
+                            :style="{
+                                top: tipoPropiedad || isFocusedTipoPropiedad ? '25px' : '24px',
+                            }">
+                            Tipo
+                            </label>
+                        </template>
+                        <template v-else>
+                            <input
+                            v-model="nombreTipoPropiedad"
+                            class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
+                            :class="[{
+                                'pb-1 py-2.5 px-0': tipoPropiedadEditable,
+                                'bg-color3-50 p-0 m-0 mt-2': !tipoPropiedadEditable,
+                                'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': tipoPropiedadEditable
+                            }]"
+                            :disabled="!tipoPropiedadEditable"
+                            :placeholder="''" />
+                            <label style="z-index: 10;"
+                                class="absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] 
+                                        peer-focus:-translate-y-6 peer-focus:scale-90 peer-focus:text-color1 peer-focus:dark:text-color1"
+                                :class="{ 'translate-y-0 scale-90': !nombreTipoPropiedad }"> Tipo
+                                <button
+                                    v-if="!tipoPropiedadEditable && !tipoPropiedadBloqueado"
+                                    class="ml-2 bg-transparent text-gray-500 hover:text-color1"
+                                    @click="habilitarCaptura('tipoPropiedadEditable')" >
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1"> <!-- Uso de `group-hover` para cambiar el color -->
+                                        <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
+                                    </svg>
+                                </button>
+                            </label>
+                        </template>
+                    </div>
+                    <div v-if="claveCatastralCompleta" class="relative z-0 mb-5 group peer w-full" style="flex-basis: 27%;">
+                        <input
+                            v-model="superficiePropiedad"
+                            ref="floatingSuperficiePropiedadRef"
+                            type="number"
+                            class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
+                            :class="[{
+                                'pb-1 py-2.5 px-0': superficiePropiedadEditable,
+                                'bg-color3-50 p-0 m-0 mt-2': !superficiePropiedadEditable,
+                                'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': superficiePropiedadEditable
+                            }]"
+                            required
+                            :disabled="!superficiePropiedadEditable"
+                            :placeholder="''" />
+                        <label style="z-index: 10;"
+                            class="absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] 
+                                    peer-focus:-translate-y-6 peer-focus:scale-90 peer-focus:text-color1 peer-focus:dark:text-color1"
+                            :class="{ 'translate-y-0 scale-90': !superficiePropiedad }">
+                            <span class="hidden sm:block" @click="focusInputSuperficiePropiedad"> Superficie (m²)
+                                <button
+                                    v-if="!superficiePropiedadEditable && !superficiePropiedadBloqueado"
+                                    class="ml-2 bg-transparent text-gray-500 hover:text-color1"
+                                    @click="habilitarCaptura('superficiePropiedadEditable')" >
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1"> <!-- Uso de `group-hover` para cambiar el color -->
+                                        <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
+                                    </svg>
+                                </button>
+                            </span>
+                            <span class="block sm:hidden"> Sup.          
+                                <button
+                                    v-if="!superficiePropiedadEditable && !superficiePropiedadBloqueado"
+                                    class="ml-2 bg-transparent text-gray-500 hover:text-color1"
+                                    @click="habilitarCaptura('superficiePropiedadEditable')" >
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1"> <!-- Uso de `group-hover` para cambiar el color -->
+                                        <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
+                                    </svg>
+                                </button>
+                            </span>
+                        </label>
+                    </div>
+                    <div v-if="claveCatastralCompleta"  class="relative z-0 mb-5 group peer w-full" style="flex-basis: 27%;">
+                        <div v-if="tipoPropiedad == 2">
+                            <input
+                                v-model="superficieConstruccionPropiedad"
+                                ref="floatingSuperficieConstruccionPropiedadRef"
+                                type="number"
+                                class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
+                                :class="[{
+                                    'pb-1 py-2.5 px-0': superficieConstruccionPropiedadEditable,
+                                    'bg-color3-50 p-0 m-0 mt-2': !superficieConstruccionPropiedadEditable,
+                                    'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': superficieConstruccionPropiedadEditable
+                                }]"
+                                :disabled="!superficieConstruccionPropiedadEditable"
+                                required
+                                :placeholder="''" />
+                                <label style="z-index: 10;"
+                                class="absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0]
+                                    peer-focus:-translate-y-6 peer-focus:scale-90 peer-focus:text-color1 peer-focus:dark:text-color1"
+                                :class="{
+                                     'translate-y-0 scale-90': !superficieConstruccionPropiedad
+                                }">
+                                <span class="hidden sm:block" @click="focusInputSuperficieConstruccionPropiedad"> 
+                                    Sup. en construcción (m²)
+                                    <button
+                                        v-if="!superficieConstruccionPropiedadEditable && !superficieConstruccionPropiedadBloqueado"
+                                        class="ml-2 bg-transparent text-gray-500 hover:text-color1"
+                                        @click="habilitarCaptura('superficieConstruccionPropiedadEditable')" >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1"> <!-- Uso de `group-hover` para cambiar el color -->
+                                            <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
+                                        </svg>
+                                    </button>
+                                </span>
+                                <span class="block sm:hidden"> Sup. const.
+                                    <button
+                                        v-if="!superficieConstruccionPropiedadEditable && !superficieConstruccionPropiedadBloqueado"
+                                        class="ml-2 bg-transparent text-gray-500 hover:text-color1"
+                                        @click="habilitarCaptura('superficieConstruccionPropiedadEditable')" >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1"> <!-- Uso de `group-hover` para cambiar el color -->
+                                            <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
+                                        </svg>
+                                    </button>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div v-if="claveCatastralCompleta" class="flex items-center space-x-4">
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 40%;">
+                        <input
+                        v-model="callePropiedad"
+                         ref="floatingCallePropiedadRef"
+                        type="text"
+                        class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
+                        :class="[{
+                            'pb-1 py-2.5 px-0': callePropiedadEditable,
+                            'bg-color3-50 p-0 m-0 mt-2': !callePropiedadEditable,
+                            'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': callePropiedadEditable
+                        }]"
+                        placeholder=""
+                        :disabled="!callePropiedadEditable"
+                        required/>
+                        <label style="z-index: 10;"
+                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                        Calle
+                            <button
+                                v-if="!callePropiedadEditable && !callePropiedadBloqueado"
+                                class="ml-2 bg-transparent text-gray-500 hover:text-color1"
+                                @click="habilitarCaptura('callePropiedadEditable')" >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1"> <!-- Uso de `group-hover` para cambiar el color -->
+                                    <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
+                                </svg>
+                            </button>
+                        </label>
+                    </div>
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 10%;">
+                        <input
+                        v-model="numeroPropiedad"
+                        ref="floatingNumeroPropiedadRef"
+                        type="text"
+                        class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
+                        :class="[{
+                            'pb-1 py-2.5 px-0': numeroPropiedadEditable,
+                            'bg-color3-50 p-0 m-0 mt-2': !numeroPropiedadEditable,
+                            'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': numeroPropiedadEditable
+                        }]"
+                        placeholder=""
+                        :disabled="!numeroPropiedadEditable"
+                        required/>
+                        <label style="z-index: 10;"
+                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                        N°
+                            <button
+                                v-if="!numeroPropiedadEditable && !numeroPropiedadBloqueado"
+                                class="ml-2 bg-transparent text-gray-500 hover:text-color1"
+                                @click="habilitarCaptura('numeroPropiedadEditable')" >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1"> <!-- Uso de `group-hover` para cambiar el color -->
+                                    <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
+                                </svg>
+                            </button>
+                        </label>
+                    </div>
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 50%;">
+                        <div class="relative">
+                            <input
+                                v-model="nombreColoniaPropiedad"
+                                type="text"
+                                class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
+                                :class="[{
+                                    'pb-1 py-2.5 px-0': idColoniaPropiedadEditable,
+                                    'bg-color3-50 p-0 m-0 mt-2': !idColoniaPropiedadEditable,
+                                    'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': idColoniaPropiedadEditable
+                                }]"
+                                placeholder=""
+                                disabled
+                                required />
+                                <label
+                                    style="z-index: 10;"
+                                    :class="[
+                                        'absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform scale-85 top-3 -z-10 origin-[0]',
+                                        idColoniaPropiedadEditable
+                                            ? 'peer-focus:-translate-y-8 peer-focus:scale-90 peer-focus:text-color1 peer-focus:dark:text-color1 -translate-y-6 peer-placeholder-shown:scale-90'
+                                            : '-translate-y-8 peer-placeholder-shown:scale-90' ,
+                                        { 'peer-placeholder-shown:translate-y-0': idColoniaPropiedadEditable },
+                                        { 'peer-placeholder-shown:translate-y-[-0.5rem]': !idColoniaPropiedadEditable }
+                                    ]">
+                                    Colonia
+                                    <button
+                                        v-if="!idColoniaPropiedadEditable && !idColoniaPropiedadBloqueado"
+                                        class="ml-2 bg-transparent text-gray-500 hover:text-color1"
+                                        @click="habilitarCaptura('idColoniaPropiedadEditable')" >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1"> <!-- Uso de `group-hover` para cambiar el color -->
+                                            <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
+                                        </svg>
+                                    </button>
+                                </label>
+                        </div>
+                        <button
+                            type="button"
+                            v-if="idColoniaPropiedadEditable"
+                            @click="abreModalBuscarColonia('propiedad')"
+                            title="Buscar colonia..."
+                            class="absolute right-0 top-1/2 transform -translate-y-1/2 p-1 text-gray-500 hover:text-color1-700 rounded-lg focus:outline-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 scale-110" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M12.9 14.32a8 8 0 111.42-1.42l4.9 4.9a1 1 0 01-1.42 1.42l-4.9-4.9zM8 14a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div v-if="claveCatastralCompleta" class="flex items-center space-x-4">
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 50%;">
+                        <div class="relative">
+                            <input
+                                v-model="nombreLocalidadPropiedad"
+                                type="text"
+                                class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
+                                :class="[{
+                                    'pb-1 py-2.5 px-0': idLocalidadPropiedadEditable,
+                                    'bg-color3-50 p-0 m-0 mt-2': !idLocalidadPropiedadEditable,
+                                    'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': idLocalidadPropiedadEditable
+                                }]"
+                                placeholder=""
+                                disabled
+                                required />
+                                <label
+                                    style="z-index: 10;"
+                                    :class="[
+                                        'absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform scale-85 top-3 -z-10 origin-[0]',
+                                        idLocalidadPropiedadEditable
+                                            ? 'peer-focus:-translate-y-8 peer-focus:scale-90 peer-focus:text-color1 peer-focus:dark:text-color1 -translate-y-6 peer-placeholder-shown:scale-90'
+                                            : '-translate-y-8 peer-placeholder-shown:scale-90' ,
+                                        { 'peer-placeholder-shown:translate-y-0': idLocalidadPropiedadEditable },
+                                        { 'peer-placeholder-shown:translate-y-[-0.5rem]': !idLocalidadPropiedadEditable }
+                                    ]">
+                                    Localidad
+                                    <button
+                                        v-if="!idLocalidadPropiedadEditable && !idLocalidadPropiedadBloqueado"
+                                        class="ml-2 bg-transparent text-gray-500 hover:text-color1"
+                                        @click="habilitarCaptura('idLocalidadPropiedadEditable')" >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1"> <!-- Uso de `group-hover` para cambiar el color -->
+                                            <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
+                                        </svg>
+                                    </button>
+                                </label>
+                        </div>
+                        <button
+                            type="button"
+                            v-if="idLocalidadPropiedadEditable"
+                            @click="abreModalBuscarLocalidad('propiedad')"
+                            title="Buscar localidad..."
+                            class="absolute right-0 top-1/2 transform -translate-y-1/2 p-1 text-gray-500 hover:text-color1-700 rounded-lg focus:outline-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 scale-110" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M12.9 14.32a8 8 0 111.42-1.42l4.9 4.9a1 1 0 01-1.42 1.42l-4.9-4.9zM8 14a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
             <div v-if="activeTab === 'solicitante'" class="space-y-4">
                 <h3 
                     class="flex items-center text-lg font-semibold text-gray-800 dark:text-white">
@@ -1527,25 +2906,29 @@
                 <div class="flex items-center space-x-4">
                     <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 25%;">
                         <input
-                        v-model="curp"
-                        ref="floatingCURPRef"
+                        v-model="curpSolicitante"
+                        ref="floatingCURPSolicitanteRef"
                         autocomplete="off"
                         type="text"
-                        name="floating_CURP"
-                        id="floating_CURP"
-                        class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                        @input="inputCurpSolicitante"
+                        class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
+                        :class="[{
+                            'pb-1 py-2.5 px-0': curpSolicitanteEditable,
+                            'bg-color3-50 p-0 m-0 mt-2': !curpSolicitanteEditable,
+                            'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': curpSolicitanteEditable
+                        }]"
                         placeholder=""
-                        :maxlength="longitud_curp" 
+                        :maxlength="LONGITUD_CURP"
+                        :disabled="!curpSolicitanteEditable"
                         required/>
                         <label 
-                            for="floating_CURP" 
-                            style="letter-spacing: -0.12em;" 
+                            style="letter-spacing: -0.12em; z-index: 10;" 
                             class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
-                            <span v-if="!curpInvalida" class="flex-shrink-0">C U R P</span>
+                            <span v-if="!curpSolicitanteInvalida" class="flex-shrink-0">C U R P</span>
                             <span 
                                 class="flex items-center bg-color1-50 text-color1-800 px-1 rounded-md"
-                                style="letter-spacing: 0em;" 
-                                v-else="curpInvalida">
+                                style="letter-spacing: 0em; z-index: 10;" 
+                                v-else="curpSolicitanteInvalida">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" 
                                     stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
@@ -1554,10 +2937,10 @@
                             </span>
                         </label>
                     </div>
-                    <div v-if="curpCompleta" class="relative z-0 mb-5 group peer w-full" style="flex-basis: 35%;">
+                    <div v-if="curpSolicitanteCompleta" class="relative z-0 mb-5 group peer w-full" style="flex-basis: 35%;">
                         <input
                         v-model="nomSolicitante"
-                        ref="floatingNombreRef"
+                        ref="floatingNomSolicitanteRef"
                         autocomplete="off"
                         type="text"          
                         class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
@@ -1569,12 +2952,12 @@
                         placeholder=""
                         :disabled="!nomSolicitanteEditable"
                         required/>
-                        <label for="floating_nombre"
+                        <label
                             style="letter-spacing: -0.12em; z-index: 10;"
                             class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
                             N o m b r e
                             <button
-                                v-if="!nomSolicitanteEditable"
+                                v-if="!nomSolicitanteEditable && !nomSolicitanteBloqueado"
                                 class="ml-2 bg-transparent text-gray-500 hover:text-color1"
                                 @click="habilitarCaptura('nomSolicitanteEditable')" >
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1"> <!-- Uso de `group-hover` para cambiar el color -->
@@ -1583,10 +2966,10 @@
                             </button>
                         </label>                        
                     </div>
-                    <div v-if="curpCompleta" class="relative z-0 mb-5 group peer w-full" style="flex-basis: 40%;">
+                    <div v-if="curpSolicitanteCompleta" class="relative z-0 mb-5 group peer w-full" style="flex-basis: 40%;">
                         <input
                         v-model="apeSolicitante"
-                        ref="floatingApellidosRef"
+                        ref="floatingApeSolicitanteRef"
                         autocomplete="off"
                         type="text"
                         class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
@@ -1600,11 +2983,10 @@
                         required/>
                         <label
                         style="letter-spacing: -0.12em; z-index: 10;"
-                        for="floating_apellidos"
                         class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
                         A p e l l i d o s
                             <button
-                                v-if="!apeSolicitanteEditable"
+                                v-if="!apeSolicitanteEditable && !apeSolicitanteBloqueado"
                                 class="ml-2 bg-transparent text-gray-500 hover:text-color1"
                                 @click="habilitarCaptura('apeSolicitanteEditable')" >
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1"> <!-- Uso de `group-hover` para cambiar el color -->
@@ -1614,10 +2996,11 @@
                         </label>
                     </div>
                 </div>
-                <div v-if="curpCompleta" class="flex items-center space-x-4" style="margin-bottom: -1rem;">
+                <div v-if="curpSolicitanteCompleta" class="flex items-center space-x-4" style="margin-bottom: -1rem;">
                     <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 25%;">
                         <input
                         v-model="telefonoSolicitante"
+                        ref="floatingTelefonoSolicitanteRef"
                         type="text"
                         class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
                         :class="[{
@@ -1634,7 +3017,7 @@
                         <span class="hidden sm:block">N ° &nbsp; d e &nbsp; t e l é f o n o</span>
                         <span class="block sm:hidden">T e l é f o n o</span>
                             <button
-                                v-if="!telefonoSolicitanteEditable"
+                                v-if="!telefonoSolicitanteEditable && !telefonoSolicitanteBloqueado"
                                 class="ml-2 bg-transparent text-gray-500 hover:text-color1"
                                 @click="habilitarCaptura('telefonoSolicitanteEditable')" >
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1"> <!-- Uso de `group-hover` para cambiar el color -->
@@ -1646,6 +3029,7 @@
                     <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 40%;">
                         <input
                         v-model="emailSolicitante"
+                        ref="floatingEmailSolicitanteRef"
                         type="text"
                         class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
                         :class="[{
@@ -1661,7 +3045,7 @@
                         <span class="hidden sm:block">C o r r e o &nbsp; e l e c t r ó n i c o</span>
                         <span class="block sm:hidden">E - m a i l</span>
                             <button
-                                v-if="!emailSolicitanteEditable"
+                                v-if="!emailSolicitanteEditable && !emailSolicitanteBloqueado"
                                 class="ml-2 bg-transparent text-gray-500 hover:text-color1"
                                 @click="habilitarCaptura('emailSolicitanteEditable')" >
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1"> <!-- Uso de `group-hover` para cambiar el color -->
@@ -1670,25 +3054,8 @@
                             </button>
                         </label>
                     </div>
-                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 35%;">
-                        <select
-                            id="select_propietario"
-                            v-model="esPropietario"
-                            class="pt-3 pl-0 pb-1 bg-transparent border-0 border-b-2 appearance-none text-gray-900 border-gray-300 w-full text-sm focus:outline-none focus:ring-0 focus:border-color1 block dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500 peer
-                            bg-gray-50 p-2.5"
-                            required>
-                            <option value="" disabled selected style="display: none;"></option>
-                            <option :key="'1'" :value="'1'">SÍ</option>
-                            <option :key="'0'" :value="'0'">NO</option>
-                        </select>
-                        <label
-                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
-                        <span class="hidden sm:block"> ¿Es el/la propietario(a)?</span>
-                        <span class="block sm:hidden">¿Propietario(a)?</span>
-                        </label>
-                    </div>
                 </div>
-                <h2 v-if="curpCompleta" 
+                <!-- <h2 v-if="curpCompleta" 
                     class="flex items-center text-sm font-semibold text-gray-800 dark:text-white">
                     <span>Domicilio</span>
                 </h2>
@@ -1709,10 +3076,10 @@
                         class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
                         Calle
                             <button
-                                v-if="!calleSolicitanteEditable"
+                                v-if="!calleSolicitanteEditable && !calleSolicitanteBloqueado"
                                 class="ml-2 bg-transparent text-gray-500 hover:text-color1"
                                 @click="habilitarCaptura('calleSolicitanteEditable')" >
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1"> <!-- Uso de `group-hover` para cambiar el color -->
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1">
                                     <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
                                 </svg>
                             </button>
@@ -1734,10 +3101,10 @@
                         class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
                         N°
                             <button
-                                v-if="!numeroSolicitanteEditable"
+                                v-if="!numeroSolicitanteEditable && !numeroSolicitanteBloqueado"
                                 class="ml-2 bg-transparent text-gray-500 hover:text-color1"
                                 @click="habilitarCaptura('numeroSolicitanteEditable')" >
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1"> <!-- Uso de `group-hover` para cambiar el color -->
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1">
                                     <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
                                 </svg>
                             </button>
@@ -1769,10 +3136,10 @@
                                     ]">
                                     Colonia
                                     <button
-                                        v-if="!idColoniaSolicitanteEditable"
+                                        v-if="!idColoniaSolicitanteEditable && !idColoniaSolicitanteBloqueado"
                                         class="ml-2 bg-transparent text-gray-500 hover:text-color1"
                                         @click="habilitarCaptura('idColoniaSolicitanteEditable')" >
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1"> <!-- Uso de `group-hover` para cambiar el color -->
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1">
                                             <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
                                         </svg>
                                     </button>
@@ -1818,10 +3185,10 @@
                                 >
                                     Localidad
                                     <button
-                                        v-if="!idLocalidadSolicitanteEditable"
+                                        v-if="!idLocalidadSolicitanteEditable && !idLocalidadSolicitanteBloqueado"
                                         class="ml-2 bg-transparent text-gray-500 hover:text-color1"
                                         @click="habilitarCaptura('idLocalidadSolicitanteEditable')" >
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1"> <!-- Uso de `group-hover` para cambiar el color -->
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1">
                                             <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
                                         </svg>
                                     </button>
@@ -1829,7 +3196,7 @@
                         </div>
                         <button
                             type="button"
-                            @click="abreModalBuscarLocalidad"
+                            @click="abreModalBuscarLocalidad('solicitante')"
                             v-if="idLocalidadSolicitanteEditable"
                             title="Buscar localidad..."
                             class="absolute right-0 top-1/2 transform -translate-y-1/2 p-1 text-gray-500 hover:text-color1-700 rounded-lg focus:outline-none">
@@ -1838,13 +3205,13 @@
                             </svg>
                         </button>
                     </div>
-                </div>
+                </div> -->
             </div>
             <div v-if="activeTab === 'propietario'" class="space-y-4">
                 <h3 
                     class="flex items-center text-lg font-semibold text-gray-800 dark:text-white">
                     <span>Datos del/a propietario(a)</span>
-                    <span 
+                    <span v-if="nuevoPropietario"
                         style="letter-spacing:0.5px" class="flex items-center bg-color2-600 text-xs text-white py-1 font-thin px-2 rounded-lg ml-2">
                         Nuevo(a)
                     </span>
@@ -1853,24 +3220,28 @@
                     <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 25%;">
                         <input
                         v-model="curpPropietario"
+                        @input="inputCurpPropietario"
                         ref="floatingCURPPropietarioRef"
                         autocomplete="off"
                         type="text"
-                        name="floating_CURPPropietario"
-                        id="floating_CURPPropietario"
-                        class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                        class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
+                        :class="[{
+                            'pb-1 py-2.5 px-0': curpPropietarioEditable,
+                            'bg-color3-50 p-0 m-0 mt-2': !curpPropietarioEditable,
+                            'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': curpPropietarioEditable
+                        }]"
                         placeholder=""
-                        :maxlength="longitud_curp" 
+                        :maxlength="LONGITUD_CURP"
+                        :disabled="!curpPropietarioEditable"
                         required/>
                         <label 
-                            for="floating_CURPPropietario" 
-                            style="letter-spacing: -0.12em;" 
-                            class="flex items-center peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
-                            <span v-if="!curpInvalidaPropietario" class="flex-shrink-0">C U R P</span>
+                            style="letter-spacing: -0.12em; z-index: 10;" 
+                            class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                            <span v-if="!curpPropietarioInvalida" class="flex-shrink-0">C U R P</span>
                             <span 
                                 class="flex items-center bg-color1-50 text-color1-800 px-1 rounded-md"
-                                style="letter-spacing: 0em;" 
-                                v-else="curpInvalidaPropietario">
+                                style="letter-spacing: 0em; z-index: 10;" 
+                                v-else="curpPropietarioInvalida">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" 
                                     stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
@@ -1879,95 +3250,201 @@
                             </span>
                         </label>
                     </div>
-                    <div v-if="curpCompletaPropietario" class="relative z-0 mb-5 group peer w-full" style="flex-basis: 35%;">
+                    <div v-if="curpPropietarioCompleta" class="relative z-0 mb-5 group peer w-full" style="flex-basis: 35%;">
                         <input
                         v-model="nomPropietario"
-                        ref="floatingNombrePropietarioRef"
+                        ref="floatingNomPropietarioRef"
                         autocomplete="off"
                         type="text"          
-                        class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                        class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
+                        :class="[{
+                            'pb-1 py-2.5 px-0': nomPropietarioEditable,
+                            'bg-color3-50 p-0 m-0 mt-2': !nomPropietarioEditable,
+                            'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': nomPropietarioEditable
+                        }]"
                         placeholder=""
+                        :disabled="!nomPropietarioEditable"
                         required/>
                         <label
-                        for="floating_nombrePropietario"
-                        style="letter-spacing: -0.12em;"
-                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
-                        N o m b r e
-                        </label>
+                            style="letter-spacing: -0.12em; z-index: 10;"
+                            class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                            N o m b r e
+                            <button
+                                v-if="!nomPropietarioEditable && !nomPropietarioBloqueado"
+                                class="ml-2 bg-transparent text-gray-500 hover:text-color1"
+                                @click="habilitarCaptura('nomPropietarioEditable')" >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1"> <!-- Uso de `group-hover` para cambiar el color -->
+                                    <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
+                                </svg>
+                            </button>
+                        </label>                        
                     </div>
-                    <div v-if="curpCompletaPropietario" class="relative z-0 mb-5 group peer w-full" style="flex-basis: 40%;">
+                    <div v-if="curpPropietarioCompleta" class="relative z-0 mb-5 group peer w-full" style="flex-basis: 40%;">
                         <input
                         v-model="apePropietario"
+                        ref="floatingApePropietarioRef"
                         autocomplete="off"
                         type="text"
-                        class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                        class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
+                        :class="[{
+                            'pb-1 py-2.5 px-0': apePropietarioEditable,
+                            'bg-color3-50 p-0 m-0 mt-2': !apePropietarioEditable,
+                            'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': apePropietarioEditable
+                        }]"
                         placeholder=""
+                        :disabled="!apePropietarioEditable"
                         required/>
                         <label
-                        style="letter-spacing: -0.12em;"
+                        style="letter-spacing: -0.12em; z-index: 10;"
                         class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
                         A p e l l i d o s
+                            <button
+                                v-if="!apePropietarioEditable && !apePropietarioBloqueado"
+                                class="ml-2 bg-transparent text-gray-500 hover:text-color1"
+                                @click="habilitarCaptura('apePropietarioEditable')" >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1"> <!-- Uso de `group-hover` para cambiar el color -->
+                                    <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
+                                </svg>
+                            </button>
                         </label>
                     </div>
                 </div>
-                <div v-if="curpCompletaPropietario" class="flex items-center space-x-4" style="margin-bottom: -1rem;">
+                <div v-if="curpPropietarioCompleta" class="flex items-center space-x-4" style="margin-bottom: 1rem;">
                     <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 25%;">
                         <input
                         v-model="telefonoPropietario"
+                        ref="floatingTelefonoPropietarioRef"
                         type="text"
-                        class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                        class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
+                        :class="[{
+                            'pb-1 py-2.5 px-0': telefonoPropietarioEditable,
+                            'bg-color3-50 p-0 m-0 mt-2': !telefonoPropietarioEditable,
+                            'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': telefonoPropietarioEditable
+                        }]"
                         placeholder=""
+                        :disabled="!telefonoPropietarioEditable"
                         required/>
                         <label
-                        style="letter-spacing: -0.12em;"
-                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
-                        
+                        style="letter-spacing: -0.12em; z-index: 10;"
+                        class="flex peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
                         <span class="hidden sm:block">N ° &nbsp; d e &nbsp; t e l é f o n o</span>
                         <span class="block sm:hidden">T e l é f o n o</span>
+                            <button
+                                v-if="!telefonoPropietarioEditable && !telefonoPropietarioBloqueado"
+                                class="ml-2 bg-transparent text-gray-500 hover:text-color1"
+                                @click="habilitarCaptura('telefonoPropietarioEditable')" >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1"> <!-- Uso de `group-hover` para cambiar el color -->
+                                    <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
+                                </svg>
+                            </button>
                         </label>
                     </div>
-                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 45%;">
+                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 40%;">
                         <input
                         v-model="emailPropietario"
+                        ref="floatingEmailPropietarioRef"
                         type="text"
-                        class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                        class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
+                        :class="[{
+                            'pb-1 py-2.5 px-0': emailPropietarioEditable,
+                            'bg-color3-50 p-0 m-0 mt-2': !emailPropietarioEditable,
+                            'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': emailPropietarioEditable
+                        }]"
                         placeholder=""
-                        required/>
+                        :disabled="!emailPropietarioEditable"/>
                         <label
-                        style="letter-spacing: -0.12em;"
-                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                        style="letter-spacing: -0.12em; z-index: 10;"
+                        class="flex peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
                         <span class="hidden sm:block">C o r r e o &nbsp; e l e c t r ó n i c o</span>
                         <span class="block sm:hidden">E - m a i l</span>
+                            <button
+                                v-if="!emailPropietarioEditable && !emailPropietarioBloqueado"
+                                class="ml-2 bg-transparent text-gray-500 hover:text-color1"
+                                @click="habilitarCaptura('emailPropietarioEditable')" >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1"> <!-- Uso de `group-hover` para cambiar el color -->
+                                    <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
+                                </svg>
+                            </button>
+                        </label>
+                    </div>
+                    <div v-if="esSolicitanteEditable"  class="relative z-0 mb-5 group peer w-full" style="flex-basis: 35%;">
+                        <select
+                            v-model="esSolicitante"
+                            class="pt-3 pl-0 pb-1 bg-transparent border-0 border-b-2 appearance-none text-gray-900 border-gray-300 w-full text-sm focus:outline-none focus:ring-0 focus:border-color1 block dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500 peer
+                            bg-gray-50 p-2.5"
+                            required>
+                            <option value="" disabled selected style="display: none;"></option>
+                            <option :key="'1'" :value="'1'">SÍ</option>
+                            <option :key="'0'" :value="'0'">NO</option>
+                        </select>
+                        <label
+                             style="z-index: 10;"
+                            :class="[
+                                'absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform scale-85 top-3 -z-10 origin-[0]',
+                                esSolicitanteEditable || esSolicitante == null
+                                    ? 'peer-focus:-translate-y-8 peer-focus:scale-90 peer-focus:text-color1 peer-focus:dark:text-color1 -translate-y-6 peer-placeholder-shown:scale-90'
+                                    : '-translate-y-8 peer-placeholder-shown:scale-90' ,
+                                { 'peer-placeholder-shown:translate-y-0': esSolicitanteEditable },
+                                { 'peer-placeholder-shown:translate-y-[-0.5rem]': esSolicitante == null }
+                            ]">
+                            <span class="hidden sm:block"> ¿Es el/la solicitante?</span>
+                            <span class="block sm:hidden">¿Solicitante(a)?</span>
                         </label>
                     </div>
                 </div>
-                <h2 v-if="curpCompletaPropietario" 
+                <!-- <h2 v-if="curpPropietarioCompleta" 
                     class="flex items-center text-sm font-semibold text-gray-800 dark:text-white">
                     <span>Domicilio</span>
                 </h2>
-                <div v-if="curpCompletaPropietario" class="flex items-center space-x-4">
+                <div v-if="curpPropietarioCompleta" class="flex items-center space-x-4">
                     <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 40%;">
                         <input
                         v-model="callePropietario"
                         type="text"
-                        class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                        class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
+                        :class="[{
+                            'pb-1 py-2.5 px-0': callePropietarioEditable,
+                            'bg-color3-50 p-0 m-0 mt-2': !callePropietarioEditable,
+                            'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': callePropietarioEditable
+                        }]"
                         placeholder=""
-                        required/>
-                        <label
+                        :disabled="!callePropietarioEditable"/>
+                        <label style="z-index: 10;"
                         class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
                         Calle
+                            <button
+                                v-if="!callePropietarioEditable && !callePropietarioBloqueado"
+                                class="ml-2 bg-transparent text-gray-500 hover:text-color1"
+                                @click="habilitarCaptura('callePropietarioEditable')" >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1">
+                                    <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
+                                </svg>
+                            </button>
                         </label>
                     </div>
                     <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 10%;">
                         <input
                         v-model="numeroPropietario"
                         type="text"
-                        class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                        class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
+                        :class="[{
+                            'pb-1 py-2.5 px-0': numeroPropietarioEditable,
+                            'bg-color3-50 p-0 m-0 mt-2': !numeroPropietarioEditable,
+                            'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': numeroPropietarioEditable
+                        }]"
                         placeholder=""
-                        required/>
-                        <label
+                        :disabled="!numeroPropietarioEditable"/>
+                        <label style="z-index: 10;"
                         class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
                         N°
+                            <button
+                                v-if="!numeroPropietarioEditable && !numeroPropietarioBloqueado"
+                                class="ml-2 bg-transparent text-gray-500 hover:text-color1"
+                                @click="habilitarCaptura('numeroPropietarioEditable')" >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1">
+                                    <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
+                                </svg>
+                            </button>
                         </label>
                     </div>
                     <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 50%;">
@@ -1975,19 +3452,41 @@
                             <input
                                 v-model="nombreColoniaPropietario"
                                 type="text"
-                                class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                                class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
+                                :class="[{
+                                    'pb-1 py-2.5 px-0': idColoniaPropietarioEditable,
+                                    'bg-color3-50 p-0 m-0 mt-2': !idColoniaPropietarioEditable,
+                                    'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': idColoniaPropietarioEditable
+                                }]"
                                 placeholder=""
                                 disabled
                                 required />
-                            <label
-                                class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
-                                Colonia
-                            </label>
+                                <label
+                                    style="z-index: 10;"
+                                    :class="[
+                                        'absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform scale-85 top-3 -z-10 origin-[0]',
+                                        idColoniaPropietarioEditable || idColoniaPropietario == null
+                                            ? 'peer-focus:-translate-y-8 peer-focus:scale-90 peer-focus:text-color1 peer-focus:dark:text-color1 -translate-y-6 peer-placeholder-shown:scale-90'
+                                            : '-translate-y-8 peer-placeholder-shown:scale-90' ,
+                                        { 'peer-placeholder-shown:translate-y-0': idColoniaPropietarioEditable },
+                                        { 'peer-placeholder-shown:translate-y-[-0.5rem]': idColoniaPropietario == null }
+                                    ]">
+                                    Colonia
+                                    <button
+                                        v-if="!idColoniaPropietarioEditable && !idColoniaPropietarioBloqueado"
+                                        class="ml-2 bg-transparent text-gray-500 hover:text-color1"
+                                        @click="habilitarCaptura('idColoniaPropietarioEditable')" >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1">
+                                            <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
+                                        </svg>
+                                    </button>
+                                </label>
                         </div>
                         <button
                             type="button"
                             @click="abreModalBuscarColonia('propietario')"
                             title="Buscar colonia..."
+                            v-if="idColoniaPropietarioEditable"
                             class="absolute right-0 top-1/2 transform -translate-y-1/2 p-1 text-gray-500 hover:text-color1-700 rounded-lg focus:outline-none">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 scale-110" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M12.9 14.32a8 8 0 111.42-1.42l4.9 4.9a1 1 0 01-1.42 1.42l-4.9-4.9zM8 14a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd" />
@@ -1995,24 +3494,47 @@
                         </button>
                     </div>
                 </div>
-                <div v-if="curpCompletaPropietario" class="flex items-center space-x-4">
+                <div v-if="curpPropietarioCompleta" class="flex items-center space-x-4">
                     <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 50%;">
                         <div class="relative">
                             <input
                                 v-model="nombreLocalidadPropietario"
                                 type="text"
-                                class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
+                                class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
+                                :class="[{
+                                    'pb-1 py-2.5 px-0': idLocalidadPropietarioEditable,
+                                    'bg-color3-50 p-0 m-0 mt-2': !idLocalidadPropietarioEditable,
+                                    'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': idLocalidadPropietarioEditable
+                                }]"
                                 placeholder=""
                                 disabled
                                 required />
-                            <label
-                                class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
-                                Localidad
-                            </label>
+                                <label
+                                    style="z-index: 10;"
+                                    :class="[
+                                        'absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform scale-85 top-3 -z-10 origin-[0]',
+                                        idLocalidadPropietarioEditable
+                                            ? 'peer-focus:-translate-y-8 peer-focus:scale-90 peer-focus:text-color1 peer-focus:dark:text-color1 -translate-y-6 peer-placeholder-shown:scale-90'
+                                            : '-translate-y-8 peer-placeholder-shown:scale-90' ,
+                                        { 'peer-placeholder-shown:translate-y-0': idLocalidadPropietarioEditable },
+                                        { 'peer-placeholder-shown:translate-y-[-0.5rem]': !idLocalidadPropietarioEditable }
+                                    ]"
+                                >
+                                    Localidad
+                                    <button
+                                        v-if="!idLocalidadPropietarioEditable && !idLocalidadPropietarioBloqueado"
+                                        class="ml-2 bg-transparent text-gray-500 hover:text-color1"
+                                        @click="habilitarCaptura('idLocalidadPropietarioEditable')" >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1">
+                                            <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
+                                        </svg>
+                                    </button>
+                                </label>
                         </div>
                         <button
                             type="button"
-                            @click="abreModalBuscarLocalidad"
+                            @click="abreModalBuscarLocalidad('propietario')"
+                            v-if="idLocalidadPropietarioEditable"
                             title="Buscar localidad..."
                             class="absolute right-0 top-1/2 transform -translate-y-1/2 p-1 text-gray-500 hover:text-color1-700 rounded-lg focus:outline-none">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 scale-110" fill="currentColor" viewBox="0 0 20 20">
@@ -2020,327 +3542,184 @@
                             </svg>
                         </button>
                     </div>
-                </div>
+                </div> -->
             </div>
-            <div v-if="activeTab === 'propiedad'" class="space-y-4">
-                <h3 
-                    class="flex items-center text-lg font-semibold text-gray-800 dark:text-white">
-                    <span>Datos de la propiedad</span>
-                    <span v-if="nuevaPropiedad"
-                        style="letter-spacing:0.5px" class="flex items-center bg-color2-600 text-xs text-white py-1 font-thin px-2 rounded-lg ml-2">
-                        Nueva
-                    </span>
-                </h3>
-                <div class="flex items-center space-x-4">
-                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 22%;">
-                        <input
-                            v-model="claveCatastral"
-                            ref="claveCatastralRef" 
-                            type="text"
-                            class="block pb-1 py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 focus:outline-none focus:ring-0 focus:border-color1 peer"
-                            maxlength="23"
-                            @focus="handleFocusClaveCatastral"
-                            @input="formatClaveCatastral"
-                            required
-                            />
-                        <label
-                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
-                        <span class="hidden sm:block"> Clave catastral</span>
-                        <span class="block sm:hidden">Cve. catastral</span>
-                        </label>
+            <div v-if="activeTab == 'tramite'" class="space-y-4">
+                <div class="flex items-center gap-4 w-full">
+                    <h3 class="flex items-center text-lg font-semibold text-gray-800 dark:text-white">
+                        Trámite(s) a realizar
+                    </h3>
+                    <div v-if="tramitesSeleccionados.length && !solicitudBloqueada" class="flex flex-nowrap gap-2">
+                        <div 
+                            v-for="tramiteId in tramitesSeleccionados"
+                            :key="tramiteId"
+                            class="bg-color1-50 text-color1-800 text-xs font-semibold px-2 py-1 rounded-md flex items-center gap-1 shadow-sm">
+                            <span class="text-[10px]">
+                                {{ tiposTramites.flatMap(t => t.tramites).find(t => t.id === tramiteId)?.nombre_abreviado }}
+                            </span>
+                            <button
+                                @click="tramitesSeleccionados = tramitesSeleccionados.filter(id => id !== tramiteId)"
+                                class="text-color1-800 text-[8px] font-bold bg-color1-50 w-3 h-3 flex items-center justify-center rounded-full hover:bg-red-200">
+                                X
+                            </button>
+                        </div>
                     </div>
-                    <div v-if="claveCatastralCompleta" class="relative z-0 mb-5 group peer w-full" style="flex-basis: 24%;">
-                        <template v-if="tipoPropiedadEditable">
+                </div>
+                <div v-if="solicitudBloqueada" class="flex items-center overflow-x-auto">
+                    <div v-if="tramitesSeleccionados.length" class="flex flex-wrap gap-2">
+                        <div
+                            v-for="tramiteId in tramitesSeleccionados"
+                            :key="tramiteId"
+                            class="bg-transparent border-2 border-color1-300 text-color1-600 text-sm font-semibold px-2 py-2 rounded-lg flex items-center gap-1 shadow-sm">
+                            <span>
+                            {{ tiposTramites.flatMap(t => t.tramites).find(t => t.id === tramiteId)?.nombre }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div v-else class="flex items-center overflow-x-auto">
+                    <div class="h-[30vh] overflow-y-auto mx-auto">
+                        <div v-if="!isMobile">
+                            <table class="min-w-fit mx-auto table-fixed border-separate border-spacing-x-1">
+                                <thead class="sticky top-0 z-10">
+                                    <tr>
+                                        <th
+                                            v-for="tipoTramite in tiposTramites"
+                                           :key="tipoTramite.id"
+                                             :style="{ width: `${100 / tiposTramites.length}%` }"
+                                            class="bg-gray-100 uppercase px-4 py-2 text-sm font-semibold text-gray-900 dark:text-white text-center">
+                                            {{ tipoTramite.nombre }}
+                                        </th>
+                                    </tr>
+                                    <tr>
+                                        <th class="h-2 bg-white" colspan="100"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="index in Math.max(...tiposTramites.map(t => t.tramites.length))" :key="index">
+                                        <td
+                                            v-for="tipoTramite in tiposTramites"
+                                            :key="tipoTramite.id"
+                                            class="px-1 py-1 text-center h-[55px] whitespace-normal"
+                                            :style="{
+                                                    width: (760 / tiposTramites.length) + 'px',
+                                                    minWidth: (760 / tiposTramites.length) + 'px'
+                                                }">
+                                            <div
+                                            v-if="tipoTramite.tramites[index - 1]"
+                                            @click="actualizarTramitesSeleccionados(tipoTramite.tramites[index - 1].id)"
+                                            :class="{
+                                                'bg-color1-600 text-white font-bold border-color1-800': tramitesSeleccionados.includes(tipoTramite.tramites[index - 1].id),
+                                                'text-gray-700 bg-gray-50 border-gray-400 hover:shadow-md hover:border-2 hover:text-color1-800': !tramitesSeleccionados.includes(tipoTramite.tramites[index - 1].id)
+                                            }"
+                                            class="flex items-center justify-center h-full w-full rounded-md px-4 py-2 cursor-pointer border 
+                                            transition-colors hover:shadow-lg hover:-translate-y-1">
+                                            <span class="text-xs dark:text-gray-300 text-center leading-tight">
+                                                {{ tipoTramite.tramites[index - 1]?.nombre }}
+                                            </span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <tbody v-if="isMobile">
+                            <template v-for="tipoTramite in tiposTramites" :key="tipoTramite.id">
+                                <tr>
+                                    <td 
+                                        class="px-4 py-2 text-center font-bold align-middle w-[80px] h-[60px] border border-gray-300"
+                                        :rowspan="tipoTramite.tramites.length || 1">
+                                        {{ tipoTramite.nombre }}
+                                    </td>
+                                    <td class="px-3 py-2 text-center w-[150px] h-[60px] overflow-hidden">
+                                        <div
+                                        v-if="tipoTramite.tramites.length"
+                                        @click="actualizarTramitesSeleccionados(tipoTramite.tramites[0].id)"
+                                            :class="{
+                                                'bg-color1-600 text-white font-bold border-color1-800': tramitesSeleccionados.includes(tipoTramite.tramites[0].id),
+                                                'text-gray-700 border-gray-400  hover:bg-gray-100 hover:font-semibold hover:border-color1-500 hover:border-2': !tramitesSeleccionados.includes(tipoTramite.tramites[0].id)
+                                            }"
+                                            class="flex items-center justify-center h-full w-full rounded-md px-4 py-2 cursor-pointer border 
+                                            transition-colors hover:shadow-lg hover:-translate-y-1">
+                                        <span class="text-xs dark:text-gray-300 text-center leading-tight whitespace-normal">
+                                            {{ tipoTramite.tramites[0]?.nombre }} 
+                                        </span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr v-for="tramite in tipoTramite.tramites.slice(1)" :key="tramite.id">
+                                    <td class="px-3 py-2 text-center w-[100px] h-[60px] overflow-hidden">
+                                        <div 
+                                            @click="actualizarTramitesSeleccionados(tramite.id)"
+                                            :class="{
+                                                'bg-color1-600 text-white font-bold border-color1-800': tramitesSeleccionados.includes(tramite.id),
+                                                'text-gray-700 border-gray-400  hover:bg-gray-100 hover:font-semibold hover:border-color1-500 hover:border-2': !tramitesSeleccionados.includes(tramite.id)
+                                            }"
+                                            class="flex items-center justify-center h-full w-full rounded-md px-4 py-2 cursor-pointer border 
+                                            transition-colors hover:shadow-lg hover:-translate-y-1">
+                                        <span class="text-xs dark:text-gray-300 text-center leading-tight whitespace-normal">
+                                            {{ tramite.nombre }}
+                                        </span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="relative z-0 mt-3 mb-5 group peer w-full" style="flex-basis: 30%;">
+                        <template v-if="idDestinoObraEditable">
                             <select
-                                id="select_tipo_propiedad"
-                                ref="floatingTipoPropiedadRef"
-                                v-model="tipoPropiedad"
-                                @focus="handleFocusTipoPropiedad(true)"
-                                @blur="handleFocusTipoPropiedad(false)"
-                                class="pt-[10px] pl-0 pb-1 bg-transparent border-0 border-b-2 appearance-none text-gray-900 border-gray-300 w-full text-sm focus:outline-none focus:ring-0 focus:border-color1 block dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500 peer bg-gray-50 p-2.5"
+                                v-model="idDestinoObra"
+                                @focus="handleFocusDestinoObra(true)"
+                                @blur="handleFocusDestinoObra(false)"
+                                class="pt-3 pl-0 pb-1 bg-transparent border-0 border-b-2 appearance-none text-gray-900 border-gray-300 w-full text-sm focus:outline-none focus:ring-0 focus:border-color1 block dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500 peer bg-gray-50 p-2.5"
                                 required>
                                 <option value="" disabled selected style="display: none;"></option>
-                                <option v-for="(tipo, index) in tiposPropiedades" :key="index" :value="tipo.id">
-                                    {{ tipo.nombre }}
+                                <option v-for="(destino, index) in destinosObras" :key="index" :value="destino.id">
+                                    {{ destino.nombre }}
                                 </option>
                             </select>
-                            <label style="z-index: 10;"
+                            <label
                             class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-9 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1"
-                            for="select_tipo_propiedad"
                             :class="{
-                                'scale-85 -translate-y-9': tipoPropiedad || isFocusedTipoPropiedad,
-                                'scale-90 translate-y-[-11px]': !tipoPropiedad && !isFocusedTipoPropiedad
+                                'scale-85 -translate-y-9': idDestinoObra || isFocusedDestinoObra,
+                                'scale-90 translate-y-[-11px]': !idDestinoObra && !isFocusedDestinoObra
                             }"
                             :style="{
-                                top: tipoPropiedad || isFocusedTipoPropiedad ? '25px' : '24px',
+                                top: idDestinoObra || isFocusedDestinoObra ? '25px' : '24px',
                             }"
                             >
-                            Tipo
+                            <span class="hidden sm:block"> Destino de la obra</span>
+                            <span class="block sm:hidden">Dest. obra</span>
                             </label>
                         </template>
-                        <template v-else>
+                         <template v-else>
                             <input
-                            v-model="nombreTipoPropiedad"
+                            v-model="nombreDestinoObra"
                             class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
                             :class="[{
-                                'pb-1 py-2.5 px-0': tipoPropiedadEditable,
-                                'bg-color3-100 p-0 m-0 mt-2': !tipoPropiedadEditable,
-                                'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': tipoPropiedadEditable
+                                'pb-1 py-2.5 px-0': idDestinoObraEditable,
+                                'bg-color3-50 p-0 m-0 mt-2': !idDestinoObraEditable,
+                                'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': idDestinoObraEditable
                             }]"
-                            :disabled="!tipoPropiedadEditable"
+                            :disabled="!idDestinoObraEditable"
                             :placeholder="''" />
                             <label style="z-index: 10;"
                                 class="absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] 
                                         peer-focus:-translate-y-6 peer-focus:scale-90 peer-focus:text-color1 peer-focus:dark:text-color1"
-                                :class="{ 'translate-y-0 scale-90': !nombreTipoPropiedad }">
-                                Tipo
+                                :class="{ 'translate-y-0 scale-90': !idDestinoObra }"> Tipo
+                                <button
+                                    v-if="!idDestinoObraEditable && !idDestinoObraBloqueado"
+                                    class="ml-2 bg-transparent text-gray-500 hover:text-color1"
+                                    @click="habilitarCaptura('idDestinoObraEditable')" >
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1"> <!-- Uso de `group-hover` para cambiar el color -->
+                                        <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
+                                    </svg>
+                                </button>
                             </label>
                         </template>
-                    </div>
-                    <div v-if="claveCatastralCompleta" class="relative z-0 mb-5 group peer w-full" style="flex-basis: 27%;">
-                        <input
-                            v-model="superficiePropiedad"
-                            ref="floatingSuperficiePropiedadRef"
-                            type="number"
-                            class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
-                            :class="[{
-                                'pb-1 py-2.5 px-0': superficiePropiedadEditable,
-                                'bg-color3-100 p-0 m-0 mt-2': !superficiePropiedadEditable,
-                                'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': superficiePropiedadEditable
-                            }]"
-                            required
-                            :disabled="!superficiePropiedadEditable"
-                            :placeholder="''" />
-                        <label style="z-index: 10;"
-                            class="absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] 
-                                    peer-focus:-translate-y-6 peer-focus:scale-90 peer-focus:text-color1 peer-focus:dark:text-color1"
-                            :class="{ 'translate-y-0 scale-90': !superficiePropiedad }"
-                        >
-                            <span class="hidden sm:block" @click="focusInputSuperficiePropiedad"> Superficie (m²)</span>
-                            <span class="block sm:hidden"> Sup.</span>
-                        </label>
-                    </div>
-                    <div v-if="claveCatastralCompleta" style="flex-basis: 27%;">
-                        <div v-if="tipoPropiedad == 2" class="relative z-0 mb-5 group peer w-full">
-                            <input
-                                v-model="superficieConstruccionPropiedad"
-                                ref="floatingSuperficieConstruccionPropiedadRef"
-                                type="number"
-                                class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
-                                :class="[{
-                                    'pb-1 py-2.5 px-0': superficieConstruccionPropiedadEditable,
-                                    'bg-color3-100 p-0 m-0 mt-2': !superficieConstruccionPropiedadEditable,
-                                    'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': superficieConstruccionPropiedadEditable
-                                }]"
-                                :disabled="!superficieConstruccionPropiedadEditable"
-                                required
-                                :placeholder="''" />
-                                <label style="z-index: 10;"
-                                class="absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform scale-85 top-3 -z-10 origin-[0]
-                                    peer-focus:-translate-y-6 peer-focus:scale-90 peer-focus:text-color1 peer-focus:dark:text-color1"
-                                :class="[
-                                    superficieConstruccionPropiedadEditable ? '-translate-y-6' : '-translate-y-8',
-                                    { 'translate-y-0 scale-90': !superficieConstruccionPropiedad }
-                                ]">
-                                <span class="hidden sm:block" @click="focusInputSuperficieConstruccionPropiedad"> Superficie en construcción (m²)</span>
-                                <span class="block sm:hidden"> Sup. const.</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                <div v-if="claveCatastralCompleta" class="flex items-center space-x-4">
-                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 40%;">
-                        <input
-                        v-model="callePropiedad"
-                        type="text"
-                        class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
-                        :class="[{
-                            'pb-1 py-2.5 px-0': callePropiedadEditable,
-                            'bg-color3-100 p-0 m-0 mt-2': !callePropiedadEditable,
-                            'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': callePropiedadEditable
-                        }]"
-                        placeholder=""
-                        :disabled="!callePropiedadEditable"
-                        required/>
-                        <label style="z-index: 10;"
-                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
-                        Calle
-                        </label>
-                    </div>
-                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 10%;">
-                        <input
-                        v-model="numeroPropiedad"
-                        type="text"
-                        class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
-                        :class="[{
-                            'pb-1 py-2.5 px-0': numeroPropiedadEditable,
-                            'bg-color3-100 p-0 m-0 mt-2': !numeroPropiedadEditable,
-                            'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': numeroPropiedadEditable
-                        }]"
-                        placeholder=""
-                        :disabled="!numeroPropiedadEditable"
-                        required/>
-                        <label style="z-index: 10;"
-                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
-                        N°
-                        </label>
-                    </div>
-                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 50%;">
-                        <div class="relative">
-                            <input
-                                v-model="nombreColoniaPropiedad"
-                                type="text"
-                                class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
-                                :class="[{
-                                    'pb-1 py-2.5 px-0': idColoniaPropiedadEditable,
-                                    'bg-color3-100 p-0 m-0 mt-2': !idColoniaPropiedadEditable,
-                                    'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': idColoniaPropiedadEditable
-                                }]"
-                                placeholder=""
-                                disabled
-                                required />
-                                <label
-                                    style="z-index: 10;"
-                                    :class="[
-                                        'absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform scale-85 top-3 -z-10 origin-[0]',
-                                        idColoniaPropiedadEditable
-                                            ? 'peer-focus:-translate-y-8 peer-focus:scale-90 peer-focus:text-color1 peer-focus:dark:text-color1 -translate-y-6 peer-placeholder-shown:scale-90'
-                                            : '-translate-y-8 peer-placeholder-shown:scale-90' ,
-                                        { 'peer-placeholder-shown:translate-y-0': idColoniaPropiedadEditable },
-                                        { 'peer-placeholder-shown:translate-y-[-0.5rem]': !idColoniaPropiedadEditable }
-                                    ]"
-                                >
-                                    Colonia
-                                </label>
-                        </div>
-                        <button
-                            type="button"
-                            v-if="idColoniaPropiedadEditable"
-                            @click="abreModalBuscarColonia('propiedad')"
-                            title="Buscar colonia..."
-                            class="absolute right-0 top-1/2 transform -translate-y-1/2 p-1 text-gray-500 hover:text-color1-700 rounded-lg focus:outline-none">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 scale-110" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M12.9 14.32a8 8 0 111.42-1.42l4.9 4.9a1 1 0 01-1.42 1.42l-4.9-4.9zM8 14a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-                <div v-if="claveCatastralCompleta" class="flex items-center space-x-4">
-                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 50%;">
-                        <div class="relative">
-                            <input
-                                v-model="nombreLocalidadPropiedad"
-                                type="text"
-                                class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
-                                :class="[{
-                                    'pb-1 py-2.5 px-0': idLocalidadPropiedadEditable,
-                                    'bg-color3-100 p-0 m-0 mt-2': !idLocalidadPropiedadEditable,
-                                    'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': idLocalidadPropiedadEditable
-                                }]"
-                                placeholder=""
-                                disabled
-                                required />
-                                <label
-                                    style="z-index: 10;"
-                                    :class="[
-                                        'absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform scale-85 top-3 -z-10 origin-[0]',
-                                        idLocalidadPropiedadEditable
-                                            ? 'peer-focus:-translate-y-8 peer-focus:scale-90 peer-focus:text-color1 peer-focus:dark:text-color1 -translate-y-6 peer-placeholder-shown:scale-90'
-                                            : '-translate-y-8 peer-placeholder-shown:scale-90' ,
-                                        { 'peer-placeholder-shown:translate-y-0': idLocalidadPropiedadEditable },
-                                        { 'peer-placeholder-shown:translate-y-[-0.5rem]': !idLocalidadPropiedadEditable }
-                                    ]"
-                                >
-                                    Localidad
-                                </label>
-                        </div>
-                        <button
-                            type="button"
-                            v-if="idLocalidadPropiedadEditable"
-                            @click="abreModalBuscarLocalidad"
-                            title="Buscar localidad..."
-                            class="absolute right-0 top-1/2 transform -translate-y-1/2 p-1 text-gray-500 hover:text-color1-700 rounded-lg focus:outline-none">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 scale-110" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M12.9 14.32a8 8 0 111.42-1.42l4.9 4.9a1 1 0 01-1.42 1.42l-4.9-4.9zM8 14a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <div v-if="activeTab == 'tramite'" class="space-y-4">
-                <h3 
-                    class="flex items-center text-lg font-semibold text-gray-800 dark:text-white">
-                    <span>Trámite(s) a realizar</span>
-                </h3>
-                <div class="flex items-center overflow-x-auto">
-                    <table class="min-w-full border-collapse shadow-md rounded-lg overflow-hidden mb-5">
-                        <thead>
-                            <tr>
-                                <th
-                                    v-for="tipoTramite in tiposTramites"
-                                    :key="tipoTramite.id"
-                                    class="border-0 uppercase border-b-2 border-gray-300 px-4 py-1 text-sm font-semibold text-gray-900 dark:text-white">
-                                    {{ tipoTramite.nombre }}
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td v-for="(tipoTramite, index) in tiposTramites"
-                                    :key="tipoTramite.id"
-                                    :class="{
-                                        'bg-gray-100': index % 2 === 0, // Aplica fondo gray-200 para columnas pares (0, 2, 4...)
-                                        'bg-white': index % 2 !== 0    // Aplica fondo blanco para columnas impares (1, 3, 5...)
-                                    }"
-                                    class="border-0 border-gray-300 px-4 py-2 align-top">
-                                    <div v-for="tramite in tipoTramite.tramites" :key="tramite.id" class="mb-1">
-                                        <input
-                                            type="checkbox"
-                                            :id="`tramite-${tramite.id}`"
-                                            :value="tramite.id"
-                                            class="w-4 h-4 text-color1 focus:ring-color1 border-gray-300 rounded"
-                                            :checked="tramitesSeleccionados.includes(tramite.id)"
-                                            @change="actualizarTramitesSeleccionados(tramite.id, $event.target.checked)"
-                                            />
-                                        <label
-                                            :for="`tramite-${tramite.id}`"
-                                            class="ml-2 text-xs text-gray-700 dark:text-gray-300">
-                                            {{ tramite.nombre }}
-                                        </label>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 30%;">
-                        <select
-                            id="select_destino_obra"
-                            v-model="destinoObra"
-                            @focus="handleFocusDestinoObra(true)"
-                            @blur="handleFocusDestinoObra(false)"
-                            class="pt-3 pl-0 pb-1 bg-transparent border-0 border-b-2 appearance-none text-gray-900 border-gray-300 w-full text-sm focus:outline-none focus:ring-0 focus:border-color1 block dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500 peer bg-gray-50 p-2.5"
-                            required>
-                            <option value="" disabled selected style="display: none;"></option>
-                            <option v-for="(destino, index) in destinosObras" :key="index" :value="destino.id">
-                                {{ destino.nombre }}
-                            </option>
-                        </select>
-                        <label
-                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-9 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1"
-                        for="select_destino_obra"
-                        :class="{
-                            'scale-85 -translate-y-9': destinoObra || isFocusedDestinoObra,
-                            'scale-90 translate-y-[-11px]': !destinoObra && !isFocusedDestinoObra
-                        }"
-                        :style="{
-                            top: destinoObra || isFocusedDestinoObra ? '25px' : '24px',
-                        }"
-                        >
-                        <span class="hidden sm:block"> Destino de la obra</span>
-                        <span class="block sm:hidden">Dest. obra</span>
-                        </label>
                     </div>
                 </div>
             </div>
@@ -2351,12 +3730,12 @@
                 </h3>
                 <div class="relative">
                     <div
-                    ref="dropZoneCroquis"
-                    v-if="!isFileLoaded"
-                    class="flex items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 cursor-pointer"
-                    @click="triggerFileInput"
-                    @dragover.prevent="handleDragOver"
-                    @drop.prevent="handleDrop">
+                        ref="dropZoneCroquis"
+                        v-if="!isFileLoaded && !isLoadingModal && !isUploading"
+                        class="flex items-center justify-center w-full h-60 border-2 border-gray-300 border-dashed rounded-lg bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 cursor-pointer"
+                        @click="triggerFileInput"
+                        @dragover.prevent="handleDragOver"
+                        @drop.prevent="handleDrop">
                         <div class="flex flex-col items-center justify-center pt-5 pb-6">
                             <svg
                             class="w-8 h-8 mb-4 text-color1-500 dark:text-color1-400"
@@ -2372,7 +3751,7 @@
                                 d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
                             </svg>
                             <p class="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                            <span class="font-semibold">Click para subir</span> o arrastra y suelta
+                            <span class="font-semibold">Click para subir el archivo</span> o arrastra y suelta
                             </p>
                             <p class="text-xs text-gray-500 dark:text-gray-400">
                             PNG, JPG o JPEG
@@ -2380,33 +3759,53 @@
                         </div>
                     </div>
                     <div v-else class="flex items-center justify-center mb-10">
-                        <div class="relative w-16 h-16 cursor-pointer" @click="showPreviewDialog">
+                        <div v-if="!isLoadingModal && !isUploading && !isProcessingFile" class="relative w-16 h-16 cursor-pointer" @click="showPreviewDialog">
                             <component :is="fileIcon" class="w-full h-full"></component>
-                            <button
-                            class="absolute top-0 right-0 w-4 h-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center focus:outline-none"
+                            <button v-if="!isLoadingModal && !solicitudBloqueada"
+                            class="absolute top-1 right-0 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center focus:outline-none"
                             @click.stop="removeFile"
-                            title="Eliminar imagen"
-                            >
+                            title="Eliminar imagen">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3">
                                 <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
                             </svg>
                             </button>
                         </div>
-                        <div class="ml-4">
+                        <div class="ml-4" v-if="!isLoadingModal && !isUploading && !isProcessingFile">
                             <span class="font-semibold" style="font-style: italic;">{{ fileName }}</span>
                         </div>
                     </div>
+                    <!-- <div class="mt-2 w-full h-4 mb-5">
+                        <div v-if="isUploading || isProcessingFile">
+                            <div class="mb-1 text-sm text-gray-700 font-medium flex justify-between">
+                                <span>
+                                    {{ isProcessingFile ? 'Procesando en el servidor...' : 'Subiendo croquis...' }}
+                                </span>
+                                <span v-if="isUploading">
+                                    {{ uploadProgress }}%
+                                </span>
+                            </div>
+                            <div v-if="isUploading" class="bg-gray-200 h-4 rounded overflow-hidden">
+                                <div
+                                    class="bg-color2-600 h-4 transition-all duration-500 ease-in-out"
+                                    :style="{ width: uploadProgress + '%', opacity: 1 }"
+                                ></div>
+                            </div>
+                            <div v-if="isProcessingFile" class="bg-gray-200 h-4 rounded overflow-hidden">
+                                <div class="bg-color2-600 h-4 w-full animate-pulse-bar"></div>
+                            </div>
+                        </div>
+                    </div> -->
                     <input type="file" class="hidden" ref="fileInput" @change="handleFileChange" accept="image/png, image/jpeg, image/jpg" />
                 </div>   
             </div>
             <template #footer>
                 <div class="flex justify-center mb-4">                    
-                    <button v-if="paraEditarSolicitud"
-                        type="button" class="mt-0 bg-color2-700 hover:bg-color2-600 flex items-center justify-center text-white focus:ring-4 focus:ring-color2-300 font-medium rounded-lg text-sm px-6 py-2 focus:outline-none dark:focus:ring-color2-700"
+                    <button v-if="paraEditarSolicitud && !solicitudBloqueada"
+                        type="button" class="mt-0 bg-color2-700 hover:bg-color2-600 flex items-center justify-center text-white focus:ring-4 focus:ring-color2-300 font-medium rounded-lg text-sm px-4 py-2 focus:outline-none dark:focus:ring-color2-700"
                         @click="actualizarSolicitud">
                         Actualizar
                     </button>
-                    <button v-else
+                    <button v-if="!paraEditarSolicitud"
                         type="button" class="mt-0 bg-color1-700 hover:bg-color1-600 flex items-center justify-center text-white focus:ring-4 focus:ring-color1-300 font-medium rounded-lg text-sm px-6 py-2 focus:outline-none dark:focus:ring-color1-700"
                         @click="agregarSolicitud">
                         Guardar
@@ -2422,10 +3821,20 @@
 
         <el-dialog
             v-model="previewDialogVisible"
-            title="Vista previa del CROQUIS"
             class="flex flex-col items-center"
-            style="width: 500px; max-width: 90vw;">
-            <div v-if="imageSrc" class="flex justify-center mb-4">
+            style="width: 500px; max-width: 90vw;"
+            :before-close="handleCloseModalCroquis"
+            >
+            <template #header>
+                <div style="display: flex; align-items: center;" class="text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6 mr-2">
+                    <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                    <path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 0 1 0-1.113ZM17.25 12a5.25 5.25 0 1 1-10.5 0 5.25 5.25 0 0 1 10.5 0Z" clip-rule="evenodd" />
+                    </svg>
+                    Vista previa del CROQUIS
+                </div>
+            </template>
+            <div v-if="imageSrc" class="flex justify-center mb-2">
                 <img
                 :src="imageSrc"
                 alt="Vista previa"
@@ -2447,15 +3856,28 @@
             </div>
             <template v-if="imageSrc" #footer>
                 <div class="dialog-footer flex justify-center gap-4">
-                    <button
+                    <button v-if="permiteDescartarCroquis"
                         type="button" class="mt-2 bg-color1-700 hover:bg-color1-600 flex items-center justify-center text-white focus:ring-4 focus:ring-color1-300 font-medium rounded-lg text-sm px-6 py-2 focus:outline-none dark:focus:ring-color1-700"
                         @click="acceptFile">
                         Aceptar
                     </button>
-                    <button
+                    <button v-if="permiteDescartarCroquis"
                         type="button" class="mt-2 bg-color3-700 hover:bg-color3-600 flex items-center justify-center text-white focus:ring-4 focus:ring-color3-300 font-medium rounded-lg text-sm px-6 py-2 focus:outline-none dark:focus:ring-color3-700"
                         @click="rejectFile">
                         Descartar
+                    </button>
+                    <button v-if="!permiteDescartarCroquis && !solicitudBloqueada"
+                        type="button" class="mt-2 bg-color1-700 hover:bg-color1-600 flex items-center justify-center text-white focus:ring-4 focus:ring-color1-300 font-medium rounded-lg text-sm px-4 py-2 focus:outline-none dark:focus:ring-color1-700"
+                        @click="removeFile">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4 mr-2">
+                            <path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z" clip-rule="evenodd" />
+                        </svg>
+                        Eliminar Archivo
+                    </button>
+                    <button v-if="solicitudBloqueada"
+                        type="button" class="mt-2 bg-color3-700 hover:bg-color3-600 flex items-center justify-center text-white focus:ring-4 focus:ring-color3-300 font-medium rounded-lg text-sm px-6 py-2 focus:outline-none dark:focus:ring-color3-700"
+                        @click="handleCloseModalCroquis">
+                        Cerrar
                     </button>
                 </div>
             </template>
@@ -2634,7 +4056,7 @@
     </el-dialog>
 
     <section class="bg-gray-50 dark:bg-gray-900 p-3 sm:p-5">
-     <div class="mx-auto max-w-screen-xl lg:px-0 w-[100%] sm:w-[100%] md:w-[100%] lg:w-[95%]">
+     <div class="mx-auto max-w-screen-xl lg:px-0 w-[100%] sm:w-[100%] md:w-[100%] lg:w-[100%]">
         <h1 class="text-2xl font-bold">Solicitudes</h1>
         <br>
         <div class="bg-white dark:bg-gray-800 relative shadow-md sm:rounded-lg overflow-visible">
@@ -2670,7 +4092,7 @@
                             <!-- Solicitante -->
                             <th scope="col" class="px-4 py-3 cursor-pointer" @click="sortTable('id_solicitante')">
                                 <div class="flex items-center">
-                                    <span class="mr-1">Solicitante</span>
+                                    <span class="mr-1">Solicitante / Propietario</span>
                                     <svg v-if="sortColumn === 'id_solicitante'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4 text-color1">
                                     <path v-if="sortDirection === 'asc'" fill-rule="evenodd" d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
                                     <path v-else fill-rule="evenodd" d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
@@ -2678,7 +4100,7 @@
                                 </div>
                             </th>
                             <!-- Propiedad -->
-                            <th scope="col" class="px-4 py-3 cursor-pointer" @click="sortTable('id_propiedad')">
+                            <!-- <th scope="col" class="px-4 py-3 cursor-pointer" @click="sortTable('id_propiedad')">
                                 <div class="flex items-center">
                                     <span class="mr-1">Propiedad</span>
                                     <svg v-if="sortColumn === 'id_propiedad'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4 text-color1">
@@ -2686,7 +4108,7 @@
                                     <path v-else fill-rule="evenodd" d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
                                     </svg>
                                 </div>
-                            </th>
+                            </th> -->
                             <!-- Trámite -->
                             <th scope="col" class="px-4 py-3 cursor-pointer" @click="sortTable('id_tramite')">
                                 <div class="flex items-center">
@@ -2714,8 +4136,8 @@
                             <th scope="row" class="px-4 py-2 font-normal w-5"> {{ (solicitud.id % 10000).toString().padStart(4, '0') }}
                             </th>
                             <td class="px-4 py-2 w-5">{{ formatDate(solicitud.fecha_ingreso) }}</td>
-                            <td class="px-4 py-2 w-60">{{ solicitud.solicitante.persona.nombre + ' ' + solicitud.solicitante.persona.apellidos }}</td>
-                            <td class="px-4 py-2 w-50">
+                            <td class="px-4 py-2 w-80">{{ solicitud.propietario.persona.nombre + ' ' + solicitud.propietario.persona.apellidos }}</td>
+                            <!-- <td class="px-4 py-2 w-50">
                                 {{ solicitud.propiedad.calle || 'SIN DOMICILIO' }}
                                 <template v-if="solicitud.propiedad.calle && solicitud.propiedad.numero">
                                 {{ solicitud.propiedad.numero }} ::
@@ -2731,19 +4153,30 @@
                                 <template v-if="solicitud.propiedad.localidad && solicitud.propiedad.localidad.nombre">
                                 {{ (solicitud.propiedad.colonia && solicitud.propiedad.colonia.nombre) ? ' - ' : '' }} {{ solicitud.propiedad.localidad.nombre }}
                                 </template>
-                            </td>
+                            </td> -->
                             <td class="px-4 py-2">
                                 <ul v-if="solicitud.tramites && solicitud.tramites.length > 0">
-                                    <li v-for="sTramites in solicitud.tramites" :key="sTramites.id"
-                                        class="before:content-['▪'] before:mr-2 before:text-gray-600">
-                                        {{ sTramites.tramite.nombre_abreviado }}
+                                    <li
+                                        v-for="sTramites in solicitud.tramites"
+                                        :key="sTramites.id"
+                                        class="flex items-start gap-2">
+                                        <!-- <template v-if="solicitud.tramites.length > 1"> -->
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="flex-shrink-0 w-2 h-2 text-color1-300 mt-1" fill="currentColor" viewBox="0 0 16 16">
+                                            <path d="M2 2v13.5l6-3.5 6 3.5V2z"/>
+                                        </svg>
+                                        <!-- </template> -->
+                                        <span>{{ sTramites.tramite.nombre }}</span>
                                     </li>
                                 </ul>
                                 <div v-else class="text-gray-500">SIN TRÁMITES</div>
                             </td>
                             <td class="px-4 py-2 w-60">
-                                <span>
-                                    <span :style="{ color: solicitud.estatus.color }">●</span>
+                                <span class="flex items-center gap-1">
+                                    <span :style="{ color: solicitud.estatus.color }">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4">
+                                            <path fill-rule="evenodd" d="M5.25 2.25a3 3 0 0 0-3 3v4.318a3 3 0 0 0 .879 2.121l9.58 9.581c.92.92 2.39 1.186 3.548.428a18.849 18.849 0 0 0 5.441-5.44c.758-1.16.492-2.629-.428-3.548l-9.58-9.581a3 3 0 0 0-2.122-.879H5.25ZM6.375 7.5a1.125 1.125 0 1 0 0-2.25 1.125 1.125 0 0 0 0 2.25Z" clip-rule="evenodd" />
+                                        </svg>
+                                    </span>
                                     {{ solicitud.estatus.nombre }}
                                 </span>
                             </td>
@@ -2771,9 +4204,9 @@
                                     <li class="hover:bg-gray-100 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-white">
                                         <button
                                         @click="abreModalEditarSolicitud(solicitud)"
-                                        class="block w-full py-2 px-4 text-left hover:bg-transparent dark:hover:bg-transparent hover:text-inherit dark:hover:text-inherit"
-                                        >
-                                        Editar
+                                        class="block w-full py-2 px-4 text-left hover:bg-transparent dark:hover:bg-transparent hover:text-inherit dark:hover:text-inherit">
+                                        <span v-if="solicitud.id_estatus >= 6">Ver</span>
+                                        <span v-else>Editar</span>  
                                         </button>
                                     </li>
                                     </ul>

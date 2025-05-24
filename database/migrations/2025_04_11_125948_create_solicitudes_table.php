@@ -16,7 +16,8 @@ class CreateSolicitudesTable extends Migration
             $table->foreignId('id_estatus')->default(1)->constrained('estatus_solicitudes')->onDelete('cascade');
             $table->foreignId('id_destino_obra')->nullable()->constrained('destinos_obras')->onDelete('cascade');
             $table->date('fecha_ingreso');
-            $table->string('img_croquis', 35)->nullable();
+            $table->unsignedBigInteger('folio')->nullable();
+            $table->string('folio_digital')->nullable();
             $table->timestamps();
         });
     }

@@ -13,25 +13,26 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('localidades', function (Blueprint $table) {
-            $table->id();
+            $table->unsignedBigInteger('id')->primary();
             $table->string('nombre', 25);
             $table->timestamps();
         });
 
-        // Insertar las localidades
-        DB::table('localidades')->insert([
-            ['nombre' => 'CONCORDIA', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'MESILLAS', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'MALPICA', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'AGUACALIENTE DE GÁRATE', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'EL HUAJOTE', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'LA EMBOCADA', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'ZAVALA', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'EL VERDE', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'LA CONCEPCIÓN', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'TEPUXTA', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'CERRITOS', 'created_at' => now(), 'updated_at' => now()],
+         DB::table('localidades')->insert([
+            ['id' => 0, 'nombre' => 'CONCORDIA', 'created_at' => now(), 'updated_at' => now()],
+            ['id' => 1, 'nombre' => 'MESILLAS', 'created_at' => now(), 'updated_at' => now()],
+            ['id' => 3, 'nombre' => 'MALPICA', 'created_at' => now(), 'updated_at' => now()],
+            ['id' => 4, 'nombre' => 'AGUACALIENTE DE GÁRATE', 'created_at' => now(), 'updated_at' => now()],
+            ['id' => 5, 'nombre' => 'EL HUAJOTE', 'created_at' => now(), 'updated_at' => now()],
+            ['id' => 6, 'nombre' => 'LA EMBOCADA', 'created_at' => now(), 'updated_at' => now()],
+            ['id' => 7, 'nombre' => 'ZAVALA', 'created_at' => now(), 'updated_at' => now()],
+            ['id' => 8, 'nombre' => 'EL VERDE', 'created_at' => now(), 'updated_at' => now()],
+            ['id' => 9, 'nombre' => 'LA CONCEPCIÓN', 'created_at' => now(), 'updated_at' => now()],
+            ['id' => 10, 'nombre' => 'TEPUXTA', 'created_at' => now(), 'updated_at' => now()],
+            ['id' => 11, 'nombre' => 'CERRITOS', 'created_at' => now(), 'updated_at' => now()],
         ]);
+
+        DB::statement('ALTER TABLE localidades AUTO_INCREMENT = 12');
     }
 
 

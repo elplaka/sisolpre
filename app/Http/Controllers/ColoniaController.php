@@ -28,10 +28,12 @@ class ColoniaController extends Controller
             ]);
 
             DB::commit(); // Confirma la transacción si todo salió bien
-        
-            return back()->with('success', 'Colonia creada exitosamente')
-                         ->with('colonias', Colonia::all())
-                         ->with('idColonia', $colonia->id);
+
+            return back()->with([
+                'success' => 'Colonia creada exitosamente',
+                'idColonia' => $colonia->id,
+            ]);
+            
         } catch (\Exception $e) {
             DB::rollBack(); // Revierte la transacción si ocurre un error
             return response()->json(['error' => 'Hubo un error al crear la colonia: ' . $e->getMessage()], 500);

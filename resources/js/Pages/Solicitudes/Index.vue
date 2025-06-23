@@ -9,7 +9,14 @@
         :tiposPropiedades="tiposPropiedades"
         :destinosObras="destinosObras"
         :tiposTramites="tiposTramites"
-        :localidades="localidades">
+        :tramites="tramites"
+        :localidades="localidades"
+        :nombreQuery ="nombreQuery"
+        :fechaInicioQuery="fechaInicioQuery"
+        :fechaFinQuery="fechaFinQuery"
+        :tiposTramitesQuery="tiposTramitesQuery"
+        :tramitesQuery="tramitesQuery"
+        :filtroChkSolicitudes="filtroChkSolicitudes">
       </TablaSolicitudes>
     </AdminLayout>
   </template>
@@ -26,12 +33,17 @@ const props = defineProps({
   tiposPropiedades: Object,
   destinosObras: Object,
   tiposTramites: Object,
+  tramites: Object, // Datos relacionados de los trámites
   localidades: Object,
+  fechaInicioQuery: String,
+  fechaFinQuery: String,
+  tiposTramitesQuery: Object, // Datos relacionados de los tipos de trámites
   // solicitantes: Object, // Datos relacionados de los solicitantes
   // propiedades: Object, // Datos relacionados de las propiedades
-  // tramites: Object, // Datos relacionados de los trámites
+  tramitesQuery: Object, // Datos relacionados de los trámites
   // estatus: Object, // Estatus de solicitudes
-  // searchQuery: String, // Cadena de búsqueda
+  nombreQuery: String, // Cadena de búsqueda
+  filtroChkSolicitudes: Number, // Filtro de solicitudes
   userAuth: { type: Object, required: true }, // Información de usuario autenticado
 });
 </script>

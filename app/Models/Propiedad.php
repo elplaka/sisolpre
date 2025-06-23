@@ -19,7 +19,8 @@ class Propiedad extends Model
         'id_colonia',
         'id_localidad',
         'superficie',
-        'superficie_construccion'
+        'superficie_construccion',
+        'id_contacto',
     ];
 
     public function colonia()
@@ -42,8 +43,8 @@ class Propiedad extends Model
         return $this->hasMany(Solicitud::class, 'id_propiedad');
     }
 
-    public function persona()
+    public function contacto()
     {
-        return $this->belongsTo(Localidad::class, 'id_propietario');
+        return $this->belongsTo(Contacto::class, 'id_contacto');
     }
 }

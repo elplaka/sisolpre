@@ -13,32 +13,21 @@ class Solicitud extends Model
 
     protected $fillable = [
         'fecha_ingreso',
-        'id_solicitante',
-        'id_propietario',
+        'id_contacto',
         'id_propiedad',
-        'img_croquis',
         'id_destino_obra',
-        'id_estatus'
+        'id_estatus',
+        'folio_digital'
     ];
-
-    public function representante()
-    {
-        return $this->belongsTo(Solicitante::class, 'id_solicitante_representante');
-    }
 
     public function estatus()
     {
         return $this->belongsTo(EstatusSolicitud::class, 'id_estatus');
     }
 
-    public function solicitante()
+    public function contacto()
     {
-        return $this->belongsTo(Solicitante::class, 'id_solicitante');
-    }
-
-    public function propietario()
-    {
-        return $this->belongsTo(Solicitante::class, 'id_propietario');
+        return $this->belongsTo(Contacto::class, 'id_contacto');
     }
 
     public function propiedad()
@@ -51,7 +40,7 @@ class Solicitud extends Model
         return $this->hasMany(SolicitudTramite::class, 'id_solicitud');
     }
 
-       public function destino_obra()
+    public function destino_obra()
     {
         return $this->belongsTo(DestinoObra::class, 'id_destino_obra');
     }

@@ -6,7 +6,7 @@
   >
     <div class="overflow-y-auto py-6 px-4 h-full"> <ul class="space-y-2"> <li>
           <Link
-            :href="route('solicitudes')"
+            href="#" @click.prevent="cargarSolicitudesConParametros"
             class="flex items-center p-1 text-sm font-medium text-gray-900 rounded-lg dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-color1 group" >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -45,7 +45,46 @@
 </template>
 
 <script setup>
-import { Link } from '@inertiajs/vue3';
+  import { Link, router } from '@inertiajs/vue3';
+  import { ref } from 'vue';
+
+  const nombreQuery = ref('');
+  const fechaInicioQuery = ref('');
+  const fechaFinQuery = ref('');
+  const filtroChkSolicitudes = ref(0); // Filtro de solicitudes
+
+  function formatoFecha(fecha) {
+      const year = fecha.getFullYear();
+      const month = String(fecha.getMonth() + 1).padStart(2, '0'); // meses: 0-indexed
+      const day = String(fecha.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+  }
+
+  function inicializaFechas()
+  {
+      const hoy = new Date();
+      const hace1Mes = new Date();
+      hace1Mes.setDate(hoy.getDate() - 30);
+
+      fechaInicioQuery.value = formatoFecha(hace1Mes);
+      fechaFinQuery.value = formatoFecha(hoy);
+
+      filtroChkSolicitudes.value = 0;
+  }
+
+function cargarSolicitudesConParametros() {
+  inicializaFechas() // o lo que se requiera para precargar los valores
+
+  router.post('/solicitudes', {
+    fechaInicioQuery: fechaInicioQuery.value,
+    fechaFinQuery: fechaFinQuery.value,
+    nombreQuery: nombreQuery.value,
+    filtroChkSolicitudes: filtroChkSolicitudes.value
+  }, {
+    preserveState: true,
+    replace: true,
+  });
+}
 </script>
 
 <style>

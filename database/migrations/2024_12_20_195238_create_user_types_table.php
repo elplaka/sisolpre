@@ -25,7 +25,7 @@ class CreateUserTypesTable extends Migration
         DB::table('user_types')->insert([
             ['name' => 'ADMINISTRADOR', 'description' => 'Usuario con permisos de administración'],
             ['name' => 'AUDITOR', 'description' => 'Usuario con permisos de auditoría'],
-            ['name' => 'SOLICITANTE', 'description' => 'Usuario con permisos para realizar solicitudes'],
+            ['name' => 'AUXILIAR', 'description' => 'Usuario con permisos de auxiliar de auditoría'],
         ]);
     }
 

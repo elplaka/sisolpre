@@ -11,6 +11,12 @@ import 'element-plus/dist/index.css'
 import VueSweetalert2 from 'vue-sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 
+import es from 'element-plus/es/locale/lang/es'
+import dayjs from 'dayjs'
+
+dayjs.Ls.es ??= {}
+dayjs.Ls.es.weekStart = 1
+
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 createInertiaApp({
@@ -20,7 +26,9 @@ createInertiaApp({
         const app =  createApp({ render: () => h(App, props) })
             app.use(plugin)
             app.use(ZiggyVue, Ziggy)
-            app.use(ElementPlus)
+            app.use(ElementPlus, {
+            locale: es,
+            })
             app.use(VueSweetalert2),
             window.Swal =  app.config.globalProperties.$swal
 

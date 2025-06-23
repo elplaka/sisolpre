@@ -62,6 +62,7 @@ class HandleInertiaRequests extends Middleware
                 'idColonia' => fn () => $request->session()->get('idColonia'),
                 'idLocalidad' => fn () => $request->session()->get('idLocalidad'),
                 'activeTab' => fn () => $request->session()->get('activeTab'),
+                'solicitud' => fn () => $request->session()->get('solicitud'),
             ],
             'canLogin' => app('router')->has('login'),
             'canRegister' => app('router')->has('register'),

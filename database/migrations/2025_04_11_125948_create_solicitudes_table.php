@@ -10,14 +10,12 @@ class CreateSolicitudesTable extends Migration
     {
         Schema::create('solicitudes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('id_solicitante')->constrained('solicitantes')->onDelete('cascade');
-            $table->foreignId('id_propietario')->constrained('solicitantes')->onDelete('cascade');
+            $table->foreignId('id_contacto')->constrained('contactos')->onDelete('cascade');
             $table->foreignId('id_propiedad')->nullable()->constrained('propiedades')->onDelete('cascade');
             $table->foreignId('id_estatus')->default(1)->constrained('estatus_solicitudes')->onDelete('cascade');
             $table->foreignId('id_destino_obra')->nullable()->constrained('destinos_obras')->onDelete('cascade');
             $table->date('fecha_ingreso');
-            $table->unsignedBigInteger('folio')->nullable();
-            $table->string('folio_digital')->nullable();
+            $table->string('folio_digital')->nullable()->collation('utf8_bin')->index();
             $table->timestamps();
         });
     }

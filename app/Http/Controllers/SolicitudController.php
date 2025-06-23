@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CatalogoTramite;
 use Illuminate\Http\Request;
 use App\Models\Solicitud;
 use App\Models\EstatusSolicitud;
@@ -11,7 +12,7 @@ use App\Models\Localidad;
 use App\Models\TipoPropiedad;
 use App\Models\DestinoObra;
 use App\Models\TipoTramite;
-use App\Models\Solicitante;
+use App\Models\Contacto;
 use App\Models\Propiedad;
 use App\Models\SolicitudTramite;
 use Inertia\Inertia;
@@ -22,6 +23,8 @@ use Intervention\Image\ImageManager;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\MessageBag;
+use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class SolicitudController extends Controller
 {
@@ -29,19 +32,19 @@ class SolicitudController extends Controller
 
     public function getPersona(Request $request, $curp)
     {
-        if (!auth()->check()) {
-            return response()->json(['error' => 'No autenticado'], 401);
-        }
+        // if (!auth()->check()) {
+        //     return response()->json(['error' => 'No autenticado'], 401);
+        // }
 
         if ($request->query('tipo') === 'solicitante')
         {
-            $persona = Persona::with('solicitante', 'solicitante.colonia', 'solicitante.localidad', 'solicitante.persona')
+            $persona = Persona::with('solicitante', 'solicitante.persona')
             ->where('curp', $curp)
             ->where('activa', 1)->first();
         }
         elseif ($request->query('tipo') === 'propietario')
         {
-            $persona = Persona::with('propietario', 'propietario.colonia', 'propietario.localidad', 'propietario.persona')
+            $persona = Persona::with('propietario', 'propietario.persona')
             ->where('curp', $curp)
             ->where('activa', 1)->first();
         }
@@ -50,7 +53,8 @@ class SolicitudController extends Controller
             $persona = Persona::with('solicitante', 'solicitante.colonia', 'solicitante.localidad')
             ->where('curp', $curp)
             ->where('activa', 1)->first();
-        }   
+        }  
+        
 
         return response()->json([
             'persona' => $persona
@@ -59,15 +63,24 @@ class SolicitudController extends Controller
 
     public function getPropiedad($claveCatastral)
     {
-        $propiedad = Propiedad::with('colonia', 'localidad', 'tipo', 'solicitudes')
+        $propiedad = Propiedad::with('colonia', 'localidad', 'tipo', 'solicitudes', 'contacto', 'contacto.persona')
         ->where('clave_catastral', $claveCatastral)
         ->where('activa', 1)->first();
 
-        // $croquis = $propiedad?->solicitudes()->latest()->value('img_croquis') ?? null;
+        return response()->json([
+            'propiedad' => $propiedad,
+        ]);
+    }
+
+    public function getPropiedadSolicitud($idSolicitud)
+    {
+        $solicitud = Solicitud::with('propiedad')->findOrFail($idSolicitud);
+
+        $propiedad = $solicitud->propiedad;
+        $propiedad->load('colonia', 'localidad', 'tipo', 'solicitudes', 'contacto', 'contacto.persona');
 
         return response()->json([
             'propiedad' => $propiedad,
-            // 'croquis' => $croquis,
         ]);
     }
 
@@ -107,82 +120,363 @@ class SolicitudController extends Controller
 
     public function index(Request $request)  
     {
-        $selectedStatuses = $request->input('selectedStatuses', []); // Estatus seleccionados
-        $isActive = filter_var($request->input('isActive'), FILTER_VALIDATE_BOOLEAN); // Propiedades activas
-        $isInactive = filter_var($request->input('isInactive'), FILTER_VALIDATE_BOOLEAN); // Propiedades inactivas
-
         $sortColumn = $request->input('sortColumn', 'id'); // Columna de ordenación
         $sortDirection = $request->input('sortDirection', 'asc'); // Dirección de ordenación
 
-        $searchQuery = $request->input('query');
-        if ($searchQuery) {
-            $solicitudesQuery = Solicitud::join('estatus_solicitudes', 'solicitudes.id_estatus', '=', 'estatus_solicitudes.id')
-                ->with(['estatus', 'solicitante', 'propietario', 'propiedad', 'destino_obra', 'tramites', 'tramites.tramite', 'solicitante.persona', 'solicitante.colonia', 'solicitante.localidad', 'propietario.persona', 'propietario.colonia', 'propietario.localidad', 'propiedad.colonia', 'propiedad.localidad', 'propiedad.tipo'])
-                ->select('solicitudes.*')
-                ->where(function ($query) use ($searchQuery) {
-                    $query->where('solicitantes.curp', 'like', '%' . $searchQuery . '%')
-                        ->orWhere('solicitantes.calle', 'like', '%' . $searchQuery . '%')
-                        ->orWhere('propiedades.clave_catastral', 'like', '%' . $searchQuery . '%')
-                        ->orWhere('estatus_solicitudes.nombre', 'like', '%' . $searchQuery . '%');
-                });
+        $nombreQuery = $request->input('nombreQuery');
+        $fechaInicioQuery = $request->input('fechaInicioQuery');
+        $fechaFinQuery = $request->input('fechaFinQuery');
+        $tiposTramitesQuery = $request->input('tiposTramitesQuery');
+        $tramitesQuery = $request->input('tramitesQuery');
+        $estatusQuery = $request->input('estatusQuery');
+        $filtroChkSolicitudes = $request->input('filtroChkSolicitudes', 0);
 
-            if ($sortColumn == 'estatus_solicitudes.nombre') {
-                $solicitudesQuery->orderBy('estatus_solicitudes.nombre', $sortDirection)
-                                ->orderBy('solicitudes.fecha_ingreso', $sortDirection);
-            } else {
-                $solicitudesQuery->orderBy($sortColumn, $sortDirection);
-            }
 
-            if (!empty($selectedStatuses)) {
-                $solicitudesQuery->whereIn('id_estatus', $selectedStatuses);
-            }
-
-            $solicitudesQuery->where(function ($query) use ($isActive, $isInactive) {
-                if ($isActive) {
-                    $query->orWhere('propiedades.activo', true);
-                }
-                if ($isInactive) {
-                    $query->orWhere('propiedades.activo', false);
-                }
-            });
-
-            $solicitudes = $solicitudesQuery->paginate(10);
-            $activeCount = Solicitud::join('propiedades', 'solicitudes.id_propiedad', '=', 'propiedades.id')
-                                    ->where('propiedades.activo', true)
-                                    ->count();
-            $inactiveCount = Solicitud::join('propiedades', 'solicitudes.id_propiedad', '=', 'propiedades.id')
-                                    ->where('propiedades.activo', false)
-                                    ->count();
-        } else {
-            $solicitudesQuery = Solicitud::join('estatus_solicitudes', 'solicitudes.id_estatus', '=', 'estatus_solicitudes.id')
-                ->with(['estatus', 'solicitante', 'propietario', 'propiedad', 'destino_obra', 'tramites', 'tramites.tramite', 'solicitante.persona', 'solicitante.colonia', 'solicitante.localidad', 'propietario.persona', 'propietario.colonia', 'propietario.localidad','propiedad.colonia', 'propiedad.localidad', 'propiedad.tipo'])
-                ->select('solicitudes.*');
-
-            if ($sortColumn == 'estatus_solicitudes.nombre') {
-                $solicitudesQuery->orderBy('estatus_solicitudes.nombre', $sortDirection)
-                                ->orderBy('solicitudes.fecha_ingreso', $sortDirection);
-            } else {
-                $solicitudesQuery->orderBy($sortColumn, $sortDirection);
-            }
-
-            $activeCount = Solicitud::join('propiedades', 'solicitudes.id_propiedad', '=', 'propiedades.id')
-                                    ->count();
-            $inactiveCount = Solicitud::join('propiedades', 'solicitudes.id_propiedad', '=', 'propiedades.id')
-                                    ->count();
-
-            $solicitudes = $solicitudesQuery->paginate(10);
+        if (empty($tramitesQuery) && empty($estatusQuery))
+        {
+            $filtroChkSolicitudes = 0;
+        }
+        
+        if ($tramitesQuery && empty($estatusQuery))
+        {
+            $filtroChkSolicitudes = 1;
         }
 
-        // Obtener estatus de solicitudes con conteo basado en los filtros
-        $statuses = EstatusSolicitud::withCount(['solicitudes as solicitudes_count' => function ($query) use ($solicitudesQuery) {
-            $query->whereIn('id', $solicitudesQuery->pluck('id')); // Filtrar por solicitudes actuales
-        }])->orderBy('nombre')->get();
+        if (empty($tramitesQuery) && $estatusQuery)
+        {
+            $filtroChkSolicitudes = 2;
+        }
+
+        $solicitudesQuery = Solicitud::
+              join('estatus_solicitudes', 'solicitudes.id_estatus', '=', 'estatus_solicitudes.id')
+            ->join('contactos as contactos_solicitantes', 'solicitudes.id_contacto', '=', 'contactos_solicitantes.id')
+            ->join('personas as personas_solicitantes', 'contactos_solicitantes.id_persona', '=', 'personas_solicitantes.id')
+            ->join('propiedades', 'solicitudes.id_propiedad', '=', 'propiedades.id')
+            ->join('contactos as contactos_propietarios', 'propiedades.id_contacto', '=', 'contactos_propietarios.id')
+            ->join('personas as personas_propietarios', 'contactos_propietarios.id_persona', '=', 'personas_propietarios.id')
+            ->leftJoin('solicitudes_tramites', 'solicitudes.id', '=', 'solicitudes_tramites.id_solicitud')
+            ->leftJoin('catalogo_tramites', 'solicitudes_tramites.id_tramite', '=', 'catalogo_tramites.id')
+            ->with([
+                'estatus',
+                'contacto',
+                'contacto.persona',
+                'propiedad',
+                'propiedad.contacto',
+                'propiedad.contacto.persona',
+                'propiedad.colonia',
+                'propiedad.localidad',
+                'propiedad.tipo',
+                'destino_obra',
+                'tramites',
+                'tramites.tramite'
+            ])
+            ->whereBetween('solicitudes.fecha_ingreso', [$fechaInicioQuery, $fechaFinQuery])
+            ->selectRaw('solicitudes.id, solicitudes.fecha_ingreso, solicitudes.id_contacto, 
+                         solicitudes.folio_digital, solicitudes.id_propiedad, 
+                         solicitudes.id_destino_obra, solicitudes.id_estatus, 
+                         GROUP_CONCAT(catalogo_tramites.nombre ORDER BY catalogo_tramites.nombre ASC) as tramites_nombres')
+            ->groupBy('solicitudes.id', 'solicitudes.fecha_ingreso', 'solicitudes.id_contacto', 
+                      'solicitudes.folio_digital', 'solicitudes.id_propiedad', 
+                      'solicitudes.id_destino_obra', 'solicitudes.id_estatus');    
+
+
+        if ($nombreQuery)
+        {
+            $solicitudesQuery->where(function ($query) use ($nombreQuery) {
+                $query->where(function ($query) use ($nombreQuery) {
+                    $query->where(function ($q1) use ($nombreQuery) {
+                        $q1->where('personas_solicitantes.nombre', 'like', '%' . $nombreQuery . '%')
+                        ->orWhere('personas_solicitantes.apellidos', 'like', '%' . $nombreQuery . '%');
+                    })->orWhere(function ($q2) use ($nombreQuery) {
+                        $q2->where('personas_propietarios.nombre', 'like', '%' . $nombreQuery . '%')
+                        ->orWhere('personas_propietarios.apellidos', 'like', '%' . $nombreQuery . '%');
+                    });
+                });
+            });
+        }
+
+        if (!empty($tiposTramitesQuery)) 
+        {
+            $solicitudesQuery->whereIn('catalogo_tramites.id_tipo', $tiposTramitesQuery);
+        }
+
+        $solicitudesFiltradasIdsPrev = (clone $solicitudesQuery)->pluck('solicitudes.id');
+
+        if (!empty($tramitesQuery)) 
+        {
+            $solicitudesQuery->where(function ($query) use ($tramitesQuery) {
+                // Si seleccionaron trámites con ID (no null)
+                $tramiteIds = array_filter($tramitesQuery, fn($id) => !is_null($id));
+
+                if (!empty($tramiteIds)) {
+                    $query->whereIn('solicitudes_tramites.id_tramite', $tramiteIds);
+                }
+
+                // Si seleccionaron la opción "SIN TRÁMITES" (id null)
+                if (in_array(null, $tramitesQuery, true)) {
+                    $query->orWhereNull('solicitudes_tramites.id_tramite');
+                }
+            });
+        }
+
+        if (!empty($estatusQuery)) 
+        {
+            $solicitudesQuery->whereIn('id_estatus', $estatusQuery);
+        }
+
+        if ($sortColumn == "id_solicitante")
+        {
+            $solicitudesQuery->orderBy('personas_solicitantes.nombre', $sortDirection);
+        }
+        else if ($sortColumn == 'id_tramite')
+        {
+            $solicitudesQuery->orderBy('tramites_nombres', $sortDirection);
+        }
+        else if ($sortColumn == 'id_estatus') {
+            $solicitudesQuery->orderBy('estatus_solicitudes.nombre', $sortDirection)
+                            ->orderBy('solicitudes.fecha_ingreso', $sortDirection);
+        } 
+        else 
+        {
+            $solicitudesQuery->orderBy($sortColumn, $sortDirection);
+        }
+
+        $solicitudes = $solicitudesQuery->paginate(10);
 
         $tiposPropiedades = TipoPropiedad::orderBy('nombre', 'asc')->get();
         $destinosObras = DestinoObra::orderBy('nombre', 'asc')->get();
         $tiposTramites = TipoTramite::with('tramites')->where('activo', true)->get();
-        $estatusSolicitud = EstatusSolicitud::where('id', '>', 1)->where('activo', true)->get();
         $localidades = Localidad::get();
+
+        $solicitudesFiltradasIds = (clone $solicitudesQuery)->pluck('solicitudes.id');
+
+        // Función reutilizable: obtener conteo de trámites
+        $obtenerTramites = function ($filtrarPorTipo = false) use ($solicitudesFiltradasIds, $tiposTramitesQuery, $estatusQuery) {
+            $query = CatalogoTramite::where('activo', 1)->orderBy('nombre');
+
+            if ($filtrarPorTipo && !empty($tiposTramitesQuery)) 
+            {
+                $query->whereIn('id_tipo', $tiposTramitesQuery);
+            }
+
+            return $query->get()->map(function ($tramite) use ($solicitudesFiltradasIds) {
+                $conteo = DB::table('solicitudes_tramites')
+                    ->where('id_tramite', $tramite->id)
+                    ->whereIn('id_solicitud', $solicitudesFiltradasIds)
+                    ->count();
+
+                return [
+                    'id' => $tramite->id,
+                    'nombre' => $tramite->nombre,
+                    'count' => $conteo,
+                ];
+            });
+        };
+
+        $obtenerTramitesPrev = function ($filtrarPorTipo = false) use ($solicitudesFiltradasIdsPrev, $tiposTramitesQuery, $estatusQuery) {
+            $query = CatalogoTramite::where('activo', 1)->orderBy('nombre');
+
+            if ($filtrarPorTipo && !empty($tiposTramitesQuery)) 
+            {
+                $query->whereIn('id_tipo', $tiposTramitesQuery);
+            }
+
+            return $query->get()->map(function ($tramite) use ($solicitudesFiltradasIdsPrev) {
+                $conteo = DB::table('solicitudes_tramites')
+                    ->where('id_tramite', $tramite->id)
+                    ->whereIn('id_solicitud', $solicitudesFiltradasIdsPrev)
+                    ->count();
+
+                return [
+                    'id' => $tramite->id,
+                    'nombre' => $tramite->nombre,
+                    'count' => $conteo,
+                ];
+            });
+        };
+
+        // Función reutilizable: obtener conteo de estatus
+        $obtenerEstatus = function () use ($solicitudesFiltradasIds) {
+            return EstatusSolicitud::where('activo', true)
+                ->get()
+                ->map(function ($estatus) use ($solicitudesFiltradasIds) {
+                    $conteo = DB::table('solicitudes')
+                        ->where('id_estatus', $estatus->id)
+                        ->whereIn('id', $solicitudesFiltradasIds)
+                        ->count();
+
+                    return [
+                        'id' => $estatus->id,
+                        'nombre' => $estatus->nombre,
+                        'color' => $estatus->color,
+                        'count' => $conteo,
+                    ];
+                });
+        };
+
+        $obtenerEstatusPrev = function () use ($solicitudesFiltradasIdsPrev) {
+            return EstatusSolicitud::where('activo', true)
+                ->get()
+                ->map(function ($estatus) use ($solicitudesFiltradasIdsPrev) {
+                    $conteo = DB::table('solicitudes')
+                        ->where('id_estatus', $estatus->id)
+                        ->whereIn('id', $solicitudesFiltradasIdsPrev)
+                        ->count();
+
+                    return [
+                        'id' => $estatus->id,
+                        'nombre' => $estatus->nombre,
+                        'color' => $estatus->color,
+                        'count' => $conteo,
+                    ];
+                });
+        };
+
+        // Función reutilizable: contar solicitudes sin trámites
+        $contarSinTramites = function () use ($solicitudesFiltradasIds) {
+            return DB::table('solicitudes')
+                ->whereIn('id', $solicitudesFiltradasIds)
+                ->whereNotIn('id', function ($query) {
+                    $query->select('id_solicitud')->from('solicitudes_tramites');
+                })
+                ->count();
+        };
+
+        $contarSinTramitesPrev = function () use ($solicitudesFiltradasIdsPrev) {
+            return DB::table('solicitudes')
+                ->whereIn('id', $solicitudesFiltradasIdsPrev)
+                ->whereNotIn('id', function ($query) {
+                    $query->select('id_solicitud')->from('solicitudes_tramites');
+                })
+                ->count();
+        };
+
+        if (empty($tiposTramitesQuery)) {
+            if ($nombreQuery) 
+            {
+                if ($filtroChkSolicitudes == 0)
+                { 
+                    $tramites = $obtenerTramitesPrev();
+                    $estatusSolicitud = $obtenerEstatusPrev();
+                    $solicitudesSinTramitesCount = $contarSinTramitesPrev();
+                }
+                else if ($filtroChkSolicitudes == 1)
+                {
+                    $tramites = $obtenerTramitesPrev();
+                    $estatusSolicitud = $obtenerEstatus();
+                    $solicitudesSinTramitesCount = $contarSinTramitesPrev();
+                    if ($tramitesQuery && $estatusQuery)
+                    {
+                        $tramites = $obtenerTramitesPrev();
+                        $solicitudesSinTramitesCount = $contarSinTramites();
+                    }
+                }
+                else if ($filtroChkSolicitudes == 2)
+                {
+                    $estatusSolicitud = $obtenerEstatusPrev();
+                    $tramites = $obtenerTramites();
+                    $solicitudesSinTramitesCount = $contarSinTramites();
+                    if ($tramitesQuery && $estatusQuery)
+                    {
+                         $estatusSolicitud = $obtenerEstatusPrev();
+                         $solicitudesSinTramitesCount = $contarSinTramites();
+                    }
+                }
+            } 
+            else 
+            {
+                if ($filtroChkSolicitudes == 0)
+                { 
+                    $tramites = CatalogoTramite::where('activo', 1)
+                    ->orderBy('nombre')
+                    ->withCount('solicitudesTramites')
+                    ->get()
+                    ->map(fn($t) => [
+                        'id' => $t->id,
+                        'nombre' => $t->nombre,
+                        'count' => $t->solicitudes_tramites_count,
+                    ]);
+
+                    $estatusSolicitud = empty($tramitesQuery)
+                        ? EstatusSolicitud::where('activo', true)
+                            ->withCount('solicitudes')
+                            ->get()
+                            ->map(fn($e) => [
+                                'id' => $e->id,
+                                'nombre' => $e->nombre,
+                                'color' => $e->color,
+                                'count' => $e->solicitudes_count,
+                            ])
+                        : $obtenerEstatus();
+
+                    $solicitudesSinTramitesCount = $contarSinTramites();
+                }
+                else if ($filtroChkSolicitudes == 1)
+                {
+                    $tramites = $obtenerTramitesPrev();
+                    $estatusSolicitud = $obtenerEstatus();
+                    $solicitudesSinTramitesCount = $contarSinTramitesPrev();
+                    if ($tramitesQuery && $estatusQuery)
+                    {
+                        $tramites = $obtenerTramitesPrev();
+                        $solicitudesSinTramitesCount = $contarSinTramites();
+                    }
+                }
+                else if ($filtroChkSolicitudes == 2)
+                {
+                    $estatusSolicitud = $obtenerEstatusPrev();
+                    $tramites = $obtenerTramites();
+                    $solicitudesSinTramitesCount = $contarSinTramites();
+                    if ($tramitesQuery && $estatusQuery)
+                    {
+                         $estatusSolicitud = $obtenerEstatusPrev();
+                         $solicitudesSinTramitesCount = $contarSinTramites();
+                    }
+                }   
+                    
+            }
+        } 
+        else 
+        {
+            if ($filtroChkSolicitudes == 0)
+            { 
+                $tramites = $obtenerTramitesPrev();
+                $estatusSolicitud = $obtenerEstatusPrev();
+                $solicitudesSinTramitesCount = $contarSinTramitesPrev();
+            }
+            else if ($filtroChkSolicitudes == 1)
+            {
+                $tramites = $obtenerTramitesPrev();
+                $estatusSolicitud = $obtenerEstatus();
+                $solicitudesSinTramitesCount = $contarSinTramitesPrev();
+                if ($tramitesQuery && $estatusQuery)
+                {
+                    $tramites = $obtenerTramites(true);
+                    $solicitudesSinTramitesCount = $contarSinTramites();
+                }
+            }
+            else if ($filtroChkSolicitudes == 2)
+            {
+                $estatusSolicitud = $obtenerEstatusPrev();
+                $tramites = $obtenerTramites(true);
+                $solicitudesSinTramitesCount = $contarSinTramites();
+                if ($tramitesQuery && $estatusQuery)
+                {
+                    $estatusSolicitud = $obtenerEstatusPrev();
+                    $solicitudesSinTramitesCount = $contarSinTramites();
+                }
+            }
+        }
+
+        if ($solicitudesSinTramitesCount > 0)
+        { 
+
+            $tramites->push([
+                'id' => null,
+                'nombre' => 'SIN TRÁMITES',
+                'count' => $solicitudesSinTramitesCount,
+            ]);
+        }
 
         return Inertia::render('Solicitudes/Index', [
             'userAuth' => Auth::user(),
@@ -191,14 +485,13 @@ class SolicitudController extends Controller
             'tiposPropiedades' => $tiposPropiedades,
             'tiposTramites' => $tiposTramites,
             'destinosObras' => $destinosObras,
-            'statuses' => $statuses,
             'localidades' => $localidades,
-            'searchQuery' => $searchQuery,
-            'selectedStatuses' => $selectedStatuses,
-            'isActive' => $isActive,
-            'isInactive' => $isInactive,
-            'activos' => $activeCount,
-            'inactivos' => $inactiveCount,
+            'tramites' => $tramites,
+            'nombreQuery' => $nombreQuery,
+            'fechaInicioQuery' => $fechaInicioQuery,
+            'fechaFinQuery' => $fechaFinQuery,
+            'tiposTramitesQuery' => $tiposTramitesQuery,
+            'filtroChkSolicitudes' => $filtroChkSolicitudes      
         ]);
     }
 
@@ -208,14 +501,75 @@ class SolicitudController extends Controller
         $propiedad = $solicitud->propiedad;
         $imgCroquisPropiedad = $propiedad->img_croquis;
 
+        if ($propiedad->editable)
+        { 
+            $propiedad->img_croquis = null;                
+            $propiedad->save();
+        }
+        else
+        {
+            if ($request->callePropiedad === 'null') {
+                $request->merge(['callePropiedad' => null]);
+            }
+
+            if ($request->numeroPropiedad === 'null') {
+                $request->merge(['numeroPropiedad' => null]);
+            }
+
+            if ($request->idColoniaPropiedad === 'null') {
+                $request->merge(['idColoniaPropiedad' => null]);
+            }
+
+            if ($request->idLocalidadPropiedad === 'null') {
+                $request->merge(['idLocalidadPropiedad' => null]);
+            }
+
+            if ($request->superficiePropiedad === 'null') {
+                $request->merge(['superficiePropiedad' => null]);
+            }
+
+            if ($request->superficieConstruccionPropiedad === 'null') {
+                $request->merge(['superficieConstruccionPropiedad' => null]);
+            }
+
+            if ($request->imgCroquisPropiedad === 'null') {
+                $request->merge(['imgCroquisPropiedad' => null]);
+            }
+
+            if ($request->tipoPropiedad === 'null') {
+                $request->merge(['tipoPropiedad' => null]);
+            }
+
+            Propiedad::where('clave_catastral', trim($request->claveCatastral))
+            ->update(['activa' => 0]);  //Se ponen inactivas todas las propiedades con la clave catastral
+
+            $propiedad = Propiedad::create([
+                'id_tipo' => $request->idTipoPropiedad,
+                'clave_catastral' => trim($request->claveCatastral),
+                'calle' => $request->callePropiedad !== null ? trim(mb_strtoupper($request->callePropiedad)) : null,
+                'numero' => $request->numeroPropiedad !== null ? trim(mb_strtoupper($request->numeroPropiedad)) : null,
+                'id_colonia' => $request->idColoniaPropiedad,
+                'id_localidad' => $request->idLocalidadPropiedad,
+                'superficie' => $request->superficiePropiedad,
+                'superficie_construccion' => $request->superficieConstruccionPropiedad,
+                'id_contacto' => $request->idContactoPropiedad,
+            ]);
+
+            $solicitud->id_propiedad = $propiedad->id;
+            $solicitud->save();
+        }
+
         if (Storage::disk('public')->exists('croquis/' . $imgCroquisPropiedad)) 
         {
-            $propiedad->img_croquis = null;
-            
-            $propiedad->save();
-            
+            $solicitud->load(['contacto', 'propiedad', 'propiedad.contacto']);
             Storage::disk('public')->delete('croquis/' . $imgCroquisPropiedad);
-            return back()->with('success', 'Imagen borrada con éxito');
+            return back()->with('success', 'Imagen borrada con éxito')
+            ->with('solicitud', $solicitud);
+        }
+        else
+        {
+            return back()->with('error', 'No existe el archivo de la imagen deseada.')
+            ->with('solicitud', $solicitud);
         }
     }
 
@@ -223,37 +577,51 @@ class SolicitudController extends Controller
     {
         if ($request->hasFile('archivo')) 
         {
-            $archivo = $request->file('archivo');
+            DB::beginTransaction();
 
-            $fechaObjeto = new \DateTime($request->fecha_ingreso);
-            $fechaConvertida = $fechaObjeto->format('ymd');
-            $nombreArchivo = $request->claveCatastral . '_' . $fechaConvertida . '_' . Str::random(3);
-            $extension = $archivo->getClientOriginalExtension();
-            $nombreArchivoCroquis = $nombreArchivo . '.' . $extension;
+            try {
+                $archivo = $request->file('archivo');
 
-            $manager = new ImageManager(new \Intervention\Image\Drivers\Gd\Driver());
-            $imagen = $manager->read($archivo->getPathname());
-            $imagen->scale(width: 400);
+                $idSolicitudCeros = str_pad($idSolicitud % 1000000, 6, '0', STR_PAD_LEFT);
+                $nombreArchivo = $request->claveCatastral . '_' . $idSolicitudCeros . '_' . Str::random(3);
+                $extension = $archivo->getClientOriginalExtension();
+                $nombreArchivoCroquis = $nombreArchivo . '.' . $extension;
 
-            $contenido = match (strtolower($extension)) {
-                'png' => $imagen->toPng()->toString(),
-                'webp' => $imagen->toWebp()->toString(),
-                default => $imagen->toJpeg()->toString(),
-            };
+                $manager = new ImageManager(new \Intervention\Image\Drivers\Gd\Driver());
+                $imagen = $manager->read($archivo->getPathname());
+                $imagen->scale(width: 400);
 
-            Storage::disk('public')->put('croquis/' . $nombreArchivoCroquis, $contenido);
+                $contenido = match (strtolower($extension)) {
+                    'png' => $imagen->toPng()->toString(),
+                    'webp' => $imagen->toWebp()->toString(),
+                    default => $imagen->toJpeg()->toString(),
+                };
 
-            $solicitud = Solicitud::find($idSolicitud);
-            $propiedad = $solicitud->propiedad;
-            $propiedad->img_croquis = $nombreArchivoCroquis;
-            $propiedad->save();
+                Storage::disk('public')->put('croquis/' . $nombreArchivoCroquis, $contenido);
 
-            return back()->with('success', 'Croquis guardado con éxito');
+                $solicitud = Solicitud::findOrFail($idSolicitud);
+                $solicitud->load(['contacto', 'propiedad', 'propiedad.contacto']);
+                $propiedad = $solicitud->propiedad;
+
+                $propiedad->img_croquis = $nombreArchivoCroquis;
+                $propiedad->save();
+
+                DB::commit();
+
+                return back()->with('success', 'Croquis subido con éxito')
+                ->with('solicitud', $solicitud);;
+
+            } catch (\Throwable $e) {
+                DB::rollBack();
+                Log::error('Error al guardar croquis: ' . $e->getMessage());
+
+                return back()->with('error', 'Ocurrió un error al subir el croquis.');
+            }
         }
 
         return back()->withErrors(['archivo' => 'No se subió ningún archivo']);
     }
-
+    
 
     public function validaSolicitud(Request $request)
     {
@@ -333,25 +701,6 @@ class SolicitudController extends Controller
             return $errors;
         }
 
-        // if ($request->callePropietario !== null && $request->callePropietario !== '') {
-        //     $validator = Validator::make($request->all(), [
-        //         'numeroPropietario' => 'required|string|max:10',
-        //         'idLocalidadPropietario' => 'required',
-        //     ], [
-        //         'numeroPropietario.required' => '<li> El NÚMERO del PROPIETARIO es obligatorio si se proporciona una CALLE del PROPIETARIO. </li>',
-        //         'numeroPropietario.string' => '<li> El NÚMERO del PROPIETARIO debe ser una cadena de texto válida. </li>',
-        //         'numeroPropietario.max' => '<li> El NÚMERO del PROPIETARIO no puede tener más de 10 caracteres. </li>',
-        //         'idLocalidadPropietario.required' => '<li> La LOCALIDAD del PROPIETARIO es obligatoria si se proporciona una CALLE del PROPIETARIO. </li>',                
-        //     ]);
-
-        //     if ($validator->fails()) 
-        //     {
-        //         $this->activeTab = 'propietario';
-
-        //         return $validator; // Envía los errores a la vista
-        //     }
-        // }
-
         if ($request->claveCatastral === null)
         {
             $errors = new MessageBag(['claveCatastral' => ['La CLAVE CATASTRAL es obligatoria.']]);
@@ -382,7 +731,6 @@ class SolicitudController extends Controller
             'nomPropietario' => 'required|string|max:30',
             'apePropietario' => 'required|string|max:40',
             'emailPropietario' => 'nullable|email',
-            // 'callePropietario' => 'nullable|string|max:60',
         ], [
             'curpPropietario.required' => '<li> La CURP del PROPIETARIO es obligatoria. </li>',
             'curpPropietario.size' => '<li> La longitud de la CURP del PROPIETARIO debe ser 18 caracteres. </li>',
@@ -487,7 +835,7 @@ class SolicitudController extends Controller
                 return $validator; // Envía los errores a la vista
             }
 
-            if ($request->tipoPropiedad === 2)
+            if ($request->tipoPropiedad === '2')
             {
                 $validator = Validator::make($request->all(),[
                         'superficieConstruccionPropiedad' => 'required|numeric'
@@ -572,9 +920,42 @@ class SolicitudController extends Controller
                 }
                 $personaPropietario->save();
             }
+            else
+            {
+                $personaPropietario = $this->regresaPersonaPropietarioActiva($request);
+            }
         }
-        else  //Si no existe la persona con el CURP la crea
+        else  //Si no existe la persona busca o agrega la persona activa
         {
+            $personaPropietario = $this->regresaPersonaPropietarioActiva($request);
+        }
+
+        return $personaPropietario;
+    }
+
+    public function regresaPersonaPropietarioActiva(Request $request)
+    {
+        $personaPropietario = Persona::where('curp', trim(mb_strtoupper($request->curpPropietario)))
+                                    ->where('nombre', trim(mb_strtoupper($request->nomPropietario)))
+                                    ->where('apellidos', trim(mb_strtoupper($request->apePropietario)))
+                                    ->first();
+
+        if ($personaPropietario)  //Si la hay y no es activa entonces la activa
+        {
+            if (!$personaPropietario->activa)
+            { 
+                Persona::where('curp', $request->curpPropietario)
+                ->update(['activa' => 0]);  //Se ponen inactivas todas las personas con ese curp
+
+                $personaPropietario->activa = 1;
+                $personaPropietario->save();
+            }
+        }
+        else  //Si no, entonces la crea
+        { 
+            Persona::where('curp', $request->curpPropietario)
+            ->update(['activa' => 0]);  //Se ponen inactivas todas las personas con ese curp
+
             $personaPropietario = Persona::create([
                 'curp' => trim(mb_strtoupper($request->curpPropietario)),
                 'nombre' => trim(mb_strtoupper($request->nomPropietario)),
@@ -585,57 +966,136 @@ class SolicitudController extends Controller
         return $personaPropietario;
     }
 
-    public function regresaPropietario(Request $request, $personaPropietario)
+    public function regresaContactoPropietario(Request $request, $personaPropietario)
     {
-        $propietario = Solicitante::where('id_persona', $personaPropietario->id)->first();
-        if ($propietario) //Si ya existe
+        // $contactoPropietario = Contacto::where('id_persona', $personaPropietario->id)
+        //                                ->where('activo', true)->first();
+
+        $contactoPropietario = $request->idContactoPropietario ? Contacto::find($request->idContactoPropietario) : null;
+
+        if ($contactoPropietario) //Si ya existe
         {
-            if ($propietario->editable) //Si se pueden editar los datos del propietario
+            if ($contactoPropietario->editable) //Si se pueden editar los datos del propietario
             {   //Si hay cambios entonces actualiza el campo correspondiente
-                if ($propietario->telefono != trim($request->telefonoPropietario))
+                if ($contactoPropietario->telefono != trim($request->telefonoPropietario))
                 {
-                    $propietario->telefono = trim($request->telefonoPropietario);
+                    $contactoPropietario->telefono = trim($request->telefonoPropietario);
                 }
-                if ($propietario->email != trim(mb_strtolower($request->emailPropietario)))
+                if ($contactoPropietario->email != trim(mb_strtolower($request->emailPropietario)))
                 {
-                    $propietario->email = $request->emailPropietario !== null ? trim(mb_strtolower($request->emailPropietario)) : null;
+                    $contactoPropietario->email = $request->emailPropietario !== null ? trim(mb_strtolower($request->emailPropietario)) : null;
                 }
-                $propietario->save();
+                $contactoPropietario->save();
+            }
+            else  //Si no se pueden editar los campos
+            {
+                $contactoPropietario = $this->regresaContactoPropietarioActivo($request, $personaPropietario);
             }
         }
-        else  //Si no existe el propietario lo crea
+        else  //Si no existe el contacto del propietario lo crea
         {
-            $propietario = Solicitante::create([
+            $contactoPropietario = $this->regresaContactoPropietarioActivo($request, $personaPropietario);
+        }
+
+        return $contactoPropietario;
+    }
+
+    public function regresaContactoPropietarioActivo(Request $request, $personaPropietario)
+    {
+        //Busca al propietario con el TELÉFONO y EMAIL 
+        $contactoPropietario = Contacto::
+            where('telefono', trim($request->telefonoPropietario))->
+            when($request->emailPropietario !== null, function ($query) use ($request) {
+            $query->where('email', trim($request->emailPropietario));
+        })->first();
+
+        if ($contactoPropietario)  //Si existe entonces pregunta si es el activo
+        {
+            if (!$contactoPropietario->activo)  //Si no es activo
+            {
+                Contacto::where('id_persona', $personaPropietario->id)
+                ->update(['activo' => 0]);  //Se ponen inactivas todos los contactos de la persona propietaria
+
+                $contactoPropietario->activo = 1;  //Si no está activa hay que activarla
+                $contactoPropietario->save();
+            }
+        }
+        else  //Si no existe es que se ha cambiado el TELÉFONO o el EMAIL
+        {
+            Contacto::where('id_persona', $personaPropietario->id)
+            ->update(['activo' => 0]);  //Se ponen inactivas todos los contactos de la persona propietaria
+
+            //Se crea un nuevo propietario, el cual será el ACTIVO  
+            $contactoPropietario = Contacto::create([
                 'id_persona' => $personaPropietario->id,
                 'telefono' => trim($request->telefonoPropietario),
                 'email' => $request->emailPropietario !== null ? trim(mb_strtolower($request->emailPropietario)) : null,
             ]);
         }
-
-        return $propietario;
+        return $contactoPropietario;
     }
 
-    public function regresaPersonaSolicitante(Request $request)
+    public function regresaPersonaSolicitante(Request $request, $personaPropietario = null)
     {
-        $personaSolicitante = $request->idPersonaSolicitante ? Persona::find($request->idPersonaSolicitante) : null;
-
-        if ($personaSolicitante)  //Si ya existe
+        if ($personaPropietario)
+        { 
+            $personaSolicitante = $personaPropietario;
+        }
+        else
         {
-            if ($personaSolicitante->editable)  //Si se puede editar
-            {   //Si hay cambios entonces actualiza el campo correspondiente
-                if ($personaSolicitante->nombre != trim(mb_strtoupper($request->nomSolicitante)))
-                {
-                    $personaSolicitante->nombre = trim(mb_strtoupper($request->nomSolicitante));
+            $personaSolicitante = $request->idPersonaSolicitante ? Persona::find($request->idPersonaSolicitante) : null;
+
+            if ($personaSolicitante)  //Si ya existe
+            {
+                if ($personaSolicitante->editable)  //Si se puede editar
+                {   //Si hay cambios entonces actualiza el campo correspondiente
+                    if ($personaSolicitante->nombre != trim(mb_strtoupper($request->nomSolicitante)))
+                    {
+                        $personaSolicitante->nombre = trim(mb_strtoupper($request->nomSolicitante));
+                    }
+                    if ($personaSolicitante->apellidos != trim(mb_strtoupper($request->apeSolicitante)))
+                    {
+                        $personaSolicitante->apellidos = trim(mb_strtoupper($request->apeSolicitante));
+                    }
+                    $personaSolicitante->save();
                 }
-                if ($personaSolicitante->apellidos != trim(mb_strtoupper($request->apeSolicitante)))
+                else
                 {
-                    $personaSolicitante->apellidos = trim(mb_strtoupper($request->apeSolicitante));
+                    $personaSolicitante = $this->regresaPersonaSolicitanteActiva($request);
                 }
+            }
+            else  //Si no existe la persona busca o agrega la persona activa
+            {
+                $personaSolicitante = $this->regresaPersonaSolicitanteActiva($request);
+            }
+        }
+        
+        return $personaSolicitante;
+    } 
+
+    public function regresaPersonaSolicitanteActiva(Request $request)
+    {
+        $personaSolicitante = Persona::where('curp', trim(mb_strtoupper($request->curpSolicitante)))
+                                    ->where('nombre', trim(mb_strtoupper($request->nomSolicitante)))
+                                    ->where('apellidos', trim(mb_strtoupper($request->apeSolicitante)))
+                                    ->first();
+
+        if ($personaSolicitante)  //Si la hay y no es activa entonces la activa
+        {
+            if (!$personaSolicitante->activa)
+            { 
+                Persona::where('curp', $request->curpSolicitante)
+                ->update(['activa' => 0]);  //Se ponen inactivas todas las personas con ese curp
+
+                $personaSolicitante->activa = 1;
                 $personaSolicitante->save();
             }
         }
-        else  //Si no existe la persona con el CURP la crea
-        {
+        else  //Si no, entonces la crea
+        { 
+            Persona::where('curp', $request->curpSolicitante)
+            ->update(['activa' => 0]);  //Se ponen inactivas todas las personas con ese curp
+
             $personaSolicitante = Persona::create([
                 'curp' => trim(mb_strtoupper($request->curpSolicitante)),
                 'nombre' => trim(mb_strtoupper($request->nomSolicitante)),
@@ -644,43 +1104,195 @@ class SolicitudController extends Controller
         }
 
         return $personaSolicitante;
-    } 
+    }
     
-    public function regresaSolicitante(Request $request, $personaSolicitante)
+    public function regresaContactoSolicitante(Request $request, $personaSolicitante, $contactoPropietario = null)
     {
-        $solicitante = Solicitante::where('id_persona', $personaSolicitante->id)->first();
-        if ($solicitante) //Si ya existe
+        if ($contactoPropietario)
         {
-            if ($solicitante->editable) //Si se pueden editar los datos del solicitante
-            {   //Si hay cambios entonces actualiza el campo correspondiente
-                if ($solicitante->telefono != trim($request->telefonoSolicitante))
-                {
-                    $solicitante->telefono = trim($request->telefonoSolicitante);
+            $contactoSolicitante = $contactoPropietario;
+        }
+        else
+        {
+            //$contactoSolicitante = Contacto::where('id_persona', $personaSolicitante->id)
+                                // ->where('activo', true)->first();
+            $contactoSolicitante = $request->idContactoSolicitante ? Contacto::find($request->idContactoSolicitante) : null;
+            
+
+            if ($contactoSolicitante) //Si ya existe
+            {
+                if ($contactoSolicitante->editable) //Si se pueden editar los datos del solicitante
+                {   //Si hay cambios entonces actualiza el campo correspondiente
+                    if ($contactoSolicitante->telefono != trim($request->telefonoSolicitante))
+                    {
+                        $contactoSolicitante->telefono = trim($request->telefonoSolicitante);
+                    }
+                    if ($contactoSolicitante->email != trim(mb_strtolower($request->emailSolicitante)))
+                    {
+                        $contactoSolicitante->email = $request->emailSolicitante !== null ? trim(mb_strtolower($request->emailSolicitante)) : null;
+                    }
+                    $contactoSolicitante->save();
                 }
-                if ($solicitante->email != trim(mb_strtolower($request->emailSolicitante)))
+                else  //Si no se pueden editar los campos
                 {
-                    $solicitante->email = $request->emailSolicitante !== null ? trim(mb_strtolower($request->emailSolicitante)) : null;
+                    $contactoSolicitante = $this->regresaContactoSolicitanteActivo($request, $personaSolicitante);
                 }
-                $solicitante->save();
+            }
+            else  //Si no existe el contacto del solicitante lo crea
+            {
+                $contactoSolicitante = $this->regresaContactoSolicitanteActivo($request, $personaSolicitante);
             }
         }
-        else  //Si no existe el solicitante lo crea
+        return $contactoSolicitante;
+    }
+    
+    public function regresaContactoSolicitanteActivo(Request $request, $personaSolicitante)
+    {
+        //Busca al propietario con el TELÉFONO y EMAIL 
+        $contactoSolicitante = Contacto::
+            where('telefono', trim($request->telefonoSolicitante))->
+            when($request->emailSolicitante !== null, function ($query) use ($request) {
+            $query->where('email', trim($request->emailSolicitante));
+        })->first();
+
+        if ($contactoSolicitante)  //Si existe entonces pregunta si es el activo
         {
-            $solicitante = Solicitante::create([
+            if (!$contactoSolicitante->activo)  //Si no es activo
+            {
+                Contacto::where('id_persona', $personaSolicitante->id)
+                ->update(['activo' => 0]);  //Se ponen inactivas todos los contactos de la persona solicitante
+
+                $contactoSolicitante->activo = 1;  //Si no está activa hay que activarla
+                $contactoSolicitante->save();
+            }
+        }
+        else  //Si no existe es que se ha cambiado el TELÉFONO o el EMAIL
+        {
+            Contacto::where('id_persona', $personaSolicitante->id)
+            ->update(['activo' => 0]);  //Se ponen inactivas todos los contactos de la persona solicitante
+
+            //Se crea un nuevo Solicitante, el cual será el ACTIVO  
+            $contactoSolicitante = Contacto::create([
                 'id_persona' => $personaSolicitante->id,
                 'telefono' => trim($request->telefonoSolicitante),
                 'email' => $request->emailSolicitante !== null ? trim(mb_strtolower($request->emailSolicitante)) : null,
             ]);
         }
-
-        return $solicitante;
+        return $contactoSolicitante;
     }
+
+    public function regresaPropiedad(Request $request, $contactoPropietario)
+    {
+        if ($request->idPropiedadSolicitud) 
+        {
+            $propiedad = Propiedad::findOrFail($request->idPropiedadSolicitud);
+
+            if ($propiedad)
+            {
+                if ($propiedad->editable)
+                {
+                    if ($propiedad->id_tipo != $request->tipoPropiedad)
+                    {
+                        $propiedad->id_tipo = $request->tipoPropiedad;
+                    }
+                    if ($propiedad->calle != trim(mb_strtoupper($request->callePropiedad)))
+                    {
+                        $propiedad->calle = $request->callePropiedad !== null ? trim(mb_strtoupper($request->callePropiedad)) : null;
+                    }
+                    if ($propiedad->numero != trim(mb_strtoupper($request->numeroPropiedad)))
+                    {
+                        $propiedad->numero = $request->numeroPropiedad !== null ? trim(mb_strtoupper($request->numeroPropiedad)) : null;
+                    }
+                    if ($propiedad->id_colonia != trim(mb_strtoupper($request->idColoniaPropiedad)))
+                    {
+                        $propiedad->id_colonia = $request->idColoniaPropiedad !== null ? trim(mb_strtoupper($request->idColoniaPropiedad)) : null;
+                    }
+                    if ($propiedad->id_localidad != trim(mb_strtoupper($request->idLocalidadPropiedad)))
+                    {
+                        $propiedad->id_localidad = $request->idLocalidadPropiedad !== null ? trim(mb_strtoupper($request->idLocalidadPropiedad)) : null;
+                    }
+                    if ($propiedad->superficie != trim(mb_strtoupper($request->superficiePropiedad)))
+                    {
+                        $propiedad->superficie = $request->superficiePropiedad !== null ? trim(mb_strtoupper($request->superficiePropiedad)) : null;
+                    }
+                    if ($request->tipoPropiedad === 2 && $propiedad->superficie_construccion != trim(mb_strtoupper($request->superficieConstruccionPropiedad)))
+                    {
+                        if ($propiedad->superficie_construccion != trim(mb_strtoupper($request->superficieConstruccionPropiedad)))
+                        {
+                            $propiedad->superficie_construccion = $request->superficieConstruccionPropiedad !== null ? trim(mb_strtoupper($request->superficieConstruccionPropiedad)) : null;
+                        }
+                    }
+                    if ($propiedad->id_contacto != $contactoPropietario->id)
+                    {
+                        $propiedad->id_contacto = $contactoPropietario->id;
+                    }
+                    $propiedad->save();
+                }
+                else
+                {
+                    $propiedad = $this->regresaPropiedadActiva($request, $contactoPropietario);
+                }
+            }                
+        }
+        else 
+        {
+            $propiedad = $this->regresaPropiedadActiva($request, $contactoPropietario);
+        }
+
+        return $propiedad;        
+    }
+
+     public function regresaPropiedadActiva(Request $request, $contactoPropietario)
+    {
+        $propiedad = Propiedad::where('clave_catastral', trim($request->claveCatastral))
+        ->where('id_tipo', $request->tipoPropiedad)
+        ->where('superficie', $request->superficiePropiedad)
+        ->where('superficie_construccion', $request->superficieConstruccionPropiedad)
+        ->where('calle', trim(mb_strtoupper($request->callePropiedad)))
+        ->where('numero', trim(mb_strtoupper($request->numeroPropiedad)))
+        ->where('id_colonia', $request->idColoniaPropiedad)
+        ->where('id_localidad', $request->idLocalidadPropiedad)
+        ->where('id_contacto', $contactoPropietario->id)
+        ->first();
+
+        if ($propiedad)  //Si existe entonces la pone como no editable
+        {
+            if (!$propiedad->activa)  //Si no está activa es porque alguna vez estuvo activa
+            {
+                Propiedad::where('clave_catastral', trim($request->claveCatastral))
+                ->update(['activa' => 0]);  //Se ponen inactivas todas las propiedades con la clave catastral
+
+                $propiedad->activa = 1;  //Si no está activa hay que activarla
+                $propiedad->save();
+            }
+        }
+        else  //Si NO EXISTE es porque cambió algún dato
+        {
+            Propiedad::where('clave_catastral', trim($request->claveCatastral))
+            ->update(['activa' => 0]);  //Se ponen inactivas todas las propiedades con la clave catastral
+
+            $propiedad = Propiedad::create([
+                'clave_catastral' => trim($request->claveCatastral),
+                'calle' => trim(mb_strtoupper($request->callePropiedad)),
+                'numero' => trim(mb_strtoupper($request->numeroPropiedad)),
+                'id_colonia' => $request->idColoniaPropiedad,
+                'id_localidad' => $request->idLocalidadPropiedad,
+                'superficie' => $request->superficiePropiedad,
+                'superficie_construccion' => $request->superficieConstruccionPropiedad,
+                'img_croquis' => $request->imgCroquisPropiedad,
+                'id_contacto' => $contactoPropietario->id
+            ]);
+        }
+        return $propiedad;
+    }
+
 
     public function store(Request $request)  //Guarda por primera vez la solicitud
     {
         $errores = $this->validaSolicitud($request);
 
-        if ($errores) {
+        if ($errores) 
+        {
             return back()->withErrors($errores)->with('activeTab', $this->activeTab);
         }
 
@@ -690,34 +1302,24 @@ class SolicitudController extends Controller
             DB::beginTransaction(); // Inicia la transacción
 
             $personaPropietario = $this->regresaPersonaPropietario($request);
-            $propietario = $this->regresaPropietario($request, $personaPropietario);
-            
+            $contactoPropietario = $this->regresaContactoPropietario($request, $personaPropietario);
+
             $esSolicitante = filter_var($request->esSolicitante, FILTER_VALIDATE_BOOLEAN);
             if ($esSolicitante) //Si el solicitante es el propietario
             {
-                $solicitante = $propietario;
+                $personaSolicitante = $this->regresaPersonaSolicitante($request, $personaPropietario);
+                $contactoSolicitante = $this->regresaContactoSolicitante($request, $personaSolicitante, $contactoPropietario);             
             }
             else
-            {   //Busca a la persona con el CURP
+            {
                 $personaSolicitante = $this->regresaPersonaSolicitante($request);
-                $solicitante = $this->regresaSolicitante($request, $personaSolicitante);                
-            }            
-            
-            $propiedad = Propiedad::create([
-                'id_tipo' => $request->tipoPropiedad,
-                'clave_catastral' => trim($request->claveCatastral),
-                'calle' => trim(mb_strtoupper($request->callePropiedad)),
-                'numero' => trim(mb_strtoupper($request->numeroPropiedad)),
-                'id_colonia' => $request->idColoniaPropiedad,
-                'id_localidad' => $request->idLocalidadPropiedad,
-                'superficie' => $request->superficiePropiedad,
-                'superficie_construccion' => $request->superficieConstruccionPropiedad,
-            ]);
-
+                $contactoSolicitante = $this->regresaContactoSolicitante($request, $personaSolicitante);             
+            }    
+           
+            $propiedad = $this->regresaPropiedad($request, $contactoPropietario); 
 
             $solicitud = Solicitud::create([
-                'id_solicitante' => $solicitante->id,
-                'id_propietario' => $propietario->id,
+                'id_contacto' => $contactoSolicitante->id,
                 'id_propiedad' => $propiedad->id,
                 'id_destino_obra' => $request->idDestinoObra,
                 'id_estatus' => $request->idEstatusSolicitud,
@@ -727,9 +1329,7 @@ class SolicitudController extends Controller
             $folioDigital = Str::random(25);
 
             // Después de crear la solicitud, asigna el ID al folio y guarda los cambios
-            $solicitud->folio = $solicitud->id;
             $solicitud->folio_digital = $folioDigital;
-            $solicitud->save();
 
             if (!empty($tramitesSeleccionados)) {
                 foreach ($tramitesSeleccionados as $tramiteId) {
@@ -740,16 +1340,24 @@ class SolicitudController extends Controller
                 }
             }
 
+            $idSolicitud = $solicitud->id;
+            $solicitud->save();
+
+            $solicitud->load(['contacto', 'propiedad', 'propiedad.contacto']);
+
             DB::commit(); // Confirma la transacción si todo salió bien
         
             return back()->with('success', 'Solicitud N° ' . str_pad($solicitud->id, 4, '0', STR_PAD_LEFT) . ' creada exitosamente')
-             ->with('solicitudes', Solicitud::all());
+             ->with('solicitudes', Solicitud::all())
+             ->with('idSolicitud', $idSolicitud)
+             ->with('solicitud', $solicitud);
         } catch (\Exception $e) {
             DB::rollBack(); // Revierte la transacción si ocurre un error
-            return response()->json(['error' => 'Hubo un error al crear el usuario: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Hubo un error al crear la solicitud: ' . $e->getMessage()], 500);
         }
     }
 
+   
     public function update(Request $request, $id)
     {
         $errores = $this->validaSolicitud($request);
@@ -759,63 +1367,35 @@ class SolicitudController extends Controller
             return back()->withErrors($errores)->with('activeTab', $this->activeTab);
         }
 
-        $nuevoSolicitante = filter_var($request->input('nuevoSolicitante'), FILTER_VALIDATE_BOOLEAN);
-
         DB::beginTransaction();
         try 
         {
-            $this->validaSolicitud($request);
-
-            $solicitud = Solicitud::findOrFail($id);
+            $this->validaSolicitud($request);      
 
             $personaPropietario = $this->regresaPersonaPropietario($request);
-            $propietario = $this->regresaPropietario($request, $personaPropietario);
-            
+            $contactoPropietario = $this->regresaContactoPropietario($request, $personaPropietario);
+
             $esSolicitante = filter_var($request->esSolicitante, FILTER_VALIDATE_BOOLEAN);
             if ($esSolicitante) //Si el solicitante es el propietario
             {
-                $solicitante = $propietario;
+                $personaSolicitante = $this->regresaPersonaSolicitante($request, $personaPropietario);
+                $contactoSolicitante = $this->regresaContactoSolicitante($request, $personaSolicitante, $contactoPropietario);             
             }
             else
-            {   //Busca a la persona con el CURP
+            {
                 $personaSolicitante = $this->regresaPersonaSolicitante($request);
-                $solicitante = $this->regresaSolicitante($request, $personaSolicitante);                
-            }            
+                $contactoSolicitante = $this->regresaContactoSolicitante($request, $personaSolicitante);             
+            }
 
-            $solicitud->id_solicitante = $solicitante->id;
-            $solicitud->id_propietario = $propietario->id; 
+            $propiedad = $this->regresaPropiedad($request, $contactoPropietario);
+
+            $solicitud = Solicitud::findOrFail($id);
+           
+            $solicitud->id_propiedad = $propiedad->id;
+            $solicitud->id_contacto = $contactoSolicitante->id;
             $solicitud->id_destino_obra = $request->idDestinoObra;
             $solicitud->id_estatus = $request->idEstatusSolicitud;
             $solicitud->fecha_ingreso = $request->fecha_ingreso;
-
-            if ($request->idPropiedadSolicitud)
-            {
-                $propiedad = Propiedad::findOrFail($request->idPropiedadSolicitud);
-                $solicitud->id_propiedad = $request->idPropiedadSolicitud;
-
-                $propiedad->clave_catastral = trim($request->claveCatastral);
-                $propiedad->id_tipo = $request->tipoPropiedad;
-                $propiedad->superficie = $request->superficiePropiedad;
-                $propiedad->superficie_construccion = $request->superficieConstruccionPropiedad;
-                $propiedad->calle = trim(mb_strtoupper($request->callePropiedad));
-                $propiedad->numero = trim(mb_strtoupper($request->numeroPropiedad));
-                $propiedad->id_colonia = $request->idColoniaPropiedad;
-                $propiedad->id_localidad = $request->idLocalidadPropiedad;
-            }
-            else
-            {
-                $propiedad = Propiedad::create([
-                    'clave_catastral' => trim($request->claveCatastral),
-                    'calle' => trim(mb_strtoupper($request->callePropiedad)),
-                    'numero' => trim(mb_strtoupper($request->numeroPropiedad)),
-                    'id_colonia' => $request->idColoniaPropiedad,
-                    'id_localidad' => $request->idLocalidadPropiedad,
-                    'superficie' => $request->superficiePropiedad,
-                    'superficie_construccion' => $request->superficieConstruccionPropiedad,
-                    'img_croquis' => $request->imgCroquisPropiedad
-                ]);
-                $solicitud->id_propiedad = $propiedad->id;
-            }
 
             SolicitudTramite::where('id_solicitud', $id)->delete();
             if (!empty($request->tramitesSeleccionados)) {
@@ -829,82 +1409,22 @@ class SolicitudController extends Controller
             
             if ($request->idEstatusSolicitud == 99)   //Cuando es un TRÁMITE CONCLUÍDO
             {
-                if ($request->idPersonaPropietario)
-                {
-                    $personaPropietario = Persona::findOrFail($request->idPersonaPropietario);
-                    if ($personaPropietario)  //Se pone como NO EDITABLE la PERSONA del PROPIETARIO
-                    {
-                        $personaPropietario->editable = 0;
-                        $personaPropietario->save();
-                    }
-                }
+                $personaPropietario->editable = 0;
+                $personaPropietario->save();
 
-                if ($request->idPersonaSolicitante)
-                {
-                    $personaSolicitante = Persona::findOrFail($request->idPersonaSolicitante);
-                    if ($personaSolicitante) //Se pone como NO EDITABLE la PERSONA del SOLICITANTE
-                    {
-                        $personaSolicitante->editable = 0;
-                        $personaSolicitante->save();
-                    }
-                }
+                $personaSolicitante->editable = 0;
+                $personaSolicitante->save();
 
-                if ($request->idPropietarioSolicitud)
-                {
-                    $propietarioC = Solicitante::
-                                   where('id', $request->idPropietarioSolicitud)->
-                                   where('telefono', trim($request->telefonoPropietario))->
-                                   where('email', trim($request->emailPropietario))->
-                                   first();
+                $contactoPropietario->editable = 0;
+                $contactoPropietario->save();
 
-                    if ($propietarioC)
-                    {
-                        $propietarioC->editable = 0;
-                        $propietarioC->save();
-                    }
-                    else
-                    {
-                        $propietarioC = Solicitante::findOrFail($request->idPropietarioSolicitud);
-                        if ($propietarioC)
-                        {
-                            $propietarioC->activo = 0;
-                            $propietarioC->save();
-                        }
+                $contactoSolicitante->editable = 0;
+                $contactoSolicitante->save();
 
-                        $propietarioActivo = Solicitante::create([
-                            'id_persona' => $request->idPropietarioSolicitud,
-                            'telefono' => trim($request->telefonoPropietario),
-                            'email' => $request->emailPropietario !== null ? trim(mb_strtolower($request->emailPropietario)) : null,
-                        ]);
-
-                        $solicitud->id_propietario = $propietarioActivo->id;
-                    }
-                }
-
-                if ($request->idSolicitanteSolicitud  && ($request->idPropietarioSolicitud != $request->idSolicitanteSolicitud))
-                {
-                    $solicitanteC = Solicitante::findOrFail($request->idSolicitanteSolicitud);
-
-                    if ($solicitanteC)
-                    {
-                        $solicitanteC->editable = 0;
-                        $solicitanteC->save();
-                    }
-                }
-
-
-
-                // if ($request->idPropiedadSolicitud)
-                // {
-                //     $propiedad = Propiedad::findOrFail($request->idPropiedadSolicitud);
-                //     $propiedad->activo = 0;
-                //     $propiedad->save();
-                // }
-
+                $propiedad->editable = 0; 
             }
 
             $propiedad->save();
-            $propietario->save();
             $solicitud->save();
 
             DB::commit();

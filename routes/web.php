@@ -59,9 +59,10 @@ Route::post('admin/usuarios/store', [UsuarioController::class, 'store'])->name('
 Route::post('admin/usuarios/update/{id}', [UsuarioController::class, 'update'])->name('admin.usuarios.update')->middleware('auth');
 Route::get('admin/usuarios/get-puestos/{id_dependencia}', [UsuarioController::class, 'getPuestos'])->name('admin.usuarios.get-puestos')->middleware('auth');
 
-Route::get('solicitudes', [SolicitudController::class, 'index'])->name('solicitudes')->middleware('auth');
+Route::match(['get', 'post'],'solicitudes', [SolicitudController::class, 'index'])->name('solicitudes')->middleware('auth');
 Route::get('solicitudes/get-persona/{curp}', [SolicitudController::class, 'getPersona'])->name('solicitudes.get-persona')->middleware('auth');
 Route::get('solicitudes/get-propiedad/{claveCatastral}', [SolicitudController::class, 'getPropiedad'])->name('solicitudes.get-propiedad')->middleware('auth');
+Route::get('solicitudes/get-propiedad-solicitud/{idSolicitud}', [SolicitudController::class, 'getPropiedadSolicitud'])->name('solicitudes.get-propiedad-solicitud')->middleware('auth');
 Route::get('solicitudes/get-colonias', [SolicitudController::class, 'getColonias'])->name('solicitudes.get-colonias')->middleware('auth');
 Route::get('solicitudes/get-localidades', [SolicitudController::class, 'getLocalidades'])->name('solicitudes.get-localidades')->middleware('auth');
 Route::post('solicitudes/store', [SolicitudController::class, 'store'])->name('solicitudes.store')->middleware('auth');

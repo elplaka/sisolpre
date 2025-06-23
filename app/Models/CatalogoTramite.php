@@ -15,4 +15,9 @@ class CatalogoTramite extends Model
     {
         return $this->belongsTo(TipoTramite::class, 'id_tipo');
     }
+
+    public function solicitudesTramites()
+    {
+        return $this->hasMany(SolicitudTramite::class, 'id_tramite');
+    }
 }

@@ -16,10 +16,12 @@ class Persona extends Model
     ];
 
     public function solicitante() {
-        return $this->hasOne(Solicitante::class, 'id_persona');
+        return $this->hasOne(Contacto::class, 'id_persona');
     }
     public function propietario() {
-        return $this->hasOne(Solicitante::class, 'id_persona');
+        return $this->hasOne(Contacto::class, 'id_persona');
     }
+
+
 
 }

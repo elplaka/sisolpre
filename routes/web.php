@@ -70,6 +70,10 @@ Route::post('solicitudes/update/{id}', [SolicitudController::class, 'update'])->
 Route::post('solicitudes/valida', [SolicitudController::class, 'valida'])->name('solicitudes.valida')->middleware('auth'); 
 Route::post('solicitudes/upload-croquis/{id}', [SolicitudController::class, 'uploadCroquis'])->name('solicitudes.upload-croquis')->middleware('auth'); 
 Route::post('solicitudes/delete-croquis/{id}', [SolicitudController::class, 'deleteCroquis'])->name('solicitudes.delete-croquis')->middleware('auth'); 
+Route::get('solicitudes/print-pdf/{id}', [SolicitudController::class, 'printPDF'])->name('solicitudes.print-pdf')->middleware(['auth', 'checkSolicitudStatus']);
+Route::get('solicitudes/print-preview-pdf/{id}', [SolicitudController::class, 'printPreviewPDF'])->name('solicitudes.print-preview-pdf')->middleware('auth');
+Route::post('solicitudes/print-pdf/{id}', [SolicitudController::class, 'printPDFPrepare'])->name('solicitudes.print-pdf.prepare')->middleware(['auth', 'checkSolicitudStatus']);
+Route::post('solicitudes/print-preview-pdf/{id}', [SolicitudController::class, 'printPreviewPDFPrepare'])->name('solicitudes.print-preview-pdf.prepare')->middleware('auth');
 
 Route::post('colonias/store', [ColoniaController::class, 'store'])->name('colonias.store')->middleware('auth');
 

@@ -69,4 +69,8 @@ class Kernel extends HttpKernel
         'admin' => \App\Http\Middleware\AdminMiddleware::class,
         'redirectAdmin' => \App\Http\Middleware\redirectAdmin::class,
     ];
+
+    protected $routeMiddleware = [
+        'checkSolicitudStatus' => \App\Http\Middleware\CheckSolicitudStatus::class,
+    ];
 }

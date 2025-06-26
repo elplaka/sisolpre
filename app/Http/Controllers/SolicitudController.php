@@ -15,6 +15,7 @@ use App\Models\TipoTramite;
 use App\Models\Contacto;
 use App\Models\Propiedad;
 use App\Models\SolicitudTramite;
+use App\Models\Periodo;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +25,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\MessageBag;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class SolicitudController extends Controller
 {
@@ -118,6 +119,46 @@ class SolicitudController extends Controller
         ]);
     }
 
+    // Prepara impresión (POST)
+    public function printPDFPrepare()
+    {
+        return redirect()->back();
+    }
+
+    public function printPreviewPDFPrepare()
+    {
+        return redirect()->back();
+    }
+
+    // Muestra PDF (GET)
+    public function printPDF($id)
+    {
+        // $solicitud = Solicitud::findOrFail($id);
+        // $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.solicitud_final', compact('solicitud'));
+        // return $pdf->stream("solicitud_{$id}.pdf");
+
+        // $pdf = Pdf::loadView('Solicitudes.pdfSolicitud');
+        // return $pdf->stream('solicitud.pdf');
+        
+    }
+
+    public function printPreviewPDF($id)
+    {
+        $solicitud = Solicitud::with(['contacto', 'propiedad', 'estatus', 'destino_obra', 'tramites'])->findOrFail($id);
+
+        $fecha = $solicitud->fecha_ingreso;
+
+        $periodo = Periodo::whereDate('inicio', '<=', $fecha)
+            ->whereDate('fin', '>=', $fecha)
+            ->first();
+
+        $css = view('Solicitudes.pdfCSS')->render();
+        $html = view('Solicitudes.pdfSolicitudPreview', compact('solicitud', 'periodo', 'css'))->render();
+
+        return Pdf::loadHTML($html)->stream('pre-solicitud.pdf');    
+    }
+
+
     public function index(Request $request)  
     {
         $sortColumn = $request->input('sortColumn', 'id'); // Columna de ordenación
@@ -131,6 +172,8 @@ class SolicitudController extends Controller
         $estatusQuery = $request->input('estatusQuery');
         $filtroChkSolicitudes = $request->input('filtroChkSolicitudes', 0);
 
+        //FALTA ENVIAR TODO ESTO EN EL UPDATE
+        // dd($request->all());
 
         if (empty($tramitesQuery) && empty($estatusQuery))
         {
@@ -177,8 +220,7 @@ class SolicitudController extends Controller
                          GROUP_CONCAT(catalogo_tramites.nombre ORDER BY catalogo_tramites.nombre ASC) as tramites_nombres')
             ->groupBy('solicitudes.id', 'solicitudes.fecha_ingreso', 'solicitudes.id_contacto', 
                       'solicitudes.folio_digital', 'solicitudes.id_propiedad', 
-                      'solicitudes.id_destino_obra', 'solicitudes.id_estatus');    
-
+                      'solicitudes.id_destino_obra', 'solicitudes.id_estatus');  
 
         if ($nombreQuery)
         {
@@ -477,6 +519,7 @@ class SolicitudController extends Controller
                 'count' => $solicitudesSinTramitesCount,
             ]);
         }
+
 
         return Inertia::render('Solicitudes/Index', [
             'userAuth' => Auth::user(),
@@ -1429,7 +1472,7 @@ class SolicitudController extends Controller
 
             DB::commit();
 
-            return back()->with('success', 'Solicitud actualizada con éxito');
+            return back()->with('success', 'Solicitud actualizada con éxito')->with('solicitudes', Solicitud::all());
 
         } catch (\Throwable $e) {
             DB::rollBack();

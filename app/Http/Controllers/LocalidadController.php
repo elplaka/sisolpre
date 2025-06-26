@@ -11,18 +11,34 @@ class LocalidadController extends Controller
     public function store(Request $request)
     {
         $request->validate([
+            'id' => [
+                'required',
+                'numeric',
+                'digits_between:1,3',
+                function ($attribute, $value, $fail) {
+                    $idNumerico = intval($value);
+                    $idFormateado = abs($idNumerico);
+                    if (Localidad::where('id', $idFormateado)->exists()) {
+                        $fail('La CLAVE de LOCALIDAD ya existe. Intenta con otra clave.');
+                    }
+                },
+            ],
             'nombre' => 'required|string|max:50',
         ], [
+            'id.required' => 'El campo clave es obligatorio.',
+            'id.numeric' => 'La clave debe ser numérica.',
+            'id.digits_between' => 'La clave debe tener entre 1 y 3 dígitos.',
             'nombre.required' => 'El campo nombre es obligatorio.',
             'nombre.string' => 'El nombre debe ser una cadena de texto válida.',
             'nombre.max' => 'El nombre no puede tener más de 50 caracteres.',
-        ]); 
+        ]);
 
         try {
             DB::beginTransaction(); // Inicia la transacción
 
             // Crear la colonia
             $localidad = Localidad::create([
+                'id' => abs($request->id),
                 'nombre' => trim(mb_strtoupper($request->nombre)),
             ]);
 

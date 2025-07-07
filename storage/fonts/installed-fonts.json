@@ -2,6 +2,10 @@
     "figtree": {
         "normal": "C:\\www\\sistemas\\pmu\\storage\\fonts\/figtree_normal_18c6c38583ac5e79180f4a0299cd4d52",
         "bold": "C:\\www\\sistemas\\pmu\\storage\\fonts\/figtree_bold_df97d766f8f025494a3181649b22112a",
-        "600": "figtree_600_2a410efa0e63a76823c3b9f84c999dc6"
+        "600": "C:\\www\\sistemas\\pmu\\storage\\fonts\/figtree_600_2a410efa0e63a76823c3b9f84c999dc6",
+        "800": "C:\\www\\sistemas\\pmu\\storage\\fonts\/figtree_800_a620d6ed8219d99c8715c36bc6537a50",
+        "900": "C:\\www\\sistemas\\pmu\\storage\\fonts\/figtree_900_7589291e976f600be61c31cdd7d499ff",
+        "italic": "C:\\www\\sistemas\\pmu\\storage\\fonts\/figtree_italic_65d82ee0c35a90313bd0af43ab024bdb",
+        "bold_italic": "figtree_bold_italic_f2c8cee4270f3aa1cfa37ed05b523935"
     }
 }

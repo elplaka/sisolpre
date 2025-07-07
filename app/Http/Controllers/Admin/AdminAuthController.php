@@ -22,8 +22,20 @@ class AdminAuthController extends Controller
     {
         // Add your login logic here
         // Check if the user is an admin and redirect accordingly
-        if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
-            return redirect()->route('admin.dashboard'); // Redirect to the admin dashboard
+        // if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
+        //     return redirect()->route('admin.dashboard'); // Redirect to the admin dashboard
+        // }
+
+        if (Auth::attempt(['nickname' => $request->nickname, 'password' => $request->password])) {
+            $user = Auth::user();
+
+            // Verificar si el usuario está activo
+            if ($user->es_activo) {
+                return redirect()->route('admin.dashboard');
+            } else {
+                Auth::logout(); // Cerrar sesión si no está activo
+                return redirect()->route('admin.login')->with('error', 'Tu cuenta está inactiva. Por favor, contacta al administrador del sistema.');
+            }
         }
 
         return redirect()->route('admin.login')->with('error', 'Los datos proporcionados no corresponden a los registrados en el sistema. Inténtelo nuevamente.');

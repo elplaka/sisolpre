@@ -12,8 +12,9 @@
         :tramites="tramites"
         :localidades="localidades"
         :nombreQuery ="nombreQuery"
-        :fechaInicioQuery="fechaInicioQuery"
-        :fechaFinQuery="fechaFinQuery"
+        :fechaInicioQuery="props.fechaInicioQuery"
+        :fechaFinQuery="props.fechaFinQuery"
+        :idRangoFechasQuery="props.idRangoFechasQuery"
         :tiposTramitesQuery="tiposTramitesQuery"
         :tramitesQuery="tramitesQuery"
         :filtroChkSolicitudes="filtroChkSolicitudes">
@@ -37,11 +38,9 @@ const props = defineProps({
   localidades: Object,
   fechaInicioQuery: String,
   fechaFinQuery: String,
+  idRangoFechasQuery: Number,
   tiposTramitesQuery: Object, // Datos relacionados de los tipos de trámites
-  // solicitantes: Object, // Datos relacionados de los solicitantes
-  // propiedades: Object, // Datos relacionados de las propiedades
   tramitesQuery: Object, // Datos relacionados de los trámites
-  // estatus: Object, // Estatus de solicitudes
   nombreQuery: String, // Cadena de búsqueda
   filtroChkSolicitudes: Number, // Filtro de solicitudes
   userAuth: { type: Object, required: true }, // Información de usuario autenticado

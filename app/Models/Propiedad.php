@@ -21,6 +21,7 @@ class Propiedad extends Model
         'superficie',
         'superficie_construccion',
         'id_contacto',
+        'img_croquis'
     ];
 
     public function colonia()

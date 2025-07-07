@@ -159,22 +159,30 @@ class UsuarioController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'nickname' => 'required|string|max:50|unique:users',
             'email' => 'required|string|email|max:255|unique:users',
             'celular' => 'required|digits:10',
             'password' => 'required|string|min:3|confirmed',
         ], [
             // Mensajes personalizados
-            'name.required' => 'El campo nombre es obligatorio.',
-            'name.string' => 'El nombre debe ser una cadena de texto válida.',
-            'name.max' => 'El nombre no puede tener más de 255 caracteres.',
-            'email.required' => 'El campo correo electrónico es obligatorio.',
-            'email.email' => 'Debe proporcionar una dirección de correo electrónico válida.',
-            'email.unique' => 'El correo electrónico ya está registrado.',
-            'celular.required' => 'El número de celular es obligatorio.',
-            'celular.digits' => 'El número de celular debe tener exactamente 10 dígitos.',
-            'password.required' => 'La contraseña es obligatoria.',
-            'password.min' => 'La contraseña debe tener al menos 3 caracteres.',
-            'password.confirmed' => 'La confirmación de contraseña no coincide.'
+            'name.required' => 'El campo NOMBRE es obligatorio.',
+            'name.string' => 'El NOMBRE debe ser una cadena de texto válida.',
+            'name.max' => 'El NOMBRE no puede tener más de 255 caracteres.',
+            'last_name.required' => 'El campo APELLIDOS es obligatorio.',
+            'last_name.string' => 'Los APELLIDOS deben ser una cadena de texto válida.',
+            'last_name.max' => 'Los APELLIDOS no pueden tener más de 255 caracteres.',
+            'email.required' => 'El campo CORREO ELECTRÓNICO es obligatorio.',
+            'nickname.unique' => 'El NICKNAME ya está registrado.',
+            'nickname.required' => 'El campo NICKNAME es obligatorio.',
+            'nickname.max' => 'El NICKNAME no puede tener más de 50 caracteres.',
+            'email.email' => 'Debe proporcionar una dirección de CORREO ELECTRÓNICO válida.',
+            'email.unique' => 'El CORREO ELECTRÓNICO ya está registrado.',
+            'celular.required' => 'El número de CELULAR es obligatorio.',
+            'celular.digits' => 'El número de CELULAR debe tener exactamente 10 dígitos.',
+            'password.required' => 'La CONTRASEÑA es obligatoria.',
+            'password.min' => 'La CONTRASEÑA debe tener al menos 3 caracteres.',
+            'password.confirmed' => 'La confirmación de CONTRASEÑA no coincide.'
         ]); 
 
         try {
@@ -184,6 +192,7 @@ class UsuarioController extends Controller
             $user = User::create([
                 'name' => trim(mb_strtoupper($request->name)),
                 'last_name' => trim(mb_strtoupper($request->last_name)),
+                'nickname' => trim(mb_strtolower($request->nickname)),
                 'email' => trim(mb_strtolower($request->email)),
                 'celular' => $request->celular,
                 'password' => Hash::make($request->password),
@@ -191,6 +200,24 @@ class UsuarioController extends Controller
                 'genero' => $request->genero,
                 'verificado' => filter_var($request->verificado, FILTER_VALIDATE_BOOLEAN) ? 1 : 0
             ]);
+
+            switch ($request->type_id) {
+                case 1:
+                    $user->assignRole('ADMINISTRADOR');
+                    break;
+                case 2:
+                    $user->assignRole('DIRECTOR');
+                    break;
+                case 3:
+                    $user->assignRole('AUDITOR');
+                    break;
+                case 4:
+                    $user->assignRole('AUXILIAR');
+                    break;
+                default:
+                    // Opcional: puedes lanzar un error si no es válido
+                    throw new \Exception('Tipo de usuario inválido.');
+            }
 
             DB::commit(); // Confirma la transacción si todo salió bien
         
@@ -342,6 +369,28 @@ class UsuarioController extends Controller
         {
             $user->password = Hash::make($request->password);
         }
+
+         switch ($request->type_id) {
+            case 1:
+                $user->syncRoles(['ADMINISTRADOR']);     // Reemplaza el rol anterior
+                break;
+            case 2:
+                $user->syncRoles(['DIRECTOR']);     // Reemplaza el rol anterior
+                break;
+            case 3:
+                $user->syncRoles(['AUDITOR']);     // Reemplaza el rol anterior
+                break;
+            case 4:
+                $user->syncRoles(['AUXILIAR']);     // Reemplaza el rol anterior
+                break;
+            default:
+                // Opcional: puedes lanzar un error si no es válido
+                throw new \Exception('Tipo de usuario inválido.');
+        }
+
+        $user->syncPermissions([]);          // Limpia permisos directos (opcional, si usas roles correctamente)
+
+        //HAY QUE ENVIAR UN CORREO ELECTRÓNICO DE CONFIRMACIÓN CON LOS DATOS Y CON EL TOKEN
        
         $user->update();
 
@@ -358,6 +407,7 @@ class UsuarioController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
+            'nickname' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
             'password' => 'required|string|min:3|confirmed',
         ]);
@@ -366,11 +416,15 @@ class UsuarioController extends Controller
         $user = User::create([
             'name' => $request->input('name'),
             'last_name' => $request->input('last_name'),
+            'nickname' => $request->input('nickname'),
             'email' => $request->input('email'),
             'password' => Hash::make($request->input('password')),
-            'isAdmin' => 1
+            'isAdmin' => 1,
+            'user_type_id' => 1
         ]);
 
+        $user->assignRole('ADMINISTRADOR');
+                   
         return redirect()->route('admin.login')->with('success', 'Usuario registrado exitosamente. ¡Bienvenido!');
     }
 

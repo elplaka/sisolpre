@@ -18,7 +18,8 @@ class Solicitud extends Model
         'id_propiedad',
         'id_destino_obra',
         'id_estatus',
-        'folio_digital'
+        'folio_digital',
+        'token_acceso'
     ];
 
     public function estatus()

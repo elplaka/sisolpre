@@ -3241,7 +3241,7 @@
                         </span>
                     </label>
                 </div>
-                <div v-if="claveCatastralCompleta && tipoPropiedad == 2" class="relative z-0 mb-5 group peer w-full md:w-1/4">
+                <div v-if="claveCatastralCompleta && tipoPropiedad == 2" class="relative z-0 mb-1 md:mb-5 group peer w-full md:w-1/4">
                     <div v-if="tipoPropiedad == 2">
                         <input
                             v-model="superficieConstruccionPropiedad"
@@ -3369,7 +3369,7 @@
                         </button>
                     </label>
                 </div>
-                <div class="relative z-0 mb-5 group peer w-full md:w-[41%]">
+                <div class="relative z-0 mb-1 md:mb-5 group peer w-full md:w-[41%]">
                     <div class="relative">
                         <input
                             v-model="nombreColoniaPropiedad"
@@ -3905,164 +3905,17 @@
                     </label>
                 </div>
             </div>
-            <!-- <h2 v-if="curpPropietarioCompleta" 
-                    class="flex items-center text-sm font-semibold text-gray-800 dark:text-white">
-                    <span>Domicilio</span>
-                </h2>
-                <div v-if="curpPropietarioCompleta" class="flex items-center space-x-4">
-                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 40%;">
-                        <input
-                        v-model="callePropietario"
-                        type="text"
-                        class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
-                        :class="[{
-                            'pb-1 py-2.5 px-0': callePropietarioEditable,
-                            'bg-color3-50 p-0 m-0 mt-2': !callePropietarioEditable,
-                            'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': callePropietarioEditable
-                        }]"
-                        placeholder=""
-                        :disabled="!callePropietarioEditable"/>
-                        <label style="z-index: 10;"
-                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
-                        Calle
-                            <button
-                                v-if="!callePropietarioEditable && !callePropietarioBloqueado"
-                                class="ml-2 bg-transparent text-gray-500 hover:text-color1"
-                                @click="habilitarCaptura('callePropietarioEditable')" >
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1">
-                                    <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
-                                </svg>
-                            </button>
-                        </label>
-                    </div>
-                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 10%;">
-                        <input
-                        v-model="numeroPropietario"
-                        type="text"
-                        class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
-                        :class="[{
-                            'pb-1 py-2.5 px-0': numeroPropietarioEditable,
-                            'bg-color3-50 p-0 m-0 mt-2': !numeroPropietarioEditable,
-                            'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': numeroPropietarioEditable
-                        }]"
-                        placeholder=""
-                        :disabled="!numeroPropietarioEditable"/>
-                        <label style="z-index: 10;"
-                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
-                        N°
-                            <button
-                                v-if="!numeroPropietarioEditable && !numeroPropietarioBloqueado"
-                                class="ml-2 bg-transparent text-gray-500 hover:text-color1"
-                                @click="habilitarCaptura('numeroPropietarioEditable')" >
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1">
-                                    <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
-                                </svg>
-                            </button>
-                        </label>
-                    </div>
-                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 50%;">
-                        <div class="relative">
-                            <input
-                                v-model="nombreColoniaPropietario"
-                                type="text"
-                                class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
-                                :class="[{
-                                    'pb-1 py-2.5 px-0': idColoniaPropietarioEditable,
-                                    'bg-color3-50 p-0 m-0 mt-2': !idColoniaPropietarioEditable,
-                                    'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': idColoniaPropietarioEditable
-                                }]"
-                                placeholder=""
-                                disabled
-                                required />
-                                <label
-                                    style="z-index: 10;"
-                                    :class="[
-                                        'absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform scale-85 top-3 -z-10 origin-[0]',
-                                        idColoniaPropietarioEditable || idColoniaPropietario == null
-                                            ? 'peer-focus:-translate-y-8 peer-focus:scale-90 peer-focus:text-color1 peer-focus:dark:text-color1 -translate-y-6 peer-placeholder-shown:scale-90'
-                                            : '-translate-y-8 peer-placeholder-shown:scale-90' ,
-                                        { 'peer-placeholder-shown:translate-y-0': idColoniaPropietarioEditable },
-                                        { 'peer-placeholder-shown:translate-y-[-0.5rem]': idColoniaPropietario == null }
-                                    ]">
-                                    Colonia
-                                    <button
-                                        v-if="!idColoniaPropietarioEditable && !idColoniaPropietarioBloqueado"
-                                        class="ml-2 bg-transparent text-gray-500 hover:text-color1"
-                                        @click="habilitarCaptura('idColoniaPropietarioEditable')" >
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1">
-                                            <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
-                                        </svg>
-                                    </button>
-                                </label>
-                        </div>
-                        <button
-                            type="button"
-                            @click="abreModalBuscarColonia('propietario')"
-                            title="Buscar colonia..."
-                            v-if="idColoniaPropietarioEditable"
-                            class="absolute right-0 top-1/2 transform -translate-y-1/2 p-1 text-gray-500 hover:text-color1-700 rounded-lg focus:outline-none">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 scale-110" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M12.9 14.32a8 8 0 111.42-1.42l4.9 4.9a1 1 0 01-1.42 1.42l-4.9-4.9zM8 14a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-                <div v-if="curpPropietarioCompleta" class="flex items-center space-x-4">
-                    <div class="relative z-0 mb-5 group peer w-full" style="flex-basis: 50%;">
-                        <div class="relative">
-                            <input
-                                v-model="nombreLocalidadPropietario"
-                                type="text"
-                                class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
-                                :class="[{
-                                    'pb-1 py-2.5 px-0': idLocalidadPropietarioEditable,
-                                    'bg-color3-50 p-0 m-0 mt-2': !idLocalidadPropietarioEditable,
-                                    'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': idLocalidadPropietarioEditable
-                                }]"
-                                placeholder=""
-                                disabled
-                                required />
-                                <label
-                                    style="z-index: 10;"
-                                    :class="[
-                                        'absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform scale-85 top-3 -z-10 origin-[0]',
-                                        idLocalidadPropietarioEditable
-                                            ? 'peer-focus:-translate-y-8 peer-focus:scale-90 peer-focus:text-color1 peer-focus:dark:text-color1 -translate-y-6 peer-placeholder-shown:scale-90'
-                                            : '-translate-y-8 peer-placeholder-shown:scale-90' ,
-                                        { 'peer-placeholder-shown:translate-y-0': idLocalidadPropietarioEditable },
-                                        { 'peer-placeholder-shown:translate-y-[-0.5rem]': !idLocalidadPropietarioEditable }
-                                    ]"
-                                >
-                                    Localidad
-                                    <button
-                                        v-if="!idLocalidadPropietarioEditable && !idLocalidadPropietarioBloqueado"
-                                        class="ml-2 bg-transparent text-gray-500 hover:text-color1"
-                                        @click="habilitarCaptura('idLocalidadPropietarioEditable')" >
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1">
-                                            <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
-                                        </svg>
-                                    </button>
-                                </label>
-                        </div>
-                        <button
-                            type="button"
-                            @click="abreModalBuscarLocalidad('propietario')"
-                            v-if="idLocalidadPropietarioEditable"
-                            title="Buscar localidad..."
-                            class="absolute right-0 top-1/2 transform -translate-y-1/2 p-1 text-gray-500 hover:text-color1-700 rounded-lg focus:outline-none">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 scale-110" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M12.9 14.32a8 8 0 111.42-1.42l4.9 4.9a1 1 0 01-1.42 1.42l-4.9-4.9zM8 14a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd" />
-                            </svg>
-                        </button>
-                    </div>
-                </div> -->
         </div>
         <div v-if="activeTab == 'tramite'" class="space-y-4">
-            <div class="flex items-center gap-4 w-full">
-                <h3 class="flex items-center text-lg font-semibold text-gray-800 dark:text-white">Trámite(s) a realizar</h3>
-                <div v-if="tramitesSeleccionados.length && !solicitudBloqueada" class="flex flex-nowrap gap-2">
-                    <div v-for="tramiteId in tramitesSeleccionados" :key="tramiteId" class="bg-color1-50 text-color1-800 text-xs font-semibold px-2 py-1 rounded-md flex items-center gap-1 shadow-sm">
-                        <span class="text-[10px]">
+            <div class="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4 w-full">
+                <h3 class="flex items-center text-lg font-semibold text-gray-800 dark:text-white flex-shrink-0">Trámite(s) a realizar</h3>
+                <div v-if="tramitesSeleccionados.length && !solicitudBloqueada" class="flex flex-wrap gap-2 w-full md:flex-nowrap">
+                    <div
+                        v-for="tramiteId in tramitesSeleccionados"
+                        :key="tramiteId"
+                        class="bg-color1-50 text-color1-800 text-xs font-semibold px-2 py-1 rounded-md flex items-center justify-center gap-1 shadow-sm w-[calc(50%-theme('gap.2')/2)] md:w-auto"
+                    >
+                        <span class="text-[10px] flex-grow text-center">
                             {{ tiposTramites.flatMap((t) => t.tramites).find((t) => t.id === tramiteId)?.nombre_abreviado }}
                         </span>
                         <button
@@ -4079,7 +3932,7 @@
                     <div
                         v-for="tramiteId in tramitesSeleccionados"
                         :key="tramiteId"
-                        class="bg-transparent border-2 border-color1-300 text-color1-600 text-sm font-semibold px-2 py-2 rounded-lg flex items-center gap-1 shadow-sm"
+                        class="bg-transparent border-2 border-color1-300 text-color1-600 text-sm font-semibold px-2 py-2 rounded-xl flex items-center gap-1 shadow-sm w-full md:w-auto justify-center"
                     >
                         <span>
                             {{ tiposTramites.flatMap((t) => t.tramites).find((t) => t.id === tramiteId)?.nombre }}
@@ -4142,10 +3995,12 @@
                     <tbody v-if="isMobile">
                         <template v-for="tipoTramite in tiposTramites" :key="tipoTramite.id">
                             <tr>
-                                <td class="px-4 py-2 text-center font-bold align-middle w-[80px] h-[60px] border border-gray-300" :rowspan="tipoTramite.tramites.length || 1">
-                                    {{ tipoTramite.nombre }}
+                                <td class="px-4 py-2 text-center font-bold align-middle w-[40px] h-[60px] border border-gray-300" :rowspan="tipoTramite.tramites.length || 1">
+                                    <span class="inline-block [writing-mode:vertical-lr] [text-orientation:upright]">
+                                        {{ tipoTramite.nombre }}
+                                    </span>
                                 </td>
-                                <td class="px-3 py-2 text-center w-[150px] h-[60px] overflow-hidden">
+                                <td class="px-3 py-2 text-center w-[120px] h-[60px] overflow-hidden">
                                     <div
                                         v-if="tipoTramite.tramites.length"
                                         @click="actualizarTramitesSeleccionados(tipoTramite.tramites[0].id)"
@@ -4184,7 +4039,7 @@
                 </div>
             </div>
             <div class="flex items-center space-x-4">
-                <div class="relative z-0 mt-3 mb-5 group peer w-full" style="flex-basis: 30%">
+                <div class="relative z-0 mt-3 mb-5 group peer w-full md:w-[30%]">
                     <template v-if="idDestinoObraEditable">
                         <select
                             v-model="idDestinoObra"
@@ -4282,48 +4137,30 @@
                     </div>
                 </div>
                 <div v-else class="flex items-center justify-center mb-10">
-                    <div v-if="!isLoadingModal && !isUploading && !isProcessingFile" class="relative w-16 h-16 cursor-pointer" @click="showPreviewDialog">
-                        <component :is="fileIcon" class="w-full h-full"></component>
-                        <button
-                            v-if="!isLoadingModal && !solicitudBloqueada && (paraEditarSolicitud || nuevaPropiedad)"
-                            class="absolute top-1 right-0 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center focus:outline-none"
-                            @click.stop="removeFile"
-                            title="Eliminar imagen"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3">
-                                <path
-                                    fill-rule="evenodd"
-                                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                    clip-rule="evenodd"
-                                />
-                            </svg>
-                        </button>
-                    </div>
-                    <div class="ml-4" v-if="!isLoadingModal && !isUploading && !isProcessingFile">
-                        <span class="font-semibold" style="font-style: italic">{{ fileName }}</span>
+                    <div v-if="!isLoadingModal && !isUploading && !isProcessingFile" class="flex flex-col items-center md:flex-row md:items-center">
+                        <div class="relative w-16 h-16 cursor-pointer" @click="showPreviewDialog">
+                            <component :is="fileIcon" class="w-full h-full"></component>
+                            <button
+                                v-if="!isLoadingModal && !solicitudBloqueada && (paraEditarSolicitud || nuevaPropiedad)"
+                                class="absolute top-1 right-0 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center focus:outline-none"
+                                @click.stop="removeFile"
+                                title="Eliminar imagen"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3">
+                                    <path
+                                        fill-rule="evenodd"
+                                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                        clip-rule="evenodd"
+                                    />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="mt-2 md:mt-0 md:ml-4" v-if="!isLoadingModal && !isUploading && !isProcessingFile">
+                            <span class="font-semibold text-center md:text-left" style="font-style: italic">{{ fileName }}</span>
+                        </div>
                     </div>
                 </div>
-                <!-- <div class="mt-2 w-full h-4 mb-5">
-                        <div v-if="isUploading || isProcessingFile">
-                            <div class="mb-1 text-sm text-gray-700 font-medium flex justify-between">
-                                <span>
-                                    {{ isProcessingFile ? 'Procesando en el servidor...' : 'Subiendo croquis...' }}
-                                </span>
-                                <span v-if="isUploading">
-                                    {{ uploadProgress }}%
-                                </span>
-                            </div>
-                            <div v-if="isUploading" class="bg-gray-200 h-4 rounded overflow-hidden">
-                                <div
-                                    class="bg-color2-600 h-4 transition-all duration-500 ease-in-out"
-                                    :style="{ width: uploadProgress + '%', opacity: 1 }"
-                                ></div>
-                            </div>
-                            <div v-if="isProcessingFile" class="bg-gray-200 h-4 rounded overflow-hidden">
-                                <div class="bg-color2-600 h-4 w-full animate-pulse-bar"></div>
-                            </div>
-                        </div>
-                    </div> -->
                 <input type="file" class="hidden" ref="fileInput" @change="handleFileChange" accept="image/png, image/jpeg, image/jpg" />
             </div>
         </div>
@@ -4371,7 +4208,7 @@
             </div>
         </template>
         <div v-if="imageSrc" class="flex justify-center mb-2">
-            <img :src="imageSrc" alt="Vista previa" class="max-w-full h-auto" style="max-width: 400px; max-height: 300px" />
+            <img :src="imageSrc" alt="Vista previa" class="w-[80vw] h-auto md:max-w-full" style="max-width: 400px; max-height: 300px" />
         </div>
         <div v-else-if="archivoInvalido" class="flex items-center space-x-4">
             <span class="flex-shrink-0 text-color1-600">

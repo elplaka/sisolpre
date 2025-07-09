@@ -63,14 +63,14 @@
             <!-- Imagen (se alterna según el tamaño de pantalla) -->
             <div class="flex-shrink-0">
                 <!-- Imagen para pantallas grandes -->
-                <img src="/img/Marca_Gestion.jpg" class="hidden sm:block h-20 w-auto" />
+                <img src="/img/Marca_Gestion.jpg" class="hidden sm:block w-auto" />
                 <!-- Imagen para pantallas pequeñas -->
-                <img src="/img/Logo_Y_Escudo.jpg" class="block sm:hidden h-16 w-auto" />
+                <img src="/img/Logo_Y_Escudo.jpg" class="block sm:hidden w-auto" />
             </div>
 
             <!-- Texto -->
             <div class="text-center md:text-left">
-                <h2 class="text-2xl font-bold text-gray-800">Formato Único de Solicitud</h2>
+                <h2 class="text-2xl font-bold text-gray-800">Formato Único de Solicitud ::</h2>
                 <p class="text-xl text-gray-500">Dirección de Planeación Municipal Urbana</p>
             </div>
         </div>

@@ -1314,7 +1314,7 @@ class SolicitudController extends Controller
 
                 $manager = new ImageManager(new \Intervention\Image\Drivers\Gd\Driver());
                 $imagen = $manager->read($archivo->getPathname());
-                $imagen->scale(width: 400);
+                $imagen->scale(height: 180); 
 
                 $contenido = match (strtolower($extension)) {
                     'png' => $imagen->toPng()->toString(),

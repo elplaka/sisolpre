@@ -201,11 +201,11 @@ class SolicitudController extends Controller
         // Si aún necesitas la cantidad de tipos de trámite, la puedes obtener de $tramitesAgrupados
         $cantidadTiposTramite = $tramitesAgrupados->count();
 
-        $css = view('Solicitudes.pdfCSS')->render();
+        $css = view('solicitudes.pdfCSS')->render();
 
         // Pasa TODAS las variables necesarias a tu vista.
         // Incluimos $tramitesAgrupados para que puedas iterar sobre ella en la vista.
-        $html = view('Solicitudes.pdfSolicitud', compact('solicitud', 'periodo', 'css', 'cantidadTiposTramite', 'tramitesAgrupados'))->render();
+        $html = view('solicitudes.pdfSolicitud', compact('solicitud', 'periodo', 'css', 'cantidadTiposTramite', 'tramitesAgrupados'))->render();
 
         return Pdf::loadHTML($html)
         ->setPaper('letter', 'portrait')
@@ -238,11 +238,11 @@ class SolicitudController extends Controller
         // Si aún necesitas la cantidad de tipos de trámite, la puedes obtener de $tramitesAgrupados
         $cantidadTiposTramite = $tramitesAgrupados->count();
 
-        $css = view('Solicitudes.pdfCSS')->render();
+        $css = view('solicitudes.pdfCSS')->render();
 
         // Pasa TODAS las variables necesarias a tu vista.
         // Incluimos $tramitesAgrupados para que puedas iterar sobre ella en la vista.
-        $html = view('Solicitudes.pdfSolicitudPreview', compact('solicitud', 'periodo', 'css', 'cantidadTiposTramite', 'tramitesAgrupados'))->render();
+        $html = view('solicitudes.pdfSolicitudPreview', compact('solicitud', 'periodo', 'css', 'cantidadTiposTramite', 'tramitesAgrupados'))->render();
 
         return Pdf::loadHTML($html)->stream('pre-solicitud.pdf');
     }

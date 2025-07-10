@@ -22,6 +22,9 @@
         idRangoFechasQuery: Number
     })
 
+    const intervalo = ref(null)
+    const intervaloMs = 60000 // 👈 ajusta aquí la frecuencia del polling
+
     //Parámetros para filtrar
     const nombreQuery = ref('')
     const fechaInicioQuery = ref('')
@@ -368,6 +371,26 @@
     // };
 
     const abreModalEditarSolicitud = async (solicitud) => {
+        isLoading.value = true
+        isLoadingModal.value = true
+        isUploading.value = false
+        isProcessingFile.value = false
+
+        const response = await fetch(`/solicitudes/get-solicitud/${encodeURIComponent(solicitud.id)}`, {
+            // Agrega las comillas
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+
+        if (!response.ok) {
+            throw new Error('Error en la respuesta del servidor')
+        }
+
+        const data = await response.json()
+        solicitud = data.solicitud // Aquí se almacenan los datos en la variable puestos
+
         dropdownVisible.value = null
 
         paraNuevaSolicitud.value = false
@@ -380,10 +403,6 @@
         claveCatastralEditable.value = true
         curpPropietarioEditable.value = true
         curpSolicitanteEditable.value = true
-
-        isLoadingModal.value = true
-        isUploading.value = false
-        isProcessingFile.value = false
 
         estatusSolicitudSelect.value = props.estatusSolicitud.filter((item) => item.id > 1)
 
@@ -458,11 +477,14 @@
         nuevoSolicitante.value = false
         activeTab.value = 'propiedad'
         isLoadingModal.value = false
+        isLoading.value = false
         dialogVisible.value = true
 
         setTimeout(() => {
             claveCatastralRef.value?.focus()
         }, 50)
+
+        fetchSolicitudes()
     }
 
     const dialogWidth = computed(() => {
@@ -530,7 +552,7 @@
 
     const resetFormData = () => {
         claveCatastral.value = CVE_MUNICIPIO.value + '  000'
-        idEstatusSolicitud.value = ''
+        idEstatusSolicitud.value = 2
 
         inicializaPropietario()
         curpPropietario.value = ''
@@ -1320,6 +1342,47 @@
                 })
             }
         })
+
+        intervalo.value = setInterval(() => {
+            fetchSolicitudes(false, true)
+        }, intervaloMs)
+
+        // const solicitudes = ref(props.solicitudes || [])
+
+        // watch(
+        //     () => props.solicitudes,
+        //     (nuevasSolicitudes) => {
+        //         solicitudes.value = nuevasSolicitudes
+        //     }
+        // )
+
+        // // Suscribirse al canal de solicitudes
+        // window.Echo.channel('solicitudes') // Nombre del canal definido en broadcastOn()
+        //     .listen('.solicitud.updated', (event) => {
+        //         // Nombre del evento definido en broadcastAs()
+        //         console.log('Evento de solicitud recibido:', event)
+
+        //         if (event.action === 'created') {
+        //             solicitudes.value.unshift(event.solicitud) // Añadir al principio
+        //         } else if (event.action === 'updated') {
+        //             const index = solicitudes.value.findIndex((s) => s.id === event.solicitud.id)
+        //             if (index !== -1) {
+        //                 // solicitudes.value.splice(index, 1, event.solicitud) // Reemplazar
+        //                 // solicitudes.value = solicitudes.value.map((s) => (s.id === event.solicitud.id ? event.solicitud : s))
+        //                 solicitudes.value = solicitudes.value.map((s) =>
+        //                     s.id === event.solicitud.id
+        //                         ? JSON.parse(JSON.stringify(event.solicitud)) // 🔁 forzar reactividad total
+        //                         : s
+        //                 )
+        //             }
+        //         } else if (event.action === 'deleted') {
+        //             // Aquí, event.solicitud será el objeto dummy con solo el ID o el ID directo
+        //             solicitudes.value = solicitudes.value.filter((s) => s.id !== event.solicitud.id)
+        //         }
+        //     })
+        //     .error((error) => {
+        //         console.error('Error al escuchar el canal de solicitudes:', error)
+        //     })
     })
 
     onBeforeUnmount(() => {
@@ -2115,7 +2178,7 @@
         return Object.fromEntries(urlParams.entries())
     }
 
-    function fetchSolicitudes(onMounted) {
+    function fetchSolicitudes(onMounted, polling = false) {
         const paramsObject = buildQueryParams()
         paramsObject.page = 1
 
@@ -2127,9 +2190,11 @@
             sortColumn.value = 'id'
             sortDirection.value = 'asc'
         } else {
-            showLoaderTimeout = setTimeout(() => {
-                isSearching.value = true //Muestra la pantalla de Buscando...
-            }, 200) // solo mostrar si tarda más de 200ms
+            if (!polling) {
+                showLoaderTimeout = setTimeout(() => {
+                    isSearching.value = true //Muestra la pantalla de Buscando...
+                }, 200) // solo mostrar si tarda más de 200ms
+            }
         }
 
         const filtros = {
@@ -2651,6 +2716,8 @@
 
     onUnmounted(() => {
         window.removeEventListener('resize', updateSize)
+        // window.Echo.leaveChannel('solicitudes')
+        clearInterval(intervalo.value)
     })
 
     const handleTabClick = (tabName) => {
@@ -3265,7 +3332,7 @@
                             :class="{ 'translate-y-0 scale-90': !superficieConstruccionPropiedad }"
                         >
                             <span class="hidden sm:block" @click="focusInputSuperficieConstruccionPropiedad">
-                                Superficie en construcción (m²)
+                                Sup. en construcción (m²)
                                 <button
                                     v-if="!superficieConstruccionPropiedadEditable && !superficieConstruccionPropiedadBloqueado"
                                     class="ml-2 bg-transparent text-gray-500 hover:text-color1"
@@ -3875,7 +3942,7 @@
                         </button>
                     </label>
                 </div>
-                <div v-if="esSolicitanteEditable" class="relative z-0 mb-5 group peer w-full" style="flex-basis: 35%">
+                <div v-if="esSolicitanteEditable" class="relative z-0 mb-5 group peer w-full md:w-[32%]">
                     <select
                         v-model="esSolicitante"
                         class="pt-3 pl-0 pb-1 bg-transparent border-0 border-b-2 appearance-none text-gray-900 border-gray-300 w-full text-sm focus:outline-none focus:ring-0 focus:border-color1 block dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500 peer bg-gray-50 p-2.5"

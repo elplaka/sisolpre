@@ -97,6 +97,7 @@ Route::post('admin/usuarios/update/{id}', [UsuarioController::class, 'update'])
 
     
 Route::match(['get', 'post'],'solicitudes', [SolicitudController::class, 'index'])->name('solicitudes')->middleware('auth');
+Route::get('solicitudes/get-solicitud/{id}', [SolicitudController::class, 'getSolicitud'])->name('solicitudes.get-solicitud')->middleware('auth');
 Route::get('solicitudes/get-persona/{curp}', [SolicitudController::class, 'getPersona'])->name('solicitudes.get-persona')->middleware('auth');
 Route::get('solicitudes/get-propiedad/{claveCatastral}', [SolicitudController::class, 'getPropiedad'])->name('solicitudes.get-propiedad')->middleware('auth');
 Route::get('solicitudes/get-propiedad-solicitud/{idSolicitud}', [SolicitudController::class, 'getPropiedadSolicitud'])->name('solicitudes.get-propiedad-solicitud')->middleware('auth');

@@ -22,7 +22,7 @@ class SolicitudMail extends Mailable implements ShouldQueue
     {
         $idFormateado = str_pad($this->solicitud->id, 4, '0', STR_PAD_LEFT);
 
-        return $this->view('solicitudes.email')
+        return $this->view('Solicitudes.email')
                     ->subject('Registro de Solicitud ' . $idFormateado)
                     ->with([
                         'solicitud' => $this->solicitud,

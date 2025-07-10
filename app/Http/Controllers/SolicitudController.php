@@ -30,6 +30,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use App\Mail\SolicitudMail;
 use Illuminate\Support\Facades\Mail;
+use App\Events\SolicitudUpdated;
 
 class SolicitudController extends Controller
 {
@@ -82,6 +83,27 @@ class SolicitudController extends Controller
 
         return response()->json([
             'persona' => $persona
+        ]);
+    }
+
+    public function getSolicitud($id)
+    {
+        $solicitud = Solicitud::with([
+            'contacto',
+            'propiedad',
+            'estatus',
+            'destino_obra',
+            'tramites.tramite.tipoTramite',
+            'contacto.persona',
+            'propiedad.tipo',
+            'propiedad.contacto',
+            'propiedad.contacto.persona',
+            'propiedad.colonia',
+            'propiedad.localidad'
+        ])->findOrFail($id);
+
+        return response()->json([
+            'solicitud' => $solicitud,
         ]);
     }
 
@@ -2106,6 +2128,8 @@ class SolicitudController extends Controller
             $solicitud->load(['contacto', 'propiedad', 'propiedad.contacto']);
 
             DB::commit(); // Confirma la transacción si todo salió bien
+
+            // event(new SolicitudUpdated($solicitud, 'created'));
         
             return back()->with('success', 'Solicitud N° ' . str_pad($solicitud->id, 4, '0', STR_PAD_LEFT) . ' creada exitosamente')
              ->with('solicitudes', Solicitud::all())
@@ -2263,6 +2287,8 @@ class SolicitudController extends Controller
             if ($request->idEstatusSolicitud == 99) $this->enviarSolicitudPorEmail($solicitud->id);
 
             DB::commit();
+
+            // event(new SolicitudUpdated($solicitud, 'updated'));
 
             $sortColumn = $request->input('sortColumn', 'id'); // Columna de ordenación
             $sortDirection = $request->input('sortDirection', 'asc'); // Dirección de ordenación

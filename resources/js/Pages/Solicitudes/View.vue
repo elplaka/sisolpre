@@ -70,7 +70,7 @@
 
             <!-- Texto -->
             <div class="text-center md:text-left">
-                <h2 class="text-2xl font-bold text-gray-800">Formato Único de Solicitud ::</h2>
+                <h2 class="text-2xl font-bold text-gray-800">Formato Único de Solicitud</h2>
                 <p class="text-xl text-gray-500">Dirección de Planeación Municipal Urbana</p>
             </div>
         </div>

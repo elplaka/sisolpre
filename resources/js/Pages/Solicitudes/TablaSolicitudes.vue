@@ -164,7 +164,6 @@
             fileIcon.value = markRaw(fileIconTemplate) // Marca el objeto como "raw"
             fileName.value = imgCroquisPropiedad.value
             imageSrc.value = '/storage/croquis/' + fileName.value
-            console.log('imageSrc.value', imageSrc.value)
         }
     }
 
@@ -372,6 +371,7 @@
     // };
 
     const abreModalEditarSolicitud = async (solicitud) => {
+        resetFormData()
         isLoading.value = true
         isLoadingModal.value = true
         isUploading.value = false

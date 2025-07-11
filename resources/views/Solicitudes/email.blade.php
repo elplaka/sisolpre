@@ -39,8 +39,9 @@
                                             <tr>
                                                 <td style="text-align: left; font-weight: bold; width: 3.5%; padding-right: 5px; vertical-align: top;">Folio:</td>
                                                 <td style="width: 40.5%; vertical-align: top; text-align: left;">{{ str_pad($solicitud->id, 4, '0', STR_PAD_LEFT) }}</td>
-
-                                                <td style="text-align: right; font-weight: bold; width: 26%; padding-left: 10px; vertical-align: top;">Fecha de Ingreso:</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="text-align: left; font-weight: bold; width: 26%; padding-left: 10px; vertical-align: top;">Fecha de Ingreso:</td>
                                                 <td style="width: 14%; vertical-align: top;">
                                                     @php
                                                         $fechaIngreso = \Carbon\Carbon::parse($solicitud->fecha_ingreso)->locale('es');
@@ -68,7 +69,7 @@
                     <table style="width: 800px; max-width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #e5e7eb; border-radius: 18px; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); margin: 0 auto; overflow: hidden;">
                         <tbody>
                             <tr>
-                                <td colspan="4" style="width: 100%; letter-spacing: 0.1em; font-weight: bold; text-align: center; background-color: #dadada; padding: 8px 0; line-height: 1.2; font-family: Arial, sans-serif;">
+                                <td colspan="2" style="width: 100%; letter-spacing: 0.1em; font-weight: bold; text-align: center; background-color: #dadada; padding: 8px 0; line-height: 1.2; font-family: Arial, sans-serif;">
                                     @if ($solicitud->contacto->id == $solicitud->propiedad->contacto->id)
                                         SOLICITANTE / PROPIETARIO
                                     @else
@@ -77,33 +78,35 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td colspan="4" style="padding: 0 24px 4px 24px; font-family: Arial, sans-serif;">
+                                <td colspan="2" style="padding: 0 24px 4px 24px; font-family: Arial, sans-serif;">
                                     <table style="width: 100%; border-collapse: collapse; font-size: 12pt;">
                                         <tbody>
                                             <tr>
                                                 <td style="width: 10%; text-align: right; font-weight: bold; padding: 4px 5px 4px 0;">CURP:</td>
-                                                <td style="width: 10%; padding: 4px 0; text-align: left;">{{ $solicitud->contacto->persona->curp }}</td>
+                                                <td style="width: 90%; padding: 4px 0; text-align: left;">{{ $solicitud->contacto->persona->curp }}</td>
+                                            </tr>
+                                            <tr>
                                                 <td style="width: 13%; text-align: right; font-weight: bold; padding: 4px 5px 4px 0;">Nombre:</td>
-                                                <td style="width: 57%; padding: 4px 0; text-align: left;">{{ $solicitud->contacto->persona->nombre . ' ' . $solicitud->contacto->persona->apellidos }}</td>
+                                                <td style="width: 87%; padding: 4px 0; text-align: left;">{{ $solicitud->contacto->persona->nombre . ' ' . $solicitud->contacto->persona->apellidos }}</td>
                                             </tr>
                                             <tr>
                                                 <td style="width: 10%; text-align: right; font-weight: bold; padding: 4px 5px 4px 0;">Teléfono:</td>
-                                                <td style="width: 10%; padding: 4px 0; text-align: left;">
+                                                <td style="width: 90%; padding: 4px 0; text-align: left;">
                                                     @if ($solicitud->contacto->telefono && strlen(trim($solicitud->contacto->telefono)) > 0)
                                                         {{ $solicitud->contacto->telefono }}
                                                     @else
                                                         <span style="color: red;">&laquo;SIN CAPTURAR&raquo;</span>
                                                     @endif
                                                 </td>
-                                                @if ($solicitud->contacto->email && strlen(trim($solicitud->contacto->email)) > 0)
+                                            </tr>
+                                            @if ($solicitud->contacto->email && strlen(trim($solicitud->contacto->email)) > 0)
+                                                <tr>
                                                     <td style="width: 13%; text-align: right; font-weight: bold; padding: 4px 5px 4px 0;">E-mail:</td>
-                                                    <td style="width: 57%; padding: 4px 0; text-align: left;">
+                                                    <td style="width: 87%; padding: 4px 0; text-align: left;">
                                                         {{ $solicitud->contacto->email }}
                                                     </td>
-                                                @else
-                                                    <td colspan="2" style="width: 70%; padding: 4px 0;">&nbsp;</td>
-                                                @endif
-                                            </tr>                                           
+                                                </tr>
+                                            @endif
                                         </tbody>
                                     </table>
                                 </td>
@@ -123,34 +126,40 @@
                     <table style="width: 800px; max-width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #e5e7eb; border-radius: 18px; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); margin: 0 auto; overflow: hidden;">
                         <tbody>
                             <tr>
-                                <td colspan="4" style="width: 100%; letter-spacing: 0.1em; font-weight: bold; text-align: center; background-color: #dadada; padding: 8px 0; line-height: 1.2; font-family: Arial, sans-serif;">
+                                <td colspan="2" style="width: 100%; letter-spacing: 0.1em; font-weight: bold; text-align: center; background-color: #dadada; padding: 8px 0; line-height: 1.2; font-family: Arial, sans-serif;">
                                     PROPIETARIO
                                 </td>
                             </tr>
-                            <td colspan="4" style="padding: 0 24px 4px 24px; font-family: Arial, sans-serif;">
-                                <table style="width: 100%; border-collapse: collapse; font-size: 12pt;">
-                                    <tbody>
-                                        <tr>
-                                            <td style="width: 10%; text-align: right; font-weight: bold; padding: 4px 5px 4px 0;">CURP:</td>
-                                            <td style="width: 10%; padding: 4px 0;">{{ $solicitud->propiedad->contacto->persona->curp }}</td>
-                                            <td style="width: 13%; text-align: right; font-weight: bold; padding: 4px 5px 4px 0;">Nombre:</td>
-                                            <td style="width: 57%; padding: 4px 0; text-align: left;">{{ $solicitud->propiedad->contacto->persona->nombre . ' ' . $solicitud->propiedad->contacto->persona->apellidos }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td style="width: 10%; text-align: right; font-weight: bold; padding: 4px 5px 4px 0;">Teléfono:</td>
-                                            <td style="width: 10%; padding: 4px 0; text-align: left;">
-                                                @if ($solicitud->propiedad->contacto->telefono && strlen(trim($solicitud->propiedad->contacto->telefono)) > 0)
-                                                    {{ $solicitud->propiedad->contacto->telefono }}
-                                                @else
-                                                    <span style="color: red;">&laquo;SIN CAPTURAR&raquo;</span>
-                                                @endif
-                                            </td>
-                                            <td style="width: 13%; text-align: right; font-weight: bold; padding: 4px 5px 4px 0;">E-mail:</td>
-                                            <td style="57%; padding: 4px 0; text-align: left;">{{ $solicitud->propiedad->contacto->email }}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </td>
+                            <tr>
+                                <td colspan="2" style="padding: 0 24px 4px 24px; font-family: Arial, sans-serif;">
+                                    <table style="width: 100%; border-collapse: collapse; font-size: 12pt;">
+                                        <tbody>
+                                            <tr>
+                                                <td style="width: 10%; text-align: right; font-weight: bold; padding: 4px 5px 4px 0;">CURP:</td>
+                                                <td style="width: 90%; padding: 4px 0;">{{ $solicitud->propiedad->contacto->persona->curp }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="width: 13%; text-align: right; font-weight: bold; padding: 4px 5px 4px 0;">Nombre:</td>
+                                                <td style="width: 87%; padding: 4px 0; text-align: left;">{{ $solicitud->propiedad->contacto->persona->nombre . ' ' . $solicitud->propiedad->contacto->persona->apellidos }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="width: 10%; text-align: right; font-weight: bold; padding: 4px 5px 4px 0;">Teléfono:</td>
+                                                <td style="width: 90%; padding: 4px 0; text-align: left;">
+                                                    @if ($solicitud->propiedad->contacto->telefono && strlen(trim($solicitud->propiedad->contacto->telefono)) > 0)
+                                                        {{ $solicitud->propiedad->contacto->telefono }}
+                                                    @else
+                                                        <span style="color: red;">&laquo;SIN CAPTURAR&raquo;</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="width: 13%; text-align: right; font-weight: bold; padding: 4px 5px 4px 0;">E-mail:</td>
+                                                <td style="90%; padding: 4px 0; text-align: left;">{{ $solicitud->propiedad->contacto->email }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </td>
@@ -166,19 +175,21 @@
                     <table style="width: 800px; max-width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #e5e7eb; border-radius: 18px; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); margin: 0 auto; overflow: hidden;">
                         <tbody>
                             <tr>
-                                <td colspan="4" style="width: 100%; letter-spacing: 0.1em; font-weight: bold; text-align: center; background-color: #dadada; padding: 8px 0; line-height: 1.2; font-family: Arial, sans-serif;">
+                                <td colspan="2" style="width: 100%; letter-spacing: 0.1em; font-weight: bold; text-align: center; background-color: #dadada; padding: 8px 0; line-height: 1.2; font-family: Arial, sans-serif;">
                                     PROPIEDAD
                                 </td>
                             </tr>
                             <tr>
-                                <td colspan="4" style="padding: 0 24px 4px 24px; font-family: Arial, sans-serif;">
+                                <td colspan="2" style="padding: 0 24px 4px 24px; font-family: Arial, sans-serif;">
                                     <table style="width: 100%; border-collapse: collapse; font-size: 12pt;">
                                         <tbody>
                                             <tr>
                                                 <td style="width: 18%; text-align: right; font-weight: bold; padding: 4px 5px 4px 0;">Cve. Catastral:</td>
-                                                <td style="width: 10%; padding: 4px 0; text-align: left;">{{ $solicitud->propiedad->clave_catastral }}</td>
+                                                <td style="width: 82%; padding: 4px 0; text-align: left;">{{ $solicitud->propiedad->clave_catastral }}</td>
+                                            </tr>
+                                            <tr>
                                                 <td style="width: 30%; text-align: right; font-weight: bold; padding: 4px 5px 4px 0;">Tipo:</td>
-                                                <td style="width: 37%; padding: 4px 0; text-align: left;">
+                                                <td style="width: 70%; padding: 4px 0; text-align: left;">
                                                     @if ($solicitud->propiedad->tipo === null)
                                                         <span style="color: red;">&laquo;SIN SELECCIONAR&raquo;</span>
                                                     @else
@@ -188,29 +199,29 @@
                                             </tr>
                                             <tr>
                                                 <td style="width: 18%; text-align: right; font-weight: bold; padding: 4px 5px 4px 0;">Superficie:</td>
-                                                <td style="width: 10%; padding: 4px 0; text-align: left;">
+                                                <td style="width: 82%; padding: 4px 0; text-align: left;">
                                                     @if ($solicitud->propiedad->superficie && $solicitud->propiedad->superficie > 0)
                                                         {{ number_format($solicitud->propiedad->superficie, fmod($solicitud->propiedad->superficie, 1) !== 0.0 ? 2 : 0) }} m<sup style="font-size:7pt">2</sup>
                                                     @else
                                                         <span style="color: red;">&laquo;SIN CAPTURAR&raquo;</span>
                                                     @endif
                                                 </td>
-                                                @if ($solicitud->propiedad->id_tipo == 2)
+                                            </tr>
+                                            @if ($solicitud->propiedad->id_tipo == 2)
+                                                <tr>
                                                     <td style="width: 30%; text-align: right; font-weight: bold; padding: 4px 5px 4px 0;">Sup. en Construcción:</td>
-                                                    <td style="width: 37%; padding: 4px 0; text-align: left;">
+                                                    <td style="width: 70%; padding: 4px 0; text-align: left;">
                                                         @if ($solicitud->propiedad->superficie_construccion && $solicitud->propiedad->superficie_construccion >= 0)
                                                             {{ number_format($solicitud->propiedad->superficie_construccion, fmod($solicitud->propiedad->superficie_construccion, 1) !== 0.0 ? 2 : 0) }} m<sup style="font-size:7pt">2</sup>
                                                         @else
                                                             <span style="color: red;">&laquo;SIN CAPTURAR&raquo;</span>
                                                         @endif
                                                     </td>
-                                                @else
-                                                    <td colspan="2" style="width: 70%; padding: 4px 0;">&nbsp;</td>
-                                                @endif
-                                            </tr>
+                                                </tr>
+                                            @endif
                                             <tr>
                                                 <td style="width: 18%; text-align: right; font-weight: bold; padding: 4px 5px 4px 0;">Domicilio:</td>
-                                                <td colspan="3" style="width: 85%; padding: 4px 0; text-align: left;">
+                                                <td style="width: 82%; padding: 4px 0; text-align: left;">
                                                     @if ($solicitud->propiedad->calle)
                                                         {{ $solicitud->propiedad->calle }},
                                                     @else
@@ -237,7 +248,7 @@
                                             </tr>
                                             <tr>
                                                 <td style="width: 18%; text-align: right; font-weight: bold; padding: 4px 5px 4px 0;">Localidad:</td>
-                                                <td colspan="3" style="width: 85%; padding: 4px 0; text-align: left;">
+                                                <td style="width: 82%; padding: 4px 0; text-align: left;">
                                                     @if ($solicitud->propiedad->localidad)
                                                         {{ $solicitud->propiedad->localidad->nombre }}
                                                     @else
@@ -389,7 +400,7 @@
     </table>
     <br>
     <!-- Párrafo introductorio -->
-    <p style="font-family: Arial, sans-serif; font-size: 12pt; margin: 20px 0; text-align: center;">
+    <p style="font-family: Arial, sans-serif; font-size: 10pt; margin: 20px 0; text-align: center;">
         Tu solicitud ha sido registrada exitosamente en el <strong>Sistema de Planeación Municipal Urbana</strong>.  
         En la SOLICITUD IMPRESA encontrarás un <strong>código QR</strong> que te permitirá que te permitirá acceder a la información relacionada.  
         Para lo cual será necesario contar con el siguiente token de acceso:

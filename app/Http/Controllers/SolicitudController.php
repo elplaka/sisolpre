@@ -2329,10 +2329,15 @@ class SolicitudController extends Controller
         $solicitud = Solicitud::with(['contacto.persona', 'propiedad.contacto.persona', 'tramites'])
             ->findOrFail($idSolicitud);
 
+        // Verifica si hay email antes de intentar enviar
+        if (!empty($solicitud->contacto->email)) {
+            Mail::to($solicitud->contacto->email)
+                ->queue(new SolicitudMail($solicitud));
 
-        Mail::to($solicitud->contacto->email)
-            ->queue(new SolicitudMail($solicitud));
+            return response()->json(['message' => 'Correo enviado correctamente!!!!!']);
+        }
 
-        return response()->json(['message' => 'Correo enviado correctamente!!!!!']);
+        return response()->json(['message' => 'No se envió el correo porque no hay email.']);
+
     }
 }

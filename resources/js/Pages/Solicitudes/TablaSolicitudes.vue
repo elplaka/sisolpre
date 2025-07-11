@@ -1447,6 +1447,8 @@
 
                     idContactoPropiedad.value = propiedad.value.id_contacto
 
+                    estatusSolicitudSelect.value = props.estatusSolicitud.filter((item) => item.id > 1)
+
                     bloqueadosPersonaPropietario(!propiedad.value.contacto.persona.editable)
                     editablesPersonaPropietario(false)
                     bloqueadosPropietario(false)
@@ -1739,12 +1741,12 @@
                     isProcessingModal.value = false
                 }
                 uploadProgress.value = 100
-            },
-            onFinish: () => {
-                isProcessingFile.value = false
                 permiteDescartarCroquis.value = false
                 idPropiedadSolicitud.value = router.page.props.flash.solicitud.propiedad.id
                 imgCroquisPropiedad.value = router.page.props.flash.solicitud.propiedad.img_croquis
+            },
+            onFinish: () => {
+                isProcessingFile.value = false
             },
             onError: () => {
                 isUploading.value = false
@@ -1938,10 +1940,10 @@
                             })
                             isProcessingModal.value = false
                         }
+                        permiteDescartarCroquis.value = true
                     },
                     onFinish: () => {
                         isProcessingModal.value = false
-                        permiteDescartarCroquis.value = true
                     },
                     preserveScroll: true,
                     preserveState: true,
@@ -2118,9 +2120,6 @@
                     nuevaPropiedad.value = false
                     nuevoPropietario.value = false
                     nuevoSolicitante.value = false
-                },
-                onFinish: () => {
-                    isSavingModal.value = false
                     activeTab.value = router.page.props.flash.activeTab || 'croquis'
                     idSolicitudEditar.value = router.page.props.flash.solicitud?.id
                     idPersonaPropietario.value = router.page.props.flash.solicitud?.propiedad.contacto.id_persona
@@ -2130,6 +2129,9 @@
                     idPropiedadSolicitud.value = router.page.props.flash.solicitud?.propiedad.id
                     estatusSolicitudSelect.value = props.estatusSolicitud.filter((item) => item.id > 1)
                     paraEditarSolicitud.value = router.page.props.flash.solicitud ? true : false
+                },
+                onFinish: () => {
+                    isSavingModal.value = false
                     cambiaTabError.value = true //Cambia el tab por error
                 },
                 preserveScroll: true,
@@ -2498,11 +2500,11 @@
                             })
                             isProcessingModal.value = false
                             imgCroquisPropiedad.value = null
+                            idPropiedadSolicitud.value = router.page.props.flash.solicitud.propiedad.id
                         }
                     },
                     onFinish: () => {
                         isProcessingModal.value = false
-                        idPropiedadSolicitud.value = router.page.props.flash.solicitud.propiedad.id
                     },
                     preserveScroll: true,
                     preserveState: true,

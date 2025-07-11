@@ -164,6 +164,7 @@
             fileIcon.value = markRaw(fileIconTemplate) // Marca el objeto como "raw"
             fileName.value = imgCroquisPropiedad.value
             imageSrc.value = '/storage/croquis/' + fileName.value
+            console.log('imageSrc.value', imageSrc.value)
         }
     }
 
@@ -1436,6 +1437,18 @@
                     idLocalidadPropiedad.value = propiedad.value.id_localidad
                     nombreLocalidadPropiedad.value = propiedad?.value?.localidad?.nombre || ''
                     croquis.value = propiedad?.value?.img_croquis || null
+                    imgCroquisPropiedad.value = propiedad?.value?.img_croquis
+
+                    if (imgCroquisPropiedad) {
+                        const ruta = `/storage/croquis/${imgCroquisPropiedad.value}`
+                        console.log(ruta)
+                        const response = await fetch(ruta)
+                        const blob = await response.blob()
+
+                        const archivoSimulado = new File([blob], imgCroquisPropiedad, { type: blob.type })
+
+                        file.value = archivoSimulado
+                    }
 
                     curpPropietario.value = propiedad.value?.contacto?.persona.curp
                     curpPropietarioCompleta.value = true
@@ -1447,7 +1460,9 @@
 
                     idContactoPropiedad.value = propiedad.value.id_contacto
 
-                    estatusSolicitudSelect.value = props.estatusSolicitud.filter((item) => item.id > 1)
+                    if (paraNuevaSolicitud.value) {
+                        estatusSolicitudSelect.value = props.estatusSolicitud.filter((item) => item.id > 1 && item.id !== 6)
+                    }
 
                     bloqueadosPersonaPropietario(!propiedad.value.contacto.persona.editable)
                     editablesPersonaPropietario(false)
@@ -1983,6 +1998,30 @@
     }
 
     const agregarSolicitud = async () => {
+        if (idEstatusSolicitud.value == 99) {
+            const result = await Swal.fire({
+                icon: 'warning',
+                title: '¿Deseas concluir el trámite?',
+                html: `<div style="text-align: center; font-size: 12pt">
+                    Si ACEPTAS, a la solicitud ya no se le podrá hacer cambios. </div>`,
+                showCancelButton: true,
+                confirmButtonText: 'Aceptar',
+                cancelButtonText: 'Cancelar',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                    const swalContainer = document.querySelector('.swal2-container')
+                    if (swalContainer) {
+                        swalContainer.style.setProperty('z-index', '99999', 'important')
+                    }
+                }
+            })
+
+            if (result.isDismissed) {
+                return
+            }
+        }
+
         isSavingModal.value = true
         const formData = new FormData()
 
@@ -2026,6 +2065,7 @@
         formData.append('idDestinoObra', idDestinoObra.value)
         formData.append('fecha_ingreso', fecha_ingreso.value)
         formData.append('idEstatusSolicitud', idEstatusSolicitud.value)
+        formData.append('imgCroquisPropiedad', imgCroquisPropiedad.value)
 
         tramitesSeleccionados.value.forEach((tramiteId) => {
             formData.append('tramitesSeleccionados[]', tramiteId)
@@ -2038,7 +2078,12 @@
                 icon: 'warning',
                 title: 'Advertencia',
                 html: `<div style="text-align: center; font-size: 12pt">
-                    La PROPIEDAD ya tiene asignado un PROPIETARIO. <br> Si ACEPTAS se hará un CAMBIO DE PROPIETARIO </div>`,
+                    La PROPIEDAD ya tiene asignado un PROPIETARIO. <br> Si ACEPTAS se hará un CAMBIO DE PROPIETARIO.
+                    <br><br>
+                    Valores actuales: <br>
+                    id_contacto de Propiedad: <strong>${propiedad.value?.id_contacto}</strong> <br>
+                    idContactoPropiedad: <strong>${idContactoPropiedad.value}</strong>
+                </div>`,
                 showCancelButton: true,
                 confirmButtonText: 'Aceptar',
                 cancelButtonText: 'Cancelar',
@@ -2129,6 +2174,10 @@
                     idPropiedadSolicitud.value = router.page.props.flash.solicitud?.propiedad.id
                     estatusSolicitudSelect.value = props.estatusSolicitud.filter((item) => item.id > 1)
                     paraEditarSolicitud.value = router.page.props.flash.solicitud ? true : false
+
+                    if (idEstatusSolicitud.value == 99) {
+                        dialogVisible.value = false
+                    }
                 },
                 onFinish: () => {
                     isSavingModal.value = false

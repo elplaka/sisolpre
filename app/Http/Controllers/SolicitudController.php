@@ -1156,7 +1156,7 @@ class SolicitudController extends Controller
         $user = auth()->user();
 
         // Usuarios del sistema: acceso directo
-        if ($user && $user->hasRole('ver-solicitudes')) 
+        if ($user && $user->hasRole('ver-solicitudes'))  
         {
             $solicitud = Solicitud::with([
                 'contacto',

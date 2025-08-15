@@ -2,6 +2,7 @@
     import { router, usePage } from '@inertiajs/vue3'
     import { ref, computed, watch, onMounted, onUnmounted, onBeforeUnmount, markRaw, nextTick, onBeforeMount } from 'vue'
     import Pagination from '@/Components/Pagination.vue'
+    import Swal from 'sweetalert2'
 
     const props = defineProps({
         solicitudes: Array,
@@ -19,7 +20,11 @@
         tiposTramitesQuery: Array,
         tramitesQuery: Array,
         filtroChkSolicitudes: Number,
-        idRangoFechasQuery: Number
+        idRangoFechasQuery: Number,
+        sortDirection: String,
+        sortColumn: String,
+        paraNuevaSolicitud: Boolean,
+        periodoActual: Object
     })
 
     const intervalo = ref(null)
@@ -35,6 +40,7 @@
     const estatusQuery = ref([])
     const filtroChkSolicitudes = ref(0)
     const rangoFechasManual = ref(false)
+    const rangoFechasShortcut = ref(false)
     const idRangoFechasQuery = ref(99)
     const pickerWrapper = ref(null)
 
@@ -50,8 +56,8 @@
 
     const esFolioManual = ref(false)
     const folioManual = ''
-    const sortColumn = ref('')
-    const sortDirection = ref('')
+    const sortColumn = ref(props.sortColumn || 'fecha_ingreso');
+    const sortDirection = ref(props.sortDirection || 'asc');
     const dropdownVisible = ref(null)
 
     const idSolicitudEditar = ref('')
@@ -173,19 +179,27 @@
     }
 
     const cargaDatosPropietario = (propietario) => {
-        idPersonaPropietario.value = propietario.id_persona
-        curpPropietario.value = propietario.persona?.curp
-        nomPropietario.value = propietario.persona?.nombre
-        apePropietario.value = propietario.persona?.apellidos
-        telefonoPropietario.value = propietario.telefono
-        emailPropietario.value = propietario.email
+        if (propietario) {
+            idPersonaPropietario.value = propietario.id_persona
+            curpPropietario.value = propietario.persona?.curp
+            nomPropietario.value = propietario.persona?.nombre
+            apePropietario.value = propietario.persona?.apellidos
+            telefonoPropietario.value = propietario.telefono
+            emailPropietario.value = propietario.email
+        } else {
+            inicializaPropietario()
+        }
+    }
 
-        // callePropietario.value = propietario.calle;
-        // numeroPropietario.value = propietario.num_casa;
-        // idColoniaPropietario.value = propietario.id_colonia;
-        // nombreColoniaPropietario.value = propietario.colonia?.nombre;
-        // idLocalidadPropietario.value = propietario.id_localidad;
-        // nombreLocalidadPropietario.value = propietario.localidad?.nombre;
+    const cargaDatosPropietarioIntegridad = (persona) => {
+        if (persona) {
+            idPersonaPropietario.value = persona.id
+            curpPropietario.value = persona.curp
+            nomPropietario.value = persona.nombre
+            apePropietario.value = persona.apellidos
+            telefonoPropietario.value = ''
+            emailPropietario.value = ''
+        } 
     }
 
     const cargaDatosSolicitante = (solicitante) => {
@@ -521,9 +535,11 @@
         nombreColoniaPropietario.value = ''
         idLocalidadPropietario.value = ''
         nombreLocalidadPropietario.value = ''
+        idContactoPropiedad.value = ''
     }
 
     const inicializaPropiedad = () => {
+        propiedad.value = []
         tipoPropiedad.value = ''
         nombreTipoPropiedad.value = ''
         superficiePropiedad.value = ''
@@ -532,6 +548,7 @@
         numeroPropiedad.value = ''
         idColoniaPropiedad.value = ''
         nombreColoniaPropiedad.value = ''
+        imgCroquisPropiedad.value = ''
         //idLocalidadPropiedad.value = '';
         //nombreLocalidadPropiedad.value = '';
     }
@@ -554,6 +571,9 @@
     const resetFormData = () => {
         claveCatastral.value = CVE_MUNICIPIO.value + '  000'
         idEstatusSolicitud.value = 2
+
+        //   id_contacto de Propiedad: <strong>${propiedad.value?.id_contacto}</strong> <br>
+        //             idContactoPropiedad: <strong>${idContactoPropiedad.value}</strong>
 
         inicializaPropietario()
         curpPropietario.value = ''
@@ -1255,15 +1275,32 @@
                     idPersonaPropietario.value = persona.value.id
                     idContactoPropiedad.value = persona.value.propietario?.id || null
                     cargaDatosPersonaPropietario(persona.value)
-                    cargaDatosPropietario(persona.value.propietario)
+                    if (persona.value)
+                    {
+                        if (persona.value.propietario == null) 
+                        {
+                            cargaDatosPropietarioIntegridad(persona.value)
 
-                    if (!solicitudBloqueada.value) {
-                        bloqueadosPersonaPropietario(!persona.value.propietario?.editable)
-                        editablesPersonaPropietario(false)
-                        editablesPropietario(false)
-                        bloqueadosPropietario(false)
+                            if (!solicitudBloqueada.value) {
+                                bloqueadosPersonaPropietario(persona.editable)
+                                bloqueadosPropietario(false)
+                                editablesPersonaPropietario(persona.editable)
+                                editablesPropietario(false)
+                            }
+                        }
+                        else 
+                        { 
+                            cargaDatosPropietario(persona.value.propietario)
+                            if (!solicitudBloqueada.value) {
+                                bloqueadosPersonaPropietario(!persona.value.propietario?.editable)
+                                editablesPersonaPropietario(false)
+                                editablesPropietario(false)
+                                bloqueadosPropietario(false)
+                            }
+                        }
                     }
-                } else {
+                } 
+                else {
                     nuevoPropietario.value = true
                     idContactoPropiedad.value = ''
                     inicializaPropietario()
@@ -1308,14 +1345,28 @@
     // }
 
     const CVE_MUNICIPIO = ref('012')
+    const nuevaBtn = ref(null);
 
     onMounted(() => {
         fechaInicioQuery.value = props.fechaInicioQuery
         fechaFinQuery.value = props.fechaFinQuery
         idRangoFechasQuery.value = props.idRangoFechasQuery
 
-        sortColumn.value = 'id'
-        sortDirection.value = 'asc'
+        sortColumn.value = props.sortColumn || 'fecha_ingreso';
+        sortDirection.value = props.sortDirection || 'asc';
+        paraNuevaSolicitud.value = props.paraNuevaSolicitud || false;
+
+        if (paraNuevaSolicitud.value) {
+            // Simula el click después de un pequeño delay (para asegurar que el botón esté en el DOM)
+            setTimeout(() => {
+            if (nuevaBtn.value) {
+                nuevaBtn.value.click(); // Dispara el click programático
+            }
+            }, 100);
+        }
+
+        // sortDirection.value = router.page.props.sortDirection;
+        // sortColumn.value = router.page.props.sortColumn;
 
         rangoFechasQuery.value = [
             fechaInicioQuery.value, // formato 'YYYY-MM-DD'
@@ -1344,46 +1395,16 @@
             }
         })
 
+        //CHECKPOINT
+        //OK - Checar qué puedo hacer con los propietarios que no me muestran nada, por ejemplo LOXE020629MSLPXVA3
+        //NOT - AL CREAR una solicitud y estoy en la página 3, se va a la página 1 después de cerrar la ventana modal
+        //OK - Cuando ORDENO POR ID se pierde esto en la paginación, al darle click a la página 2 se ordena por FECHA_INGRESO
+        //OK - Validar que cuando seleccione manualmente fecha inicial y fecha final que haga rangoFechasManual.value = true
+        //OK - En el tooltip del dashboard en las últimas solicitudes completar la DIRECCIÓN
         intervalo.value = setInterval(() => {
             fetchSolicitudes(false, true)
         }, intervaloMs)
 
-        // const solicitudes = ref(props.solicitudes || [])
-
-        // watch(
-        //     () => props.solicitudes,
-        //     (nuevasSolicitudes) => {
-        //         solicitudes.value = nuevasSolicitudes
-        //     }
-        // )
-
-        // // Suscribirse al canal de solicitudes
-        // window.Echo.channel('solicitudes') // Nombre del canal definido en broadcastOn()
-        //     .listen('.solicitud.updated', (event) => {
-        //         // Nombre del evento definido en broadcastAs()
-        //         console.log('Evento de solicitud recibido:', event)
-
-        //         if (event.action === 'created') {
-        //             solicitudes.value.unshift(event.solicitud) // Añadir al principio
-        //         } else if (event.action === 'updated') {
-        //             const index = solicitudes.value.findIndex((s) => s.id === event.solicitud.id)
-        //             if (index !== -1) {
-        //                 // solicitudes.value.splice(index, 1, event.solicitud) // Reemplazar
-        //                 // solicitudes.value = solicitudes.value.map((s) => (s.id === event.solicitud.id ? event.solicitud : s))
-        //                 solicitudes.value = solicitudes.value.map((s) =>
-        //                     s.id === event.solicitud.id
-        //                         ? JSON.parse(JSON.stringify(event.solicitud)) // 🔁 forzar reactividad total
-        //                         : s
-        //                 )
-        //             }
-        //         } else if (event.action === 'deleted') {
-        //             // Aquí, event.solicitud será el objeto dummy con solo el ID o el ID directo
-        //             solicitudes.value = solicitudes.value.filter((s) => s.id !== event.solicitud.id)
-        //         }
-        //     })
-        //     .error((error) => {
-        //         console.error('Error al escuchar el canal de solicitudes:', error)
-        //     })
     })
 
     onBeforeUnmount(() => {
@@ -1441,7 +1462,6 @@
 
                     if (imgCroquisPropiedad) {
                         const ruta = `/storage/croquis/${imgCroquisPropiedad.value}`
-                        console.log(ruta)
                         const response = await fetch(ruta)
                         const blob = await response.blob()
 
@@ -1916,6 +1936,7 @@
                     //Si no capturaron más del inicio de la clave
                     claveCatastralSinEspacios.value = null
                 }
+
                 formData2.append('claveCatastral', claveCatastralSinEspacios.value)
                 formData2.append('callePropiedad', callePropiedad.value)
                 formData2.append('numeroPropiedad', numeroPropiedad.value)
@@ -1997,6 +2018,101 @@
         return `${nombreBase}${extension}`
     }
 
+    const enviarSolicitud = async (formData) => {
+        await router.post('/solicitudes/store', formData, {
+            onSuccess: (page) => {
+                fetchSolicitudes()
+
+                Swal.fire({
+                    toast: true,
+                    icon: 'success',
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    title: page.props.flash.success,
+                    timer: 2000,
+                    timerProgressBar: true,
+                    didOpen: () => {
+                        const swalContainer = document.querySelector('.swal2-container')
+                        if (swalContainer) {
+                            swalContainer.style.setProperty('z-index', '99999', 'important')
+                        }
+                    }
+                })
+                modalBuscarColoniaVisible.value = false
+                isSavingModal.value = false
+                paraEditarSolicitud.value = true
+                nuevaPropiedad.value = false
+                nuevoPropietario.value = false
+                nuevoSolicitante.value = false
+                activeTab.value = router.page.props.flash.activeTab || 'croquis'
+                idSolicitudEditar.value = router.page.props.flash.solicitud?.id
+                idPersonaPropietario.value = router.page.props.flash.solicitud?.propiedad.contacto.id_persona
+                idContactoPropiedad.value = router.page.props.flash.solicitud?.propiedad.id_contacto
+                idPersonaSolicitante.value = router.page.props.flash.solicitud?.contacto.id_persona
+                idContactoSolicitud.value = router.page.props.flash.solicitud?.id_contacto
+                idPropiedadSolicitud.value = router.page.props.flash.solicitud?.propiedad.id
+                estatusSolicitudSelect.value = props.estatusSolicitud.filter((item) => item.id > 1)
+                paraEditarSolicitud.value = router.page.props.flash.solicitud ? true : false
+
+                if (idEstatusSolicitud.value == 99) {
+                    dialogVisible.value = false
+                }
+            },
+            onFinish: () => {
+                isSavingModal.value = false
+                cambiaTabError.value = true //Cambia el tab por error
+            },
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+
+            onError: async (errors) => {
+                isSavingModal.value = false
+
+                if (errors.duplicado) {
+                    const result = await Swal.fire({
+                        title: 'Solicitud duplicada',
+                        text: errors.duplicado,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Sí, continuar',
+                        cancelButtonText: 'Cancelar',
+                        target: 'body', // Renderizar en el body
+                        didOpen: () => {
+                            const swalContainer = document.querySelector('.swal2-container')
+                            if (swalContainer) {
+                                swalContainer.style.setProperty('z-index', '99999', 'important')
+                            }
+                        }
+                    })
+
+                    if (result.isConfirmed) {
+                        formData.append('forzar', 'true')
+                        await enviarSolicitud(formData)
+                    }
+                } else {
+                    const hasValidationErrors = errors && Object.keys(errors).length > 0
+                    const errorMessage = hasValidationErrors ? Object.values(errors).join('<br>') : 'Hubo un error al guardar la información.'
+
+                    Swal.fire({
+                        icon: hasValidationErrors ? 'warning' : 'error',
+                        title: hasValidationErrors ? 'Revisa los campos' : 'Error',
+                        html: `<div style="text-align: justify; font-size: 12pt"><ul>${errorMessage}</ul></div>`,
+                        confirmButtonText: 'Aceptar',
+                        width: '400px',
+                        target: 'body', // Renderizar en el body
+                        didOpen: () => {
+                            const swalContainer = document.querySelector('.swal2-container')
+                            if (swalContainer) {
+                                swalContainer.style.setProperty('z-index', '99999', 'important')
+                            }
+                        }
+                    })
+                }
+            }
+        })
+    }
+
     const agregarSolicitud = async () => {
         if (idEstatusSolicitud.value == 99) {
             const result = await Swal.fire({
@@ -2066,14 +2182,17 @@
         formData.append('fecha_ingreso', fecha_ingreso.value)
         formData.append('idEstatusSolicitud', idEstatusSolicitud.value)
         formData.append('imgCroquisPropiedad', imgCroquisPropiedad.value)
+        formData.append('idContactoSolicitud', idContactoSolicitud.value)
 
         tramitesSeleccionados.value.forEach((tramiteId) => {
             formData.append('tramitesSeleccionados[]', tramiteId)
         })
 
+        formData.append('forzar', false)
+
         cambiaTabError.value = false //Indica que NO Cambia el tab por error
 
-        if (!nuevaPropiedad.value && propiedad.value?.id_contacto != idContactoPropiedad.value) {
+        if (!nuevaPropiedad.value && propiedad.value.id_contacto != undefined && propiedad.value?.id_contacto != idContactoPropiedad.value) {
             const result = await Swal.fire({
                 icon: 'warning',
                 title: 'Advertencia',
@@ -2140,81 +2259,13 @@
             formData.append('croquis', file.value, nombreArchivoCroquis)
         }
         try {
-            await router.post('/solicitudes/store', formData, {
-                onSuccess: (page) => {
-                    fetchSolicitudes()
-
-                    Swal.fire({
-                        toast: true,
-                        icon: 'success',
-                        position: 'top-end',
-                        showConfirmButton: false,
-                        title: page.props.flash.success,
-                        timer: 2000,
-                        timerProgressBar: true,
-                        didOpen: () => {
-                            const swalContainer = document.querySelector('.swal2-container')
-                            if (swalContainer) {
-                                swalContainer.style.setProperty('z-index', '99999', 'important')
-                            }
-                        }
-                    })
-                    modalBuscarColoniaVisible.value = false
-                    isSavingModal.value = false
-                    paraEditarSolicitud.value = true
-                    nuevaPropiedad.value = false
-                    nuevoPropietario.value = false
-                    nuevoSolicitante.value = false
-                    activeTab.value = router.page.props.flash.activeTab || 'croquis'
-                    idSolicitudEditar.value = router.page.props.flash.solicitud?.id
-                    idPersonaPropietario.value = router.page.props.flash.solicitud?.propiedad.contacto.id_persona
-                    idContactoPropiedad.value = router.page.props.flash.solicitud?.propiedad.id_contacto
-                    idPersonaSolicitante.value = router.page.props.flash.solicitud?.contacto.id_persona
-                    idContactoSolicitud.value = router.page.props.flash.solicitud?.id_contacto
-                    idPropiedadSolicitud.value = router.page.props.flash.solicitud?.propiedad.id
-                    estatusSolicitudSelect.value = props.estatusSolicitud.filter((item) => item.id > 1)
-                    paraEditarSolicitud.value = router.page.props.flash.solicitud ? true : false
-
-                    if (idEstatusSolicitud.value == 99) {
-                        dialogVisible.value = false
-                    }
-                },
-                onFinish: () => {
-                    isSavingModal.value = false
-                    cambiaTabError.value = true //Cambia el tab por error
-                },
-                preserveScroll: true,
-                preserveState: true,
-                replace: true,
-
-                onError: (errors) => {
-                    isSavingModal.value = false
-
-                    const hasValidationErrors = errors && Object.keys(errors).length > 0
-                    const errorMessage = hasValidationErrors ? Object.values(errors).join('<br>') : 'Hubo un error al guardar la información.'
-
-                    Swal.fire({
-                        icon: hasValidationErrors ? 'warning' : 'error',
-                        title: hasValidationErrors ? 'Revisa los campos' : 'Error',
-                        html: `<div style="text-align: justify; font-size: 12pt"><ul>${errorMessage}</ul></div>`,
-                        confirmButtonText: 'Aceptar',
-                        width: '400px',
-                        target: 'body', // Renderizar en el body
-                        didOpen: () => {
-                            const swalContainer = document.querySelector('.swal2-container')
-                            if (swalContainer) {
-                                swalContainer.style.setProperty('z-index', '99999', 'important')
-                            }
-                        }
-                    })
-                }
-            })
+            await enviarSolicitud(formData)
         } catch (err) {
             console.error('Error inesperado:', err)
         }
     }
 
-    function buildQueryParams() {
+    function buildQueryParams(page = 1) {
         const urlParams = new URLSearchParams(window.location.search)
 
         if (nombreQuery.value) {
@@ -2226,19 +2277,21 @@
         urlParams.set('fechaInicioQuery', fechaInicioQuery.value)
         urlParams.set('fechaFinQuery', fechaFinQuery.value)
 
+        urlParams.set('page', page)
+
         return Object.fromEntries(urlParams.entries())
     }
 
     function fetchSolicitudes(onMounted, polling = false) {
-        const paramsObject = buildQueryParams()
-        paramsObject.page = 1
+        const page = router.page.props.solicitudes?.current_page ? router.page.props.solicitudes.current_page : 1
+        const paramsObject = buildQueryParams(page)
 
         let showLoaderTimeout = null
 
         if (onMounted) {
             //Si está cargando al montar el componente
             isLoading.value = true //Muestra la pantalla de Cargando...
-            sortColumn.value = 'id'
+            sortColumn.value = 'fecha_ingreso'
             sortDirection.value = 'asc'
         } else {
             if (!polling) {
@@ -2262,6 +2315,7 @@
             sortDirection: sortDirection.value
         }
 
+
         const formData = new FormData()
 
         for (const key in filtros) {
@@ -2277,23 +2331,12 @@
             }
         }
 
+        formData.append('page', paramsObject.page)
+
         // Realiza la solicitud GET con los parámetros de búsqueda
         router.post(
             '/solicitudes',
             formData,
-            // {
-            //     fechaInicioQuery: fechaInicioQuery.value,
-            //     fechaFinQuery: fechaFinQuery.value,
-            //     nombreQuery: nombreQuery.value,
-            //     tiposTramitesQuery: tiposTramitesQuery.value,
-            //     tramitesQuery: tramitesQuery.value,
-            //     estatusQuery: estatusQuery.value,
-            //     idRangoFechasQuery: idRangoFechasQuery.value,
-            //     rangoFechasManual: rangoFechasManual.value,
-            //     filtroChkSolicitudes: filtroChkSolicitudes.value,
-            //     sortColumn: sortColumn.value,
-            //     sortDirection: sortDirection.value,
-            // },
             {
                 preserveState: true,
                 replace: true,
@@ -2310,7 +2353,34 @@
         )
     }
 
-    function onDateChange() {
+    function onDateChange(fechaSeleccionada) {
+      function resetToLocalMidnight(dateStringOrDate) {
+            const d = typeof dateStringOrDate === 'string'
+                ? new Date(dateStringOrDate + 'T00:00:00') // fuerza hora local
+                : new Date(dateStringOrDate)
+            d.setHours(0, 0, 0, 0)
+            return d
+        }
+
+        const coincideConShortcut = shortcuts.some(sc => {
+            const [start, end] = sc.value()
+
+            const seleccionadoStart = resetToLocalMidnight(fechaSeleccionada[0])
+            const seleccionadoEnd = resetToLocalMidnight(fechaSeleccionada[1])
+
+            return resetToLocalMidnight(start).getTime() === seleccionadoStart.getTime() &&
+                resetToLocalMidnight(end).getTime() === seleccionadoEnd.getTime()
+        })
+
+        // Si no coincide, asumimos que fue manual
+        rangoFechasManual.value = !coincideConShortcut
+        rangoFechasShortcut.value = coincideConShortcut
+
+        if (rangoFechasManual.value)
+        {
+            fechaInicioQuery.value = rangoFechasQuery.value[0]
+            fechaFinQuery.value = rangoFechasQuery.value[1]
+        }
         fetchSolicitudes(false)
     }
 
@@ -2658,6 +2728,8 @@
             formData.append('tramitesSeleccionados[]', tramiteId)
         })
 
+        const currentPage = router.page.props.paginaActual || 1
+
         formData.append('nombreQuery', nombreQuery.value)
         formData.append('fechaInicioQuery', fechaInicioQuery.value)
         formData.append('fechaFinQuery', fechaFinQuery.value)
@@ -2666,17 +2738,25 @@
         formData.append('tramitesQuery', tramitesQuery.value)
         formData.append('estatusQuery', estatusQuery.value)
         formData.append('filtroChkSolicitudes', filtroChkSolicitudes.value)
+        formData.append('sortColumn', sortColumn.value)
+        formData.append('sortDirection', sortDirection.value)
+        formData.append('page', currentPage)
 
         cambiaTabError.value = false //Indica que NO cambia el tab por error
 
         await obtenerPropiedadSolicitud(idSolicitudEditar.value)
 
-        if (propiedad.value.id_contacto != idContactoPropiedad.value) {
+            if (!nuevaPropiedad.value && propiedad.value.id_contacto != undefined && propiedad.value?.id_contacto != idContactoPropiedad.value) {
             const result = await Swal.fire({
                 icon: 'warning',
                 title: 'Advertencia',
                 html: `<div style="text-align: center; font-size: 12pt">
-                    La PROPIEDAD ya tiene asignado un PROPIETARIO. <br> Si ACEPTAS se hará un CAMBIO DE PROPIETARIO </div>`,
+                    La PROPIEDAD ya tiene asignado un PROPIETARIO. <br> Si ACEPTAS se hará un CAMBIO DE PROPIETARIO 
+                    <br><br>
+                    Valores actuales: <br>
+                    id_contacto de Propiedad: <strong>${propiedad.value?.id_contacto}</strong> <br>
+                    idContactoPropiedad: <strong>${idContactoPropiedad.value}</strong>
+                    </div>`,
                 showCancelButton: true,
                 confirmButtonText: 'Aceptar',
                 cancelButtonText: 'Cancelar',
@@ -2703,6 +2783,9 @@
         }
         try {
             await router.post('/solicitudes/update/' + idSolicitudEditar.value, formData, {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
                 onSuccess: () => {
                     if (borraArchivoCroquis.value && debeSubirNuevoCroquis.value) {
                         isSavingModal.value = false
@@ -2729,9 +2812,7 @@
                     activeTab.value = router.page.props.flash.activeTab
                     cambiaTabError.value = true //Cambia el tab por error
                 },
-                preserveScroll: true,
-                preserveState: true,
-                replace: true,
+  
                 onError: (errors) => {
                     isSavingModal.value = false
 
@@ -2777,16 +2858,18 @@
     }
 
     const shortcuts = [
-        {
-            id: 1,
-            text: 'Hoy',
-            value: () => {
-                const today = new Date()
-                idRangoFechasQuery.value = 1
-                rangoFechasManual.value = false
-                return [today, today]
-            }
-        },
+        // {
+        //     id: 1,
+        //     text: 'Hoy',
+        //     value: () => {
+        //         const today = new Date()
+        //         idRangoFechasQuery.value = 1
+        //         rangoFechasShortcut.value = true
+        //         rangoFechasManual.value = false
+
+        //         return [today, today]
+        //     }
+        // },
         {
             id: 2,
             text: 'Sem. Actual',
@@ -2797,7 +2880,9 @@
                 const start = new Date(today)
                 start.setDate(today.getDate() - mondayOffset)
                 idRangoFechasQuery.value = 2
+                rangoFechasShortcut.value = true
                 rangoFechasManual.value = false
+
                 return [start, today]
             }
         },
@@ -2808,7 +2893,9 @@
                 const today = new Date()
                 const start = new Date(today.getFullYear(), today.getMonth(), 1) // Primer día del mes actual
                 idRangoFechasQuery.value = 3
+                rangoFechasShortcut.value = true
                 rangoFechasManual.value = false
+
                 return [start, today]
             }
         },
@@ -2819,7 +2906,9 @@
                 const today = new Date()
                 const start = new Date(today.getFullYear(), 0, 1) // 0 = enero, 1 = día 1
                 idRangoFechasQuery.value = 4
+                rangoFechasShortcut.value = true
                 rangoFechasManual.value = false
+
                 return [start, today]
             }
         },
@@ -2839,6 +2928,7 @@
                 const end = new Date(start)
                 end.setDate(start.getDate() + 6)
                 idRangoFechasQuery.value = 5
+                rangoFechasShortcut.value = true
                 rangoFechasManual.value = false
 
                 return [start, end]
@@ -2856,6 +2946,7 @@
                 // Último día del mes pasado
                 const end = new Date(today.getFullYear(), today.getMonth(), 0) // Día 0 del mes actual = último del anterior
                 idRangoFechasQuery.value = 6
+                rangoFechasShortcut.value = true
                 rangoFechasManual.value = false
 
                 return [start, end]
@@ -2868,6 +2959,7 @@
                 const start = new Date(new Date().getFullYear() - 1, 0, 1) // 1 de enero del año anterior
                 const end = new Date(new Date().getFullYear() - 1, 11, 31) // 31 de diciembre del año anterior
                 idRangoFechasQuery.value = 7
+                rangoFechasShortcut.value = true
                 rangoFechasManual.value = false
 
                 return [start, end]
@@ -2881,6 +2973,7 @@
                 const start = new Date()
                 start.setTime(start.getTime() - 3600 * 1000 * 24 * 7)
                 idRangoFechasQuery.value = 8
+                rangoFechasShortcut.value = true
                 rangoFechasManual.value = false
 
                 return [start, end]
@@ -2894,6 +2987,7 @@
                 const start = new Date()
                 start.setMonth(start.getMonth() - 1)
                 idRangoFechasQuery.value = 9
+                rangoFechasShortcut.value = true
                 rangoFechasManual.value = false
 
                 return [start, end]
@@ -2907,9 +3001,55 @@
                 const start = new Date()
                 start.setFullYear(start.getFullYear() - 1)
                 idRangoFechasQuery.value = 10
+                rangoFechasShortcut.value = true
                 rangoFechasManual.value = false
 
                 return [start, end]
+            }
+        },
+        {
+            id: 11,
+            text: '1er Año Gob',
+            value: () => {
+                const today = new Date()
+                const end = new Date(today.getFullYear(), 9, 31)
+                const start = new Date(today.getFullYear(), 10, 1) // 0 = enero, 1 = día 1
+                start.setFullYear(start.getFullYear() - 1)
+                idRangoFechasQuery.value = 4
+                rangoFechasShortcut.value = true
+                rangoFechasManual.value = false
+
+                return [start, end]    
+            }
+        },
+        {
+            id: 11,
+            text: '2do Año Gob',
+            value: () => {
+                const today = new Date()
+                const end = new Date(today.getFullYear(), 9, 31)
+                const start = new Date(today.getFullYear(), 10, 1) // 0 = enero, 1 = día 1
+                start.setFullYear(start.getFullYear() - 1)
+                idRangoFechasQuery.value = 4
+                rangoFechasShortcut.value = true
+                rangoFechasManual.value = false
+
+                return [start, end]    
+            }
+        },
+        {
+            id: 11,
+            text: '2do Año Gob',
+            value: () => {
+                const today = new Date()
+                const end = new Date(today.getFullYear(), 9, 31)
+                const start = new Date(today.getFullYear(), 10, 1) // 0 = enero, 1 = día 1
+                start.setFullYear(start.getFullYear() - 1)
+                idRangoFechasQuery.value = 4
+                rangoFechasShortcut.value = true
+                rangoFechasManual.value = false
+
+                return [start, end]    
             }
         }
     ]
@@ -2929,6 +3069,31 @@
     watch(estatusQuery, () => {
         fetchSolicitudes(false)
     })
+
+
+    function handlePageChange(page) {
+        isLoading.value = true;
+
+        router.post('/solicitudes', {
+            fechaInicioQuery: fechaInicioQuery.value,
+            fechaFinQuery: fechaFinQuery.value,
+            nombreQuery: nombreQuery.value,
+            tiposTramitesQuery: tiposTramitesQuery.value,
+            tramitesQuery: tramitesQuery.value,
+            estatusQuery: estatusQuery.value,
+            filtroChkSolicitudes: filtroChkSolicitudes.value,
+            sortColumn: sortColumn.value,
+            sortDirection: sortDirection.value,
+            page: page
+        }, {
+            preserveState: true,
+            replace: true,
+            onFinish: () => {
+                isLoading.value = false;
+                filtroChkSolicitudes.value = router.page.props.filtroChkSolicitudes;
+            }
+        });
+    }
 </script>
 
 <template>
@@ -3027,8 +3192,7 @@
                 background-color: rgba(255, 255, 255, 0.8);
                 width: 100%;
                 height: 100%;
-            "
-        >
+            ">
             <svg v-if="isProcessingFile" style="width: 3rem; height: 3rem; color: #4b5563" class="animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
@@ -3114,8 +3278,7 @@
                             class="w-4 h-4 me-2"
                             xmlns="http://www.w3.org/2000/svg"
                             fill="currentColor"
-                            viewBox="0 -960 960 960"
-                        >
+                            viewBox="0 -960 960 960">
                             <path
                                 d="M80-120v-650l200-150 200 150v90h400v560H80Zm80-80h80v-80h-80v80Zm0-160h80v-80h-80v80Zm0-160h80v-80h-80v80Zm0-160h80v-80h-80v80Zm160 0h80v-80h-80v80Zm0 480h480v-400H320v400Zm240-240v-80h160v80H560Zm0 160v-80h160v80H560ZM400-440v-80h80v80h-80Zm0 160v-80h80v80h-80Z"
                             />
@@ -3156,8 +3319,7 @@
                             class="w-4 h-4 me-2"
                             xmlns="http://www.w3.org/2000/svg"
                             fill="currentColor"
-                            viewBox="0 0 20 20"
-                        >
+                            viewBox="0 0 20 20">
                             <path
                                 d="M10 0a10 10 0 1 0 10 10A10.011 10.011 0 0 0 10 0Zm0 5a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm0 13a8.949 8.949 0 0 1-4.951-1.488A3.987 3.987 0 0 1 9 13h2a3.987 3.987 0 0 1 3.951 3.512A8.949 8.949 0 0 1 10 18Z"
                             />
@@ -3380,7 +3542,7 @@
                         <label
                             style="z-index: 10"
                             class="absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:-translate-y-6 peer-focus:scale-90 peer-focus:text-color1 peer-focus:dark:text-color1"
-                            :class="{ 'translate-y-0 scale-90': !superficieConstruccionPropiedad }"
+                            :class="{ 'translate-y-0 scale-90': superficieConstruccionPropiedad === null || superficieConstruccionPropiedad === '' }"
                         >
                             <span class="hidden sm:block" @click="focusInputSuperficieConstruccionPropiedad">
                                 Sup. en construcción (m²)
@@ -4462,10 +4624,10 @@
                                         coloniasFiltradas === null
                                             ? ''
                                             : nombreColoniaBuscar.length >= 5
-                                            ? 'No se encontró ninguna colonia con ese nombre. Si quieres agregar ' +
-                                              nombreColoniaBuscar.toUpperCase().trim() +
-                                              ' al CATÁLOGO DE COLONIAS del sistema debes seleccionar el botón de +'
-                                            : 'No hay RESULTADOS para mostrar. Si quieres agregar una COLONIA al sistema debes escribir su NOMBRE COMPLETO y seleccionar el botón de + que eventualmente aparecerá.'
+                                              ? 'No se encontró ninguna colonia con ese nombre. Si quieres agregar ' +
+                                                nombreColoniaBuscar.toUpperCase().trim() +
+                                                ' al CATÁLOGO DE COLONIAS del sistema debes seleccionar el botón de +'
+                                              : 'No hay RESULTADOS para mostrar. Si quieres agregar una COLONIA al sistema debes escribir su NOMBRE COMPLETO y seleccionar el botón de + que eventualmente aparecerá.'
                                     }}
                                 </span>
                             </div>
@@ -4565,10 +4727,10 @@
                                         localidadesFiltradas === null
                                             ? ''
                                             : nombreLocalidadBuscar.length >= 5
-                                            ? 'No se encontró ninguna localidad con ese nombre. Si quieres agregar ' +
-                                              nombreLocalidadBuscar.toUpperCase().trim() +
-                                              ' al CATÁLOGO DE LOCALIDADES del sistema debes asignarle una CLAVE y seleccionar el botón de +'
-                                            : 'No hay RESULTADOS para mostrar. Si quieres agregar una LOCALIDAD al sistema debes escribir su CLAVE y NOMBRE COMPLETO y seleccionar el botón de + que eventualmente aparecerá.'
+                                              ? 'No se encontró ninguna localidad con ese nombre. Si quieres agregar ' +
+                                                nombreLocalidadBuscar.toUpperCase().trim() +
+                                                ' al CATÁLOGO DE LOCALIDADES del sistema debes asignarle una CLAVE y seleccionar el botón de +'
+                                              : 'No hay RESULTADOS para mostrar. Si quieres agregar una LOCALIDAD al sistema debes escribir su CLAVE y NOMBRE COMPLETO y seleccionar el botón de + que eventualmente aparecerá.'
                                     }}
                                 </span>
                             </div>
@@ -4581,7 +4743,7 @@
 
     <section class="bg-gray-50 dark:bg-gray-900 p-3 sm:p-5">
         <div class="mx-auto max-w-screen-xl lg:px-0 w-[100%] sm:w-[100%] md:w-[100%] lg:w-[100%]">
-            <h1 class="text-2xl font-bold">Solicitudes</h1>
+            <h1 class="text-2xl font-bold">Solicitudes </h1>
             <br />
             <div class="bg-white dark:bg-gray-800 relative shadow-md sm:rounded-lg overflow-visible">
                 <div class="relative flex flex-wrap items-center justify-between gap-2 md:gap-3 p-2">
@@ -4598,8 +4760,7 @@
                             class="custom-date-picker w-full md:w-[260px]"
                             value-format="YYYY-MM-DD"
                             format="DD/MM/YYYY"
-                            @change="onDateChange"
-                        />
+                            @change="onDateChange"/>
                     </div>
 
                     <!-- Input de búsqueda -->
@@ -4619,14 +4780,14 @@
                                 <input
                                     type="text"
                                     id="simple-search"
-                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-color1-500 focus:border-color1-500 block w-full pl-10 p-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500"
-                                    placeholder="SOLICITANTE / PROPIETARIO"
+                                    class="custom-input bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-color1-500 focus:border-color1-500 block w-full pl-10 p-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500"
+                                    placeholder="Solicitante / Propietario"
                                     v-model="nombreQuery"
                                     @input="fetchSolicitudes(false)"
                                 />
                                 <button
                                     v-if="nombreQuery"
-                                    @click=";(nombreQuery = ''), fetchSolicitudes(false)"
+                                    @click=";((nombreQuery = ''), fetchSolicitudes(false))"
                                     type="button"
                                     class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-red-500 bg-white dark:bg-gray-700 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                                 >
@@ -4641,10 +4802,10 @@
                     </div>
 
                     <!-- Select múltiple de tipos -->
-                    <div class="flex items-center w-full md:w-[25%]">
+                    <div class="flex items-center w-full md:w-[25%] ">
                         <el-select
                             v-model="tiposTramitesQuery"
-                            placeholder="TIPOS DE TRÁMITES"
+                            placeholder="Tipos de Trámite"
                             class="custom-select w-full"
                             multiple
                             collapse-tags
@@ -4652,6 +4813,14 @@
                             :max-collapse-tags="1"
                             @change="fetchSolicitudes(false)"
                         >
+                            <!-- SVG icon in the prefix slot -->
+                            <template #prefix>
+                               <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-600 mr-2" 
+                                viewBox="0 -960 960 960" fill="currentColor">
+                                    <path d="M160-480v240-480 240Zm400 360q17 0 28.5-11.5T600-160q0-17-11.5-28.5T560-200q-17 0-28.5 11.5T520-160q0 17 11.5 28.5T560-120Zm240-400q17 0 28.5-11.5T840-560q0-17-11.5-28.5T800-600q-17 0-28.5 11.5T760-560q0 17 11.5 28.5T800-520Zm-560 0h200v-80H240v80Zm0 160h200v-80H240v80Zm-80 200q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720H160v480h200v80H160ZM560-40q-50 0-85-35t-35-85q0-39 22.5-70t57.5-43v-127h240v-47q-35-12-57.5-43T680-560q0-50 35-85t85-35q50 0 85 35t35 85q0 39-22.5 70T840-447v127H600v47q35 12 57.5 43t22.5 70q0 50-35 85t-85 35Z"/>
+                                </svg>
+                            </template>
+
                             <el-option class="custom-option" v-for="item in tiposTramites" :key="item.id" :label="item.nombre" :value="item.id">
                                 {{ item.nombre }}
                             </el-option>
@@ -4708,16 +4877,14 @@
                             <div
                                 id="filterDropdown"
                                 class="z-10 hidden w-full md:w-[22em] p-3 bg-white rounded-lg shadow dark:bg-gray-700"
-                                style="position: absolute; top: 100%; left: 0; z-index: 50; margin-top: -8px"
-                            >
+                                style="position: absolute; top: 100%; left: 0; z-index: 50; margin-top: -8px">
                                 <div class="flex flex-col w-full">
                                     <div class="w-full">
                                         <div
                                             class="flex items-center justify-center w-full"
                                             :class="{
                                                 'bg-color1-600': filtroChkSolicitudes == 1
-                                            }"
-                                        >
+                                            }">
                                             <svg
                                                 xmlns="http://www.w3.org/2000/svg"
                                                 aria-hidden="true"
@@ -4726,13 +4893,11 @@
                                                     'text-white': filtroChkSolicitudes == 1
                                                 }"
                                                 viewBox="0 0 20 20"
-                                                fill="currentColor"
-                                            >
+                                                fill="currentColor">
                                                 <path
                                                     fill-rule="evenodd"
                                                     d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z"
-                                                    clip-rule="evenodd"
-                                                />
+                                                    clip-rule="evenodd"/>
                                             </svg>
                                             <h6
                                                 class="mb-1 mt-1 mr-2 text-sm font-medium text-color1 dark:text-white"
@@ -4841,6 +5006,7 @@
                         </div>
                         <!-- Botón Nueva -->
                         <button
+                            ref="nuevaBtn"
                             @click="abreModalSolicitud"
                             type="button"
                             class="bg-color1-800 hover:bg-color1-700 flex items-center justify-center text-white focus:ring-4 focus:ring-color1-300 font-medium rounded-lg text-sm px-6 py-2 focus:outline-none dark:focus:ring-color1-800"
@@ -4895,10 +5061,30 @@
                                     </div>
                                 </th>
                                 <!-- Solicitante -->
-                                <th scope="col" class="px-4 py-3 cursor-pointer" style="width: 40%" @click="sortTable('id_solicitante')">
+                                <th scope="col" class="px-4 py-3 cursor-pointer" style="width: 25%" @click="sortTable('id_solicitante')">
                                     <div class="flex items-center">
                                         <span class="mr-1">Solicitante / Propietario</span>
                                         <svg v-if="sortColumn === 'id_solicitante'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4 text-color1">
+                                            <path
+                                                v-if="sortDirection === 'asc'"
+                                                fill-rule="evenodd"
+                                                d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Zm14.47 3.97a.75.75 0 0 1 1.06 0l3.75 3.75a.75.75 0 1 1-1.06 1.06L18 10.81V21a.75.75 0 0 1-1.5 0V10.81l-2.47 2.47a.75.75 0 1 1-1.06-1.06l3.75-3.75ZM2.25 9A.75.75 0 0 1 3 8.25h9.75a.75.75 0 0 1 0 1.5H3A.75.75 0 0 1 2.25 9Zm0 4.5a.75.75 0 0 1 .75-.75h5.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z"
+                                                clip-rule="evenodd"
+                                            />
+                                            <path
+                                                v-else
+                                                fill-rule="evenodd"
+                                                d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Zm0 4.5A.75.75 0 0 1 3 8.25h9.75a.75.75 0 0 1 0 1.5H3A.75.75 0 0 1 2.25 9Zm15-.75A.75.75 0 0 1 18 9v10.19l2.47-2.47a.75.75 0 1 1 1.06 1.06l-3.75 3.75a.75.75 0 0 1-1.06 0l-3.75-3.75a.75.75 0 1 1 1.06-1.06l2.47 2.47V9a.75.75 0 0 1 .75-.75Zm-15 5.25a.75.75 0 0 1 .75-.75h9.75a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z"
+                                                clip-rule="evenodd"
+                                            />
+                                        </svg>
+                                    </div>
+                                </th>
+                                <!-- Clave Catastral -->
+                                <th scope="col" class="px-4 py-3 cursor-pointer" style="width: 15%" @click="sortTable('clave_catastral')">
+                                    <div class="flex items-center">
+                                        <span class="mr-1">Clave Catastral</span>
+                                        <svg v-if="sortColumn === 'clave_catastral'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4 text-color1">
                                             <path
                                                 v-if="sortDirection === 'asc'"
                                                 fill-rule="evenodd"
@@ -4979,6 +5165,19 @@
                                     }}
                                 </td>
                                 <td class="px-4 py-2">
+                                    <table class="table-fixed border-collapse">
+                                        <tr>
+                                            <template v-for="(char, index) in solicitud.propiedad.clave_catastral?.toString().split('')" :key="'char-' + index">
+                                                <td class="text-center w-[8px] p-0 m-0 leading-none">
+                                                    {{ char }}
+                                                </td>
+                                                <!-- Agrega una celda vacía después de cada grupo de 3 -->
+                                                <td v-if="(index + 1) % 3 === 0 && index !== solicitud.propiedad.clave_catastral.length - 1" class="w-[4px] p-0 m-0"></td>
+                                            </template>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td class="px-4 py-2">
                                     <ul v-if="solicitud.tramites && solicitud.tramites.length > 0">
                                         <li v-for="sTramites in solicitud.tramites" :key="sTramites.id" class="flex items-start gap-2">
                                             <!-- <template v-if="solicitud.tramites.length > 1"> -->
@@ -5045,7 +5244,8 @@
                         </tbody>
                     </table>
                 </div>
-                <Pagination :data="pagination" />
+                <!-- <Pagination :data="pagination" /> -->
+                <Pagination :data="pagination" @page-changed="handlePageChange" />
             </div>
             <div v-if="isLoading" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 transition-opacity">
                 <div class="flex items-center">

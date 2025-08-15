@@ -17,7 +17,11 @@
         :idRangoFechasQuery="props.idRangoFechasQuery"
         :tiposTramitesQuery="tiposTramitesQuery"
         :tramitesQuery="tramitesQuery"
-        :filtroChkSolicitudes="filtroChkSolicitudes">
+        :sortColumn="sortColumn"
+        :sortDirection="sortDirection"
+        :paraNuevaSolicitud="paraNuevaSolicitud"
+        :filtroChkSolicitudes="filtroChkSolicitudes"
+        :periodoActual="periodoActual">
       </TablaSolicitudes>
     </AdminLayout>
   </template>
@@ -43,6 +47,10 @@ const props = defineProps({
   tramitesQuery: Object, // Datos relacionados de los trámites
   nombreQuery: String, // Cadena de búsqueda
   filtroChkSolicitudes: Number, // Filtro de solicitudes
+  sortColumn: String, // Columna por la que se ordena
+  sortDirection: String, // Dirección del ordenamiento (asc/desc)
+  paraNuevaSolicitud: Boolean, // Indica si es para una nueva solicitud
   userAuth: { type: Object, required: true }, // Información de usuario autenticado
+  periodoActual: { type: Object, required: true }
 });
 </script>

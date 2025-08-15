@@ -180,7 +180,7 @@
 }
 
 .custom-select .el-select__placeholder {
-  color: #766e76 !important;
+  color: rgb(75, 85, 99) !important;
 }
 
 /* Focus del select */
@@ -384,6 +384,7 @@
   min-width: 16px !important;
   width: 100% !important;     /* o un valor como 24em o 100em según lo que buscas */
   max-width: 240px !important;
+  /* background-color: rgb(240, 240, 240)!important; */
 }  
 
 /* fecha-inicio y fecha-fin */
@@ -580,6 +581,30 @@
 
 .el-picker-panel__sidebar .el-picker-panel__shortcut {
   font-size: 9pt !important;
+}
+
+/* Estilos para el placeholder del input */
+.custom-input::placeholder {
+    color: rgb(75, 85, 99) !important;; /* Color rojo para el placeholder */
+    opacity: 1; /* Asegura que el color sea visible */
+}
+
+/* Para navegadores basados en WebKit (Chrome, Safari) */
+.custom-input::-webkit-input-placeholder {
+    color: rgb(75, 85, 99) !important;;
+    opacity: 1;
+}
+
+/* Para Mozilla Firefox */
+.custom-input::-moz-placeholder {
+    color: rgb(75, 85, 99) !important;;
+    opacity: 1;
+}
+
+/* Para Microsoft Edge */
+.custom-input::-ms-input-placeholder {
+    color: rgb(75, 85, 99) !important;;
+    opacity: 1;
 }
 
 

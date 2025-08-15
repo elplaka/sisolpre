@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\AdminAuthController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\SolicitudController;
+use App\Http\Controllers\EstadisticasController;
 use App\Http\Controllers\ColoniaController;
 use App\Http\Controllers\LocalidadController;
 use Illuminate\Support\Facades\Auth; // Asegúrate de importar Auth
@@ -114,6 +115,8 @@ Route::post('solicitudes/print-pdf/{id}', [SolicitudController::class, 'printPDF
 Route::post('solicitudes/print-preview-pdf/{id}', [SolicitudController::class, 'printPreviewPDFPrepare'])->name('solicitudes.print-preview-pdf.prepare')->middleware('auth');
 Route::get('solicitudes/view/{folio_digital}', [SolicitudController::class, 'view'])->name('solicitudes.view');
 Route::match(['get', 'post'],'solicitudes/{solicitud}/enviar-email', [SolicitudController::class, 'enviarSolicitudPorEmail'])->middleware('auth');
+
+Route::match(['get', 'post'],'estadisticas', [EstadisticasController::class, 'index'])->name('estadisticas')->middleware('auth');
 
 Route::post('colonias/store', [ColoniaController::class, 'store'])->name('colonias.store')->middleware('auth');
 

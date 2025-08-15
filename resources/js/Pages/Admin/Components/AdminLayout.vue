@@ -4,7 +4,7 @@
 
     <Navbar :userAuth="userAuth" />
     <Sidebar ref="sidebar" />
-    <main class="p-4 py-20" :style="{ marginLeft: mainMargin }">
+    <main class="p-4 mt-20" :style="{ marginLeft: mainMargin }">
       <slot />
     </main>
   </div>

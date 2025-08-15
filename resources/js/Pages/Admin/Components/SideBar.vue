@@ -6,8 +6,7 @@
                     <Link
                         href="#"
                         @click.prevent="cargarSolicitudesConParametros"
-                        class="flex items-center p-1 text-sm font-medium text-gray-900 rounded-lg dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-color1 group"
-                    >
+                        class="flex items-center p-1 text-sm font-medium text-gray-900 rounded-lg dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-color1 group">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-color1">
                             <path
                                 fill-rule="evenodd"
@@ -17,6 +16,16 @@
                             <path d="M12.971 1.816A5.23 5.23 0 0 1 14.25 5.25v1.875c0 .207.168.375.375.375H16.5a5.23 5.23 0 0 1 3.434 1.279 9.768 9.768 0 0 0-6.963-6.963Z" />
                         </svg>
                         <span class="ml-2 hidden sm:block text-sm">Solicitudes</span>
+                    </Link>
+                </li>
+                <li v-if="$page.props.auth.user?.permissions.includes('ver_estadisticas')">
+                    <Link
+                        :href="route('estadisticas')"
+                        class="flex items-center p-1 text-sm font-medium text-gray-900 rounded-lg dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-color1 group">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-color1">
+                            <path d="M16 20v-7h3v7h-3Zm-6 0V4h3v16h-3Zm-6 0v-11h3v11H4Z"/>
+                        </svg>
+                        <span class="ml-2 hidden sm:block text-sm">Estadísticas</span>
                     </Link>
                 </li>
                 <li v-if="$page.props.auth.user?.permissions.includes('ver_usuarios')">

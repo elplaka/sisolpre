@@ -17,6 +17,7 @@ class Solicitud extends Model
         'id_contacto',
         'id_propiedad',
         'id_destino_obra',
+        'id_sector',
         'id_estatus',
         'folio_digital',
         'token_acceso'
@@ -45,6 +46,21 @@ class Solicitud extends Model
     public function destino_obra()
     {
         return $this->belongsTo(DestinoObra::class, 'id_destino_obra');
+    }
+
+    public function sectorTramite()
+    {
+        return $this->belongsTo(SectorTramite::class, 'id_sector');
+    }
+
+    public function referencia()
+    {
+        return $this->hasOne(SolicitudReferencia::class, 'id_solicitud');
+    }
+
+    public function croquis_aux()
+    {
+        return $this->hasOne(CroquisAux::class, 'id_solicitud');
     }
 
     // --- ¡Este es el accesor clave! ---

@@ -107,7 +107,7 @@
                         :userAuth="userAuth"/>
                    <div 
                         @click="abreLatestSolicitudes"
-                        v-if="panel.component_name !== 'ShortcutsPanel'"
+                        v-if="panel.component_name !== 'ShortcutsPanel' && panel.component_name !== 'SolicitudesByMonthPanel' "
                         class="bg-gray-100 text-gray-800 font-bold py-3 px-6 text-sm flex items-center justify-between cursor-pointer border-t border-gray-200
                             transition-colors duration-200 ease-in-out hover:bg-gray-200">
                         <span>Ver más...</span>

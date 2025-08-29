@@ -104,6 +104,7 @@ Route::get('solicitudes/get-propiedad/{claveCatastral}', [SolicitudController::c
 Route::get('solicitudes/get-propiedad-solicitud/{idSolicitud}', [SolicitudController::class, 'getPropiedadSolicitud'])->name('solicitudes.get-propiedad-solicitud')->middleware('auth');
 Route::get('solicitudes/get-colonias', [SolicitudController::class, 'getColonias'])->name('solicitudes.get-colonias')->middleware('auth');
 Route::get('solicitudes/get-localidades', [SolicitudController::class, 'getLocalidades'])->name('solicitudes.get-localidades')->middleware('auth');
+Route::get('solicitudes/get-personas', [SolicitudController::class, 'getPersonas'])->name('solicitudes.get-personas')->middleware('auth');
 Route::post('solicitudes/store', [SolicitudController::class, 'store'])->name('solicitudes.store')->middleware('auth');
 Route::post('solicitudes/update/{id}', [SolicitudController::class, 'update'])->name('solicitudes.update')->middleware('auth'); 
 Route::post('solicitudes/valida', [SolicitudController::class, 'valida'])->name('solicitudes.valida')->middleware('auth'); 

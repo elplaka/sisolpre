@@ -8,6 +8,7 @@
         :estatusSolicitud="estatusSolicitud"
         :tiposPropiedades="tiposPropiedades"
         :destinosObras="destinosObras"
+        :sectores ="sectores"
         :tiposTramites="tiposTramites"
         :tramites="tramites"
         :localidades="localidades"
@@ -38,6 +39,7 @@ const props = defineProps({
   tiposPropiedades: Object,
   destinosObras: Object,
   tiposTramites: Object,
+  sectores: Object, // Datos relacionados de los sectores
   tramites: Object, // Datos relacionados de los trámites
   localidades: Object,
   fechaInicioQuery: String,

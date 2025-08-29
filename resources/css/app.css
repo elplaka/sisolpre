@@ -87,6 +87,11 @@
     --tw-ring-opacity: 1;
     --tw-ring-color: rgb(204 0 66 / var(--tw-ring-opacity, 1)) !important;
   }
+
+  .custom-input.is-disabled .el-input__wrapper {
+  background-color: var(--color1-500) !important; /* Usar tu color1-500 */
+  border-color: var(--color1-500) !important; /* Opcional: para que el borde también coincida */
+}
   
   /* ***************************** EL-SELECT ******************* */
   
@@ -605,6 +610,10 @@
 .custom-input::-ms-input-placeholder {
     color: rgb(75, 85, 99) !important;;
     opacity: 1;
+}
+
+textarea {
+  resize: none !important;
 }
 
 

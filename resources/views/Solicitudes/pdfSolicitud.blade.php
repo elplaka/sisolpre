@@ -14,7 +14,15 @@
         $data = file_get_contents($path);
         $escudo = 'data:image/' . $type . ';base64,' . base64_encode($data);
 
-        $imgCroquis = $solicitud->propiedad->img_croquis; // El nombre de tu archivo de imagen
+        if ($solicitud->propiedad)
+        {
+            $imgCroquis = $solicitud->propiedad->img_croquis; // El nombre de tu archivo de imagen
+        }
+        else 
+        {
+            $imgCroquis = $solicitud->croquis_aux->img; // El nombre de tu archivo de imagen
+        }
+
         $path = 'public/croquis/' . $imgCroquis; // La ruta relativa dentro de la carpeta 'storage'
         // Verifica si el archivo existe antes de intentar leerlo
         if (Storage::exists($path) && $imgCroquis) {
@@ -38,7 +46,15 @@
         $data = file_get_contents($path);
         $norte = 'data:image/' . $type . ';base64,' . base64_encode($data);
 
-        $esSolicitante = !($solicitud->contacto->id != $solicitud->propiedad->contacto->id);
+        if ($solicitud->propiedad)  //Si el trámite lleva PROPIEDAD
+        { 
+            $esSolicitante = !($solicitud->contacto->id != $solicitud->propiedad->contacto->id);
+        }
+        else   //Si el trámite no lleva PROPIEDAD
+        {
+            $esSolicitante = 1;
+        }
+
     @endphp
     <table style="width: 100%; border-collapse: collapse; margin: 0; padding: 0;">
         <tr>
@@ -50,7 +66,7 @@
         <tr>
             <td style="text-align: center !important; padding: 0; margin: 0;">
                 <h2 style="color: #333333; line-height: 0.8; margin: 0; padding: 0;">
-                    <span style="letter-spacing: 0.05em;">DIRECCIÓN DE PLANEACIÓN MUNICIPAL URBANA</span>
+                    <span style="letter-spacing: 0.05em;">DIRECCIÓN DE PLANEACIÓN URBANA</span>
                 </h2>
                 <h1 style="color: #333333; line-height: 0.8; margin: 0; padding: 0;">FORMATO ÚNICO DE SOLICITUD</h1>
             </td>
@@ -75,7 +91,7 @@
     <table style="width: 100%; border-collapse: collapse; font-size: 12pt;">
         <tr>
             <td class="titleTd" colspan="4" style="width: 100%;">
-                @if ($solicitud->contacto->id == $solicitud->propiedad->contacto->id)
+                @if ($solicitud->propiedad && $solicitud->contacto->id == $solicitud->propiedad->contacto->id)
                     SOLICITANTE / PROPIETARIO
                 @else
                     SOLICITANTE
@@ -132,6 +148,7 @@
             <tr><span style="display: block; margin-top: 0.25cm"></span></tr>
         @endif
     </table>
+    @if ($solicitud->propiedad)
     <table style="width: 100%; border-collapse: collapse; font-size: 12pt;">
         <tr>
             <td class="titleTd" colspan="4" style="width: 100%;">
@@ -209,6 +226,7 @@
         </tr>
         <tr><span style="display: block; margin-top: 0.25cm"></span></tr>
     </table>
+    @endif
     @php
        // Obtener los trámites agrupados directamente del accesor
         $tramitesAgrupados = $solicitud->grouped_tramites;
@@ -258,9 +276,30 @@
                     <span style="color: red;">«SIN SELECCIONAR»</span>
                 @endif
             </td>
+            {{-- <td class="tdPrevFieldName" style="width: 20%;">Sector:</td>
+            <td style="width: 30%;"> 
+                @if ($solicitud->sectorTramite)
+                    {{ $solicitud->sectorTramite->nombre }}
+                @else
+                    <span style="color: red;">«SIN SELECCIONAR»</span>
+                @endif
+            </td> --}}
         </tr>
         <tr><span style="display: block; margin-top: 0.2cm"></span></tr>
     </table>
+    @if ($solicitud->referencia)
+        <table style="width: 100%; border-collapse: collapse; font-size: 12pt;">
+            <tr>
+                <td class="titleTd" colspan="4" style="width: 100%;">     
+                REFERENCIA
+                </td>
+            </tr>
+            <tr style="line-height: 0.75em;">
+                <td class="tdPrevFieldName" style="width: 25%; padding-bottom: 10px;">Información de Referencia:</td>
+                <td style="width: 75%; padding-top: 7px; padding-bottom: 15px;">{{ $solicitud->referencia->contenido }}</td>
+            </tr>
+        </table>
+    @endif
     <table style="width: 100%; border-collapse: collapse;">
         <tr>
             <td class="titleTd" colspan="{{ $numeroTiposTramite }}" style="text-align: center; ">

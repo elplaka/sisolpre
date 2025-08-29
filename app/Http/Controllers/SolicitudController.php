@@ -2234,7 +2234,7 @@ class SolicitudController extends Controller
         $contactoPropietario = null;
 
         $validaPropiedad = true;        
-        if (in_array($this->ID_CONSTANCIA_UBICACION, $request->tramitesSeleccionados))
+        if (in_array($this->ID_CONSTANCIA_UBICACION, $request->get('tramitesSeleccionados', [])))
         {
             $validaPropiedad = false;
         }

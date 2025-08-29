@@ -638,6 +638,7 @@
 
         nuevoPropietario.value = false
         nuevaPropiedad.value = false
+        nuevaPropiedadReciente.value = false
         nuevoSolicitante.value = false
         activeTab.value = 'tramite'
         isLoadingModal.value = false
@@ -1821,7 +1822,7 @@
                             })
 
                             if (result.isConfirmed) {
-                                inicializaSolicitud()
+                                //inicializaSolicitud()
                                 inicializaPropiedad()
                                 editablesPropiedad(true)
                                 inicializaPropietario(true)
@@ -1830,7 +1831,7 @@
                                 curpPropietarioCompleta.value = false
                             }
                         } else {
-                            inicializaSolicitud()
+                            //inicializaSolicitud()
                             inicializaPropiedad()
                             editablesPropiedad(true)
                             inicializaPropietario(true)
@@ -1838,7 +1839,6 @@
                             curpPropietarioEditable.value = true
                             curpPropietarioCompleta.value = false
                         }
-
                         nuevaPropiedadReciente.value = true
                     }
                 }

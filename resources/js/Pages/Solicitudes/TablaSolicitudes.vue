@@ -169,6 +169,7 @@
             nombreLocalidadPropiedad.value = propiedad?.localidad?.nombre
             imgCroquisPropiedad.value = propiedad?.img_croquis
             idContactoPropiedad.value = propiedad?.id_contacto
+            propiedadEsEditable.value = propiedad?.editable 
 
             if (imgCroquisPropiedad.value == null) 
             {
@@ -199,7 +200,8 @@
     }
 
     const cargaDatosPropietario = (propietario) => {
-        if (propietario) {
+        if (propietario) 
+        {
             idPersonaPropietario.value = propietario.id_persona
             curpPropietario.value = propietario.persona?.curp
             nomPropietario.value = propietario.persona?.nombre
@@ -207,13 +209,16 @@
             telefonoPropietario.value = propietario.telefono
             emailPropietario.value = propietario.email
             curpPropietarioInvalida.value = false
-        } else {
+        } 
+        else 
+        {
             inicializaPropietario()
         }
     }
 
     const cargaDatosPropietarioIntegridad = (persona) => {
-        if (persona) {
+        if (persona) 
+        {
             idPersonaPropietario.value = persona.id
             curpPropietario.value = persona.curp
             nomPropietario.value = persona.nombre
@@ -239,9 +244,22 @@
     }
 
     const cargaDatosReferencia = (ref) => {
-        if (ref) {
+        if (ref) 
+        {
             referencia.value = ref.contenido
         } 
+    }
+
+    const cargaDatosRazonSocial = (razSoc) => {
+        if (razSoc) 
+        {
+            razonSocialSolicitante.value = razSoc.nombre
+            solicitaOrganizacion.value = true
+        }
+        else
+        {
+            solicitaOrganizacion.value = false
+        }
     }
 
     const refrescaCroquis = () => {
@@ -425,6 +443,7 @@
     const bloqueadosSolicitante = (valor) => {
         telefonoSolicitanteBloqueado.value = valor
         emailSolicitanteBloqueado.value = valor
+        razonSocialSolicitanteBloqueado.value = valor
     }
 
     const bloqueadosReferencia = (valor) => {
@@ -575,7 +594,9 @@
         cargaDatosSolicitud(solicitud)
         cargaDatosPropiedad(solicitud.propiedad)
         cargaDatosPropietario(solicitud.propiedad?.contacto)
+        idContactoPropiedadAlCargar.value = solicitud.propiedad?.contacto.id
         cargaDatosSolicitante(solicitud.contacto)
+        cargaDatosRazonSocial(solicitud.razon_social)
         cargaDatosReferencia(solicitud.referencia)
         cargaDatosCroquis(solicitud)
 
@@ -595,6 +616,7 @@
             curpSolicitanteEditable.value = false
             esSolicitanteEditable.value = false
             referenciaEditable.value = false
+            razonSocialSolicitanteEditable.value = false
             bloqueadosSolicitud(true)
             bloqueadosPropiedad(true)
             bloqueadosPropietario(true)
@@ -603,6 +625,10 @@
             bloqueadosPersonaSolicitante(true)
             bloqueadosReferencia(true)
             editablesSolicitud(false)
+        }
+        else
+        {
+            razonSocialSolicitanteEditable.value = true
         }
 
         if (curpPropietario.value.length >= LONGITUD_CURP.value) {
@@ -740,6 +766,8 @@
         curpSolicitanteEditable.value = true
         curpSolicitanteCompleta.value = false
         nuevoSolicitante.value = false
+        razonSocialSolicitante.value = ''
+        solicitaOrganizacion.value = false
         inicializaSolicitud()
         referencia.value = ''
         imgCroquisAux.value = ''
@@ -820,17 +848,21 @@
     const nombreLocalidadSolicitante = ref('')
     const telefonoSolicitante = ref('')
     const emailSolicitante = ref('')
+    const razonSocialSolicitante = ref('')
     const curpSolicitanteEditable = ref(true)
     const nomSolicitanteEditable = ref(true)
     const apeSolicitanteEditable = ref(true)
     const telefonoSolicitanteEditable = ref(true)
     const emailSolicitanteEditable = ref(true)
+    const razonSocialSolicitanteEditable = ref(true)
 
     const curpSolicitanteBloqueado = ref(true)
     const nomSolicitanteBloqueado = ref(true)
     const apeSolicitanteBloqueado = ref(true)
     const telefonoSolicitanteBloqueado = ref(true)
     const emailSolicitanteBloqueado = ref(true)
+    const razonSocialSolicitanteBloqueado = ref(true)
+    const solicitaOrganizacion = ref(false)
 
     const LONGITUD_CURP = ref(18)
 
@@ -876,6 +908,7 @@
     const idLocalidadPropiedad = ref('')
     const nombreLocalidadPropiedad = ref('')
     const idContactoPropiedad = ref('')
+    const idContactoPropiedadAlCargar = ref('')
     const tipoPropiedadEditable = ref(true)
     const claveCatastralEditable = ref(true)
     const superficiePropiedadEditable = ref(true)
@@ -892,6 +925,7 @@
     const numeroPropiedadBloqueado = ref(true)
     const idColoniaPropiedadBloqueado = ref(true)
     const idLocalidadPropiedadBloqueado = ref(true)
+    const propiedadEsEditable = ref(false)
 
     const croquis = ref('')
 
@@ -1013,6 +1047,12 @@
     watch(esSolicitante, async (newValue) => {
         if (newValue == 0) {
             if (!curpSolicitanteCompleta.value) {
+                inicializaSolicitante()
+            }
+
+            if (paraEditarSolicitud.value && (idContactoSolicitud.value == idContactoPropiedad.value)) {
+                curpSolicitante.value = ''
+                curpSolicitanteCompleta.value = false
                 inicializaSolicitante()
             }
             // curpSolicitante.value = ''
@@ -1651,8 +1691,6 @@
             }
         })
 
-        //CHECKPOINT
-        //NOT - AL CREAR una solicitud y estoy en la página 3, se va a la página 1 después de cerrar la ventana modal
         intervalo.value = setInterval(() => {
             fetchSolicitudes(false, true)
         }, intervaloMs)
@@ -1699,6 +1737,7 @@
 
                 if (propiedad.value) {
                     //Si existe la propiedad carga los datos
+                    propiedadEsEditable.value = propiedad.value.editable
                     idPropiedadSolicitud.value = propiedad.value.id
                     tipoPropiedad.value = propiedad.value.id_tipo
                     nombreTipoPropiedad.value = propiedad?.value?.tipo?.nombre || ''
@@ -1999,6 +2038,8 @@
             claveCatastralSinEspacios.value = null
         }
 
+        const currentPage = router.page.props.paginaActual || 1
+
         formData.append('archivo', file.value)
         formData.append('tramitesSeleccionados', tramitesSeleccionados.value)
         formData.append('claveCatastral', claveCatastralSinEspacios.value)
@@ -2012,6 +2053,8 @@
         formData.append('filtroChkSolicitudes', filtroChkSolicitudes.value)
         formData.append('rangoFechasManual', rangoFechasManual.value)
         formData.append('idPropiedadSolicitud', idPropiedadSolicitud.value)
+
+        formData.append('page', currentPage)
 
         isUploading.value = true
         uploadProgress.value = 0
@@ -2052,22 +2095,15 @@
                 uploadProgress.value = 100
                 permiteDescartarCroquis.value = false
 
-                // CHECKPOINT: Estoy trabajando con el folio 082
-                // Si cambio el trámite a CONSTANCIA DE UBICACIÓN no debería mostrar el CROQUIS (en este caso)
-                // porque la CONSTANCIA DE UBICACIÓN no tiene croquis (en este caso) 
-
                 if (tramitesSeleccionados.value.includes(ID_CONSTANCIA_UBICACION))
                 {
                     imgCroquisAux.value = router.page.props.flash.solicitud?.croquis_aux?.img
                 }
                 else
                 {
-                    idPropiedadSolicitud.value = router.page.props.flash.solicitud?.propiedad?.id
+                    //idPropiedadSolicitud.value = router.page.props.flash.solicitud?.id_propiedad
                     imgCroquisPropiedad.value = router.page.props.flash.solicitud?.propiedad?.img_croquis
                 }
-
-                console.log('imgCroquisPropiedad.value:', imgCroquisPropiedad.value)
-                console.log('router.page.props.flash.solicitud?.propiedad?.img_croquis:', router.page.props.flash.solicitud?.propiedad?.img_croquis)
             },
             onFinish: () => {
                 isProcessingFile.value = false
@@ -2185,124 +2221,229 @@
                 }
             }
         }
-    }
+    } 
+
+    //CHECKPOINT: Se puede presentar el siguiente caso:
+    //Una PROPIEDAD puede tener varias solicitudes sin ACEPTAR con un CROQUIS cargado
+    //Si se ACEPTA una SOLICITUD entonces la PROPIEDAD (y por tanto el CROQUIS)
+    //queda como NO EDITABLE y es la PROPIEDAD ACTIVA.
+    //Ahora si después se le cambia el CROQUIS a otra SOLICITUD de esa misma PROPIEDAD
+    //en la BD se agrega otra PROPIEDAD con otro CROQUIS
+    //entonces ahora la PROPIEDAD (y el CROQUIS) recién insertada
+    //es la ACTIVA y está EDITABLE y las otras solicitudes quedan con la PROPIEDAD 
+    //que tiene el CROQUIS que ya es el de la PROPIEDAD ACTIVA
 
     const removeFile = async () => {
         previewDialogVisible.value = false
 
-        Swal.fire({
-            icon: 'warning',
-            title: 'Advertencia',
-            html: `<div style="text-align: center; font-size: 13pt">
-                ¿Deseas eliminar el archivo del croquis? <br> Una vez eliminado no podrás recuperar el archivo.  </div>`,
-            showCancelButton: true,
-            confirmButtonText: 'Aceptar',
-            cancelButtonText: 'Cancelar',
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            didOpen: () => {
-                const swalContainer = document.querySelector('.swal2-container')
-                if (swalContainer) {
-                    swalContainer.style.setProperty('z-index', '99999', 'important')
+       if (propiedadEsEditable.value == 1 || tramitesSeleccionados.value.includes(ID_CONSTANCIA_UBICACION)) 
+       {
+            // Si la propiedad es editable, muestra la advertencia
+            Swal.fire({
+                icon: 'warning',
+                title: 'Advertencia',
+                html: `<div style="text-align: center; font-size: 13pt">
+                    ¿Deseas eliminar el archivo del croquis? <br> Una vez eliminado no podrás recuperar el archivo. </div>`,
+                showCancelButton: true,
+                confirmButtonText: 'Aceptar',
+                cancelButtonText: 'Cancelar',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                    const swalContainer = document.querySelector('.swal2-container')
+                    if (swalContainer) {
+                        swalContainer.style.setProperty('z-index', '99999', 'important')
+                    }
                 }
+            }).then(async (result) => {
+                if (result.isConfirmed) 
+                {
+                    // Si el usuario confirma, ejecuta la lógica de borrado
+                    await deleteFile();
+                } 
+                else 
+                {
+                    // El usuario canceló, no hace nada
+                }
+            });
+        } 
+        else 
+        {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Advertencia',
+                html: `<div style="text-align: center; font-size: 13pt">
+                   El CROQUIS está a punto de ser actualizado. Si lo actualizas, a partir de hoy la PROPIEDAD tendrá el CROQUIS que selecciones en esta ventana. <br> ¿Deseas continuar? </div>`,
+                showCancelButton: true,
+                confirmButtonText: 'Aceptar',
+                cancelButtonText: 'Cancelar',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                    const swalContainer = document.querySelector('.swal2-container')
+                    if (swalContainer) {
+                        swalContainer.style.setProperty('z-index', '99999', 'important')
+                    }
+                }
+            }).then(async (result) => {
+                if (result.isConfirmed) 
+                {
+                    // Si el usuario confirma, ejecuta la lógica de borrado
+                    isFileLoaded.value = false;
+                    file.value = null;
+                    imageSrc.value = '';
+                    fileName.value = '';
+                    borraArchivoCroquis.value = true;
+                    imgCroquisPropiedad.value = null;
+
+                    if (fileInput.value) {
+                        fileInput.value.value = '';
+                    }
+
+                    const formData2 = new FormData();
+                    formData2.append('imgCroquisPropiedad', imgCroquisPropiedad.value);
+                    formData2.append('tipoPropiedad', tipoPropiedad.value);
+                    
+                    let claveCatastralSinEspacios = {
+                        value: claveCatastral.value.replace(/\s/g, '')
+                    };
+
+                    if (claveCatastralSinEspacios.length <= 6) {
+                        //Si no capturaron más del inicio de la clave
+                        claveCatastralSinEspacios.value = null;
+                    }
+
+                    const currentPage = router.page.props.paginaActual || 1
+
+                    formData2.append('claveCatastral', claveCatastralSinEspacios.value);
+                    formData2.append('tramitesSeleccionados', tramitesSeleccionados.value);
+                    formData2.append('callePropiedad', callePropiedad.value);
+                    formData2.append('numeroPropiedad', numeroPropiedad.value);
+                    formData2.append('idColoniaPropiedad', idColoniaPropiedad.value);
+                    formData2.append('idLocalidadPropiedad', idLocalidadPropiedad.value);
+                    formData2.append('superficiePropiedad', superficiePropiedad.value);
+                    formData2.append('superficieConstruccionPropiedad', superficieConstruccionPropiedad.value);
+                    formData2.append('idContactoPropiedad', idContactoPropiedad.value);
+                    formData2.append('nombreQuery', nombreQuery.value);
+                    formData2.append('fechaInicioQuery', fechaInicioQuery.value);
+                    formData2.append('fechaFinQuery', fechaFinQuery.value);
+                    formData2.append('tiposTramitesQuery', tiposTramitesQuery.value);
+                    formData2.append('tramitesQuery', tramitesQuery.value);
+                    formData2.append('estatusQuery', estatusQuery.value);
+                    formData2.append('filtroChkSolicitudes', filtroChkSolicitudes.value);
+                    formData2.append('rangoFechasManual', rangoFechasManual.value);
+                    formData2.append('page', currentPage);
+
+                    // await deleteFile();
+
+                    triggerFileInput();
+                } 
+                else 
+                {
+                    // El usuario canceló, no hace nada
+                }
+            });
+        }
+
+        async function deleteFile() {
+            isFileLoaded.value = false;
+            file.value = null;
+            imageSrc.value = '';
+            fileName.value = '';
+            borraArchivoCroquis.value = true;
+            imgCroquisPropiedad.value = null;
+
+            if (fileInput.value) {
+                fileInput.value.value = '';
             }
-        }).then(async (result) => {
-            if (result.isConfirmed) {
-                isFileLoaded.value = false
-                file.value = null
-                imageSrc.value = ''
-                fileName.value = ''
-                borraArchivoCroquis.value = true
-                imgCroquisPropiedad.value = null
-                if (fileInput.value) {
-                    fileInput.value.value = ''
-                }
-                const formData2 = new FormData()
-                formData2.append('imgCroquisPropiedad', imgCroquisPropiedad.value)
-                formData2.append('tipoPropiedad', tipoPropiedad.value)
-                let claveCatastralSinEspacios = {
-                    value: claveCatastral.value.replace(/\s/g, '')
-                }
-                if (claveCatastralSinEspacios.length <= 6) {
-                    //Si no capturaron más del inicio de la clave
-                    claveCatastralSinEspacios.value = null
-                }
 
-                formData2.append('claveCatastral', claveCatastralSinEspacios.value)
-                formData2.append('tramitesSeleccionados', tramitesSeleccionados.value)
-                formData2.append('callePropiedad', callePropiedad.value)
-                formData2.append('numeroPropiedad', numeroPropiedad.value)
-                formData2.append('idColoniaPropiedad', idColoniaPropiedad.value)
-                formData2.append('idLocalidadPropiedad', idLocalidadPropiedad.value)
-                formData2.append('superficiePropiedad', superficiePropiedad.value)
-                formData2.append('superficieConstruccionPropiedad', superficieConstruccionPropiedad.value)
-                formData2.append('idContactoPropiedad', idContactoPropiedad.value)
+            const formData2 = new FormData();
+            formData2.append('imgCroquisPropiedad', imgCroquisPropiedad.value);
+            formData2.append('tipoPropiedad', tipoPropiedad.value);
+            
+            let claveCatastralSinEspacios = {
+                value: claveCatastral.value.replace(/\s/g, '')
+            };
 
-                formData2.append('nombreQuery', nombreQuery.value)
-                formData2.append('fechaInicioQuery', fechaInicioQuery.value)
-                formData2.append('fechaFinQuery', fechaFinQuery.value)
-                formData2.append('tiposTramitesQuery', tiposTramitesQuery.value)
-                formData2.append('tramitesQuery', tramitesQuery.value)
-                formData2.append('estatusQuery', estatusQuery.value)
-                formData2.append('filtroChkSolicitudes', filtroChkSolicitudes.value)
-                formData2.append('rangoFechasManual', rangoFechasManual.value)
+            if (claveCatastralSinEspacios.length <= 6) {
+                //Si no capturaron más del inicio de la clave
+                claveCatastralSinEspacios.value = null;
+            }
 
-                isProcessingModal.value = true
-                await router.post('/solicitudes/delete-croquis/' + idSolicitudEditar.value, formData2, {
-                    onSuccess: (page) => {
-                        const successMessage = page.props?.flash?.success
-                        if (successMessage) {
-                            Swal.fire({
-                                toast: true,
-                                icon: 'success',
-                                position: 'top-end',
-                                showConfirmButton: false,
-                                title: 'La imagen ha sido borrada con éxito!',
-                                timer: 2000,
-                                timerProgressBar: true,
-                                didOpen: () => {
-                                    const swalContainer = document.querySelector('.swal2-container')
-                                    if (swalContainer) {
-                                        swalContainer.style.setProperty('z-index', '99999', 'important')
-                                    }
-                                }
-                            })
-                            isProcessingModal.value = false
-                        }
-                        permiteDescartarCroquis.value = true
-                    },
-                    onFinish: () => {
-                        isProcessingModal.value = false
-                    },
-                    preserveScroll: true,
-                    preserveState: true,
-                    replace: true,
-                    onError: () => {
-                        isProcessingModal.value = false
-                        const errorMessage = 'Hubo un error al borrar el archivo.'
+            const currentPage = router.page.props.paginaActual || 1
+
+            formData2.append('claveCatastral', claveCatastralSinEspacios.value);
+            formData2.append('tramitesSeleccionados', tramitesSeleccionados.value);
+            formData2.append('callePropiedad', callePropiedad.value);
+            formData2.append('numeroPropiedad', numeroPropiedad.value);
+            formData2.append('idColoniaPropiedad', idColoniaPropiedad.value);
+            formData2.append('idLocalidadPropiedad', idLocalidadPropiedad.value);
+            formData2.append('superficiePropiedad', superficiePropiedad.value);
+            formData2.append('superficieConstruccionPropiedad', superficieConstruccionPropiedad.value);
+            formData2.append('idContactoPropiedad', idContactoPropiedad.value);
+            formData2.append('nombreQuery', nombreQuery.value);
+            formData2.append('fechaInicioQuery', fechaInicioQuery.value);
+            formData2.append('fechaFinQuery', fechaFinQuery.value);
+            formData2.append('tiposTramitesQuery', tiposTramitesQuery.value);
+            formData2.append('tramitesQuery', tramitesQuery.value);
+            formData2.append('estatusQuery', estatusQuery.value);
+            formData2.append('filtroChkSolicitudes', filtroChkSolicitudes.value);
+            formData2.append('rangoFechasManual', rangoFechasManual.value);
+            formData2.append('page', currentPage)
+            
+            isProcessingModal.value = true;
+
+            await router.post('/solicitudes/delete-croquis/' + idSolicitudEditar.value, formData2, {
+                onSuccess: (page) => {
+                    const successMessage = page.props?.flash?.success;
+                    if (successMessage) {
                         Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            html: `<div style="text-align: justify; font-size: 12pt">
-                                <ul>No existe el archivo de la imagen deseada.
-                                </ul>
-                                </div>`,
-                            confirmButtonText: 'Aceptar',
-                            width: '400px',
-                            target: 'body', // Renderizar en el body
+                            toast: true,
+                            icon: 'success',
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            title: 'La imagen ha sido borrada con éxito!',
+                            timer: 2000,
+                            timerProgressBar: true,
                             didOpen: () => {
-                                const swalContainer = document.querySelector('.swal2-container')
+                                const swalContainer = document.querySelector('.swal2-container');
                                 if (swalContainer) {
-                                    swalContainer.style.setProperty('z-index', '99999', 'important')
+                                    swalContainer.style.setProperty('z-index', '99999', 'important');
                                 }
                             }
-                        })
+                        });
+                        isProcessingModal.value = false;
                     }
-                })
-            } else {
-                // El usuario canceló
-            }
-        })
+                    permiteDescartarCroquis.value = true;
+                },
+                onFinish: () => {
+                    isProcessingModal.value = false;
+                },
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+                onError: () => {
+                    isProcessingModal.value = false;
+                    const errorMessage = 'Hubo un error al borrar el archivo.';
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        html: `<div style="text-align: justify; font-size: 12pt">
+                            <ul>No existe el archivo de la imagen deseada.</ul>
+                        </div>`,
+                        confirmButtonText: 'Aceptar',
+                        width: '400px',
+                        target: 'body',
+                        didOpen: () => {
+                            const swalContainer = document.querySelector('.swal2-container');
+                            if (swalContainer) {
+                                swalContainer.style.setProperty('z-index', '99999', 'important');
+                            }
+                        }
+                    });
+                }
+            });
+        }
     }
 
     const generarNombreArchivo = (nombreOriginal) => {
@@ -2344,10 +2485,13 @@
                 idPersonaSolicitante.value = router.page.props.flash.solicitud?.contacto.id_persona
                 idContactoSolicitud.value = router.page.props.flash.solicitud?.id_contacto
                 idPropiedadSolicitud.value = router.page.props.flash.solicitud?.propiedad?.id
+                idContactoPropiedadAlCargar.value = router.page.props.flash.solicitud?.propiedad?.id_contacto
+                propiedadEsEditable.value = router.page.props.flash.solicitud?.propiedad?.editable
                 estatusSolicitudSelect.value = props.estatusSolicitud.filter((item) => item.id > 1)
                 paraEditarSolicitud.value = router.page.props.flash.solicitud ? true : false
 
-                if (idEstatusSolicitud.value == 99) {
+                if (idEstatusSolicitud.value == 99) 
+                {
                     dialogVisible.value = false
                 }
 
@@ -2412,7 +2556,7 @@
         if (idEstatusSolicitud.value == 99) {
             const result = await Swal.fire({
                 icon: 'warning',
-                title: '¿Deseas concluir el trámite?',
+                title: '¿Deseas ACEPTAR la solicitud?',
                 html: `<div style="text-align: center; font-size: 12pt">
                     Si ACEPTAS, a la solicitud ya no se le podrá hacer cambios. </div>`,
                 showCancelButton: true,
@@ -2454,6 +2598,8 @@
             formData.append('apeSolicitante', apeSolicitante.value)
             formData.append('telefonoSolicitante', telefonoSolicitante.value)
             formData.append('emailSolicitante', emailSolicitante.value)
+            formData.append('solicitaOrganizacion', solicitaOrganizacion.value)
+            formData.append('razonSocialSolicitante', razonSocialSolicitante.value)
         }
 
         formData.append('idPropiedadSolicitud', idPropiedadSolicitud.value)
@@ -2629,7 +2775,6 @@
             sortDirection: sortDirection.value
         }
 
-
         const formData = new FormData()
 
         for (const key in filtros) {
@@ -2719,7 +2864,8 @@
                 estatusQuery: estatusQuery.value,
                 filtroChkSolicitudes: filtroChkSolicitudes.value,
                 sortColumn: sortColumn.value,
-                sortDirection: sortDirection.value
+                sortDirection: sortDirection.value,
+                rangoFechasManual: rangoFechasManual.value,
             },
             {
                 preserveState: true,
@@ -2958,9 +3104,6 @@
             const result = await Swal.fire({
                 icon: 'warning',
                 title: 'Advertencia',
-                // html: `<div style="text-align: center; font-size: 12pt">
-                //     La imagen previamente almacenada correspondía a la clave catastral <b> ${imgCroquisPropiedad.value.substring(0, 18)} </b> <br>
-                //     Se eliminará esa imagen y tendrás que subir una nueva.</div>`,
                 html: `<div style="text-align: center; font-size: 12pt">
                 La imagen previamente almacenada correspondía a la clave catastral 
                 <b>${imgCroquisPropiedad.value.substring(0, 18)}</b> <br>
@@ -3060,7 +3203,7 @@
         {
             const result = await Swal.fire({
                 icon: 'warning',
-                title: '¿Deseas concluir el trámite?',
+                title: '¿Deseas aceptar la solicitud?',
                 html: `<div style="text-align: center; font-size: 12pt">
                     Si ACEPTAS, a la solicitud ya no se le podrá hacer cambios. </div>`,
                 showCancelButton: true,
@@ -3093,6 +3236,8 @@
             formData.append('telefonoSolicitante', telefonoSolicitante.value)
             formData.append('emailSolicitante', emailSolicitante.value)
             formData.append('nuevoSolicitante', nuevoSolicitante.value)
+            formData.append('solicitaOrganizacion', solicitaOrganizacion.value)
+            formData.append('razonSocialSolicitante', razonSocialSolicitante.value)
         }
 
         formData.append('curpPropietario', curpPropietario.value)
@@ -3151,9 +3296,9 @@
 
         cambiaTabError.value = false //Indica que NO cambia el tab por error
 
-        await obtenerPropiedadSolicitud(idSolicitudEditar.value)
-
-            if (!nuevaPropiedad.value && propiedad?.value?.id_contacto != undefined && propiedad?.value?.id_contacto != idContactoPropiedad.value) {
+        //await obtenerPropiedadSolicitud(idSolicitudEditar.value)
+        // if (!nuevaPropiedad.value && propiedad?.value?.id_contacto != undefined && propiedad?.value?.id_contacto != idContactoPropiedad.value) {
+        if (!nuevaPropiedad.value && idContactoPropiedadAlCargar.value != idContactoPropiedad.value) {
             const result = await Swal.fire({
                 icon: 'warning',
                 title: 'Advertencia',
@@ -3161,7 +3306,7 @@
                     La PROPIEDAD ya tiene asignado un PROPIETARIO. <br> Si ACEPTAS se hará un CAMBIO DE PROPIETARIO 
                     <br><br>
                     Valores actuales: <br>
-                    id_contacto de Propiedad: <strong>${propiedad?.value?.id_contacto}</strong> <br>
+                    idContactoPropiedadAlCargar: <strong>${idContactoPropiedadAlCargar.value}</strong> <br>
                     idContactoPropiedad: <strong>${idContactoPropiedad.value}</strong>
                     </div>`,
                 showCancelButton: true,
@@ -3502,6 +3647,23 @@
             }
         });
     }
+
+    // Referencia al elemento DOM del input
+    const floatingRazonSocialSolicitanteRef = ref(null);
+
+    // Usa 'watch' para observar los cambios en 'solicitaOrganizacion'
+    watch(solicitaOrganizacion, async (newValue) => {
+    if (newValue) {
+        // Cuando el checkbox se marca (newValue es true)
+        // Usamos nextTick para esperar a que el DOM se actualice
+        // antes de intentar enfocar el input.
+        await nextTick();
+        if (floatingRazonSocialSolicitanteRef.value) 
+        {
+            floatingRazonSocialSolicitanteRef.value.focus();
+        }
+    }
+    });
 </script>
 
 <template>
@@ -3626,11 +3788,10 @@
                     v-model="fecha_ingreso"
                     type="date"
                     :class="{
-                        /* ¡CAMBIO AQUÍ! */
                         'block w-full md:w-auto py-2.5 pb-1 px-0 text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-color1 focus:outline-none focus:ring-0 focus:border-color1 peer text-right md:text-left':
                             !solicitudBloqueada,
                         'block w-full md:w-auto p-0 m-0 text-sm text-gray-900 bg-color3-50 border-0 appearance-none dark:text-gray-400 focus:outline-none focus:ring-0 peer text-right md:text-cen':
-                            solicitudBloqueada /* ¡Y CAMBIO AQUÍ! */
+                            solicitudBloqueada 
                     }"
                     :disabled="solicitudBloqueada"
                     required
@@ -4167,10 +4328,52 @@
             </div>
         </div>
         <div v-if="activeTab === 'solicitante'" class="space-y-4">
-            <h3 class="flex items-center text-lg font-semibold text-gray-800 dark:text-white">
-                <span>Datos del/a solicitante</span>
-                <span v-if="nuevoSolicitante" style="letter-spacing: 0.5px" class="flex items-center bg-color2-600 text-xs text-white py-1 font-thin px-2 rounded-lg ml-2">Nuevo(a)</span>
-            </h3>
+            <div class="flex items-start w-[61.5%]" :class="{ 'flex-col': solicitaOrganizacion }">
+                <h3 class="flex items-center mr-4 text-lg font-semibold text-gray-800 dark:text-white flex-shrink-0">
+                <span>Datos del/a solicitante </span>
+                <span
+                    v-if="nuevoSolicitante"
+                    style="letter-spacing: 0.5px"
+                    class="flex items-center bg-color2-600 text-xs text-white py-1 font-thin px-2 rounded-lg ml-2">
+                    Nuevo(a)
+                </span>
+                </h3>
+
+                <div class="flex items-start flex-col w-full" :class="{ 'flex-col': solicitaOrganizacion }">
+                    <div class="flex items-center py-1">
+                        <input
+                        id="solicitaOrganizacion"
+                        v-model="solicitaOrganizacion"
+                        v-if="idEstatusSolicitud < 6"
+                        type="checkbox"
+                        class="rounded border-gray-300 mr-2 text-color1-600 shadow-sm focus:ring-color1-500"/>
+                         <label for="solicitaOrganizacion" class="block text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                            Organización / Razón social
+                        </label>
+                    </div>
+
+                    <div
+                        v-if="solicitaOrganizacion"
+                        class="relative z-0 mt-0 group peer w-full">
+                        <input
+                        v-model="razonSocialSolicitante"
+                        ref="floatingRazonSocialSolicitanteRef"
+                        autocomplete="off"
+                        type="text"
+                        class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
+                        :class="[
+                            {
+                            'pb-0 py-0 px-0': razonSocialSolicitanteEditable,
+                            'bg-color3-50 p-0 m-0 mb-5': !razonSocialSolicitanteEditable,
+                            'border-b-2 border-gray-300 mb-5 focus:border-color1 dark:border-gray-600': razonSocialSolicitanteEditable,
+                            }
+                        ]"
+                        placeholder=""
+                        :disabled="!razonSocialSolicitanteEditable"
+                        required/>
+                    </div>
+                </div>
+            </div>
             <div class="md:flex-1 flex md:items-center w-full md:w-auto md:gap-x-3 flex-wrap">
                 <div class="relative z-0 mb-5 group peer w-full md:w-[25%]">
                     <input
@@ -5270,15 +5473,14 @@
                                         <path
                                             fill-rule="evenodd"
                                             d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                                            clip-rule="evenodd"
-                                        />
+                                            clip-rule="evenodd"/>
                                     </svg>
                                 </div>
                                 <input
                                     type="text"
                                     id="simple-search"
                                     class="custom-input bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-color1-500 focus:border-color1-500 block w-full pl-10 p-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500"
-                                    placeholder="Solicitante / Propietario"
+                                    placeholder="Propietario / Solicitante"
                                     v-model="nombreQuery"
                                     @input="fetchSolicitudes(false)"/>
                                 <button
@@ -5339,8 +5541,7 @@
                                     <path
                                         fill-rule="evenodd"
                                         d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z"
-                                        clip-rule="evenodd"
-                                    />
+                                        clip-rule="evenodd"/>
                                 </svg>
                                 Filtros {{ selectedCountText }}
 
@@ -5351,16 +5552,14 @@
                                     fill="currentColor"
                                     @click.prevent="resetFiltros">
                                     <path
-                                        d="m336-280 144-144 144 144 56-56-144-144 144-144-56-56-144 144-144-144-56 56 144 144-144 144 56 56ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"
-                                    />
+                                        d="m336-280 144-144 144 144 56-56-144-144 144-144-56-56-144 144-144-144-56 56 144 144-144 144 56 56ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/>
                                 </svg>
 
                                 <svg class="mr-1 ml-2 w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                     <path
                                         clip-rule="evenodd"
                                         fill-rule="evenodd"
-                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                    />
+                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/>
                                 </svg>
                             </button>
 
@@ -5540,8 +5739,8 @@
                                 <!-- Solicitante -->
                                 <th scope="col" class="px-4 py-3 cursor-pointer" style="width: 25%" @click="sortTable('id_solicitante')">
                                     <div class="flex items-center">
-                                        <span class="mr-1 normal-case text-base hidden md:inline">Solicitante / Propietario</span>
-                                        <span class="mr-1 normal-case text-base inline md:hidden">Solicitante/Propietario</span>
+                                        <span class="mr-1 normal-case text-base hidden md:inline">Propietario / Solicitante </span>
+                                        <span class="mr-1 normal-case text-base inline md:hidden">Propietario/Solicitante</span>
                                         <svg v-if="sortColumn === 'id_solicitante'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4 text-color1">
                                             <path
                                                 v-if="sortDirection === 'asc'"
@@ -5618,7 +5817,7 @@
                                     {{ (solicitud.id % 10000).toString().padStart(4, '0') }}
                                 </th>
                                 <td class="px-4 py-2">
-                                    {{ formatDate(solicitud.fecha_ingreso) }}
+                                    {{ formatDate(solicitud.fecha_ingreso) }}´
                                 </td>
                                 <td v-if="solicitud.id_contacto == solicitud.propiedad?.id_contacto" class="px-4 py-2 w-80">
                                     {{ solicitud.propiedad.contacto.persona.nombre + ' ' + solicitud.propiedad.contacto.persona.apellidos }}
@@ -5627,11 +5826,11 @@
                                     <!-- Check if solicitud.propiedad exists -->
                                     <template v-if="solicitud.propiedad">
                                         {{
-                                            solicitud.contacto.persona.nombre +
+                                            solicitud.propiedad.contacto.persona.nombre +
                                             ' ' +
-                                            solicitud.contacto.persona.apellidos +
+                                            solicitud.propiedad.contacto.persona.apellidos +
                                             ' / ' +
-                                            (solicitud.propiedad.contacto.persona.nombre || '') + ' ' + (solicitud.propiedad.contacto.persona.apellidos || '')
+                                            (solicitud.razon_social ? solicitud.razon_social.nombre : (solicitud.contacto.persona.nombre || '') + ' ' + (solicitud.contacto.persona.apellidos || ''))
                                         }}
                                     </template>
                                     <template v-else>

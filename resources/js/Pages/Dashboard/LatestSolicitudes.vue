@@ -5,19 +5,21 @@
         panelData: Array, // Este prop contendrá los datos específicos para este panel (ej: latestSolicitudes)
     });
 
-    // Función para formatear la fecha
     const formatFecha = (dateString) => {
         if (!dateString) return 'N/A'; // Manejar el caso de fecha nula o indefinida
 
-        const date = new Date(dateString);
+        const parts = dateString.split('-'); // Divide "2025-08-11" en ["2025", "08", "11"]
+        
+        // El constructor de Date usa el mes como índice base 0, por eso se resta 1
+        const date = new Date(parts[0], parts[1] - 1, parts[2]);
 
         // Verificar si la fecha es válida
         if (isNaN(date.getTime())) {
             return 'Fecha inválida';
         }
 
-        const day = String(date.getDate()).padStart(2, '0'); // Añade un 0 al principio si es necesario
-        const month = String(date.getMonth() + 1).padStart(2, '0'); // getMonth() es base 0, por eso +1
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
         const year = date.getFullYear();
 
         return `${day}-${month}-${year}`;

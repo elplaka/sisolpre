@@ -89,6 +89,32 @@
         </tr>
     </table>
     <table style="width: 100%; border-collapse: collapse; font-size: 12pt;">
+        @if (!$esSolicitante)
+        <tr>
+            <td class="titleTd" colspan="4" style="width: 100%;">
+                PROPIETARIO
+            </td>
+        </tr>
+        <tr style="line-height: 1em;">
+            <td class="tdPrevFieldName" style="width: 10%;">CURP:</td>
+            <td style="width: 10%;">{{ $solicitud->propiedad->contacto->persona->curp }}</td>
+            <td class="tdPrevFieldName" style="width: 13%;">Nombre:</td>
+            <td style="width: 57%;">{{ $solicitud->propiedad->contacto->persona->nombre . ' ' .  $solicitud->propiedad->contacto->persona->apellidos }}</td>
+        </tr>
+        <tr style="line-height: 1em;">
+            <td class="tdPrevFieldName" style="width: 10%;">Teléfono:</td>
+            <td style="width: 10%;">
+                @if ($solicitud->propiedad->contacto->telefono && strlen(trim($solicitud->propiedad->contacto->telefono)) > 0)
+                    {{ $solicitud->propiedad->contacto->telefono }}
+                @else
+                    <span style="color: red;">«SIN CAPTURAR»</span>
+                @endif
+            </td>
+            <td class="tdPrevFieldName" style="width: 13%;">E-mail:</td>
+            <td style="width: 57%;">{{ $solicitud->propiedad->contacto->email }}</td>
+        </tr>
+        <tr><span style="display: block; margin-top: 0.25cm"></span></tr>
+        @endif
         <tr>
             <td class="titleTd" colspan="4" style="width: 100%;">
                 @if ($solicitud->propiedad && $solicitud->contacto->id == $solicitud->propiedad->contacto->id)
@@ -98,6 +124,12 @@
                 @endif
             </td>
         </tr>
+        @if ($solicitud->razon_social)
+        <tr style="line-height: 1em;">
+            <td colspan="2" class="tdPrevFieldName" style="white-space: nowrap;">Organización / Razón Social:</td>
+            <td colspan="2">{{ $solicitud->razon_social->nombre }}</td>
+        </tr>
+        @endif
         <tr style="line-height: 1em;">
             <td class="tdPrevFieldName" style="width: 10%;">CURP:</td>
             <td style="width: 10%;">{{ $solicitud->contacto->persona->curp }}</td>
@@ -120,33 +152,7 @@
                 </td>
             @endif
         </tr>
-        <tr><span style="display: block; margin-top: 0.25cm"></span></tr>
-        @if (!$esSolicitante)
-            <tr>
-                <td class="titleTd" colspan="4" style="width: 100%;">
-                    PROPIETARIO
-                </td>
-            </tr>
-            <tr style="line-height: 1em;">
-                <td class="tdPrevFieldName" style="width: 10%;">CURP:</td>
-                <td style="width: 10%;">{{ $solicitud->propiedad->contacto->persona->curp }}</td>
-                <td class="tdPrevFieldName" style="width: 13%;">Nombre:</td>
-                <td style="width: 57%;">{{ $solicitud->propiedad->contacto->persona->nombre . ' ' .  $solicitud->propiedad->contacto->persona->apellidos }}</td>
-            </tr>
-            <tr style="line-height: 1em;">
-                <td class="tdPrevFieldName" style="width: 10%;">Teléfono:</td>
-                <td style="width: 10%;">
-                    @if ($solicitud->propiedad->contacto->telefono && strlen(trim($solicitud->propiedad->contacto->telefono)) > 0)
-                        {{ $solicitud->propiedad->contacto->telefono }}
-                    @else
-                        <span style="color: red;">«SIN CAPTURAR»</span>
-                    @endif
-                </td>
-                <td class="tdPrevFieldName" style="width: 13%;">E-mail:</td>
-                <td style="width: 57%;">{{ $solicitud->propiedad->contacto->email }}</td>
-            </tr>
-            <tr><span style="display: block; margin-top: 0.25cm"></span></tr>
-        @endif
+        <tr><span style="display: block; margin-top: 0.25cm"></span></tr>        
     </table>
     @if ($solicitud->propiedad)
     <table style="width: 100%; border-collapse: collapse; font-size: 12pt;">
@@ -216,7 +222,7 @@
         </tr>
         <tr style="line-height: 1em;">
             <td class="tdPrevFieldName" style="width: 15%;">Localidad:</td>
-            <td style="width: 10%;"> 
+            <td style="width: 40%;"> 
                 @if ($solicitud->propiedad->localidad)
                     {{ $solicitud->propiedad->localidad->nombre }}
                 @else

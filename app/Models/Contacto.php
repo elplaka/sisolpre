@@ -19,4 +19,9 @@ class Contacto extends Model
     {
         return $this->belongsTo(Persona::class, 'id_persona');
     }
+
+    public function solicitudes()
+    {
+        return $this->hasMany(Solicitud::class, 'id_contacto');
+    }
 }

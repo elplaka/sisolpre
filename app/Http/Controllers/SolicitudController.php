@@ -17,6 +17,7 @@ use App\Models\Contacto;
 use App\Models\Propiedad;
 use App\Models\SolicitudTramite;
 use App\Models\SolicitudReferencia;
+use App\Models\SolicitudRazonSocial;
 use App\Models\Periodo;
 use App\Models\CroquisAux;
 use App\Models\ConfiguracionUsuario;
@@ -107,7 +108,8 @@ class SolicitudController extends Controller
             'propiedad.localidad',
             'sectorTramite',
             'referencia',
-            'croquis_aux'
+            'croquis_aux',
+            'razon_social'
         ])->findOrFail($id);
 
         return response()->json([
@@ -367,6 +369,7 @@ class SolicitudController extends Controller
             ->leftJoin('personas as personas_propietarios', 'contactos_propietarios.id_persona', '=', 'personas_propietarios.id')
             ->leftJoin('solicitudes_tramites', 'solicitudes.id', '=', 'solicitudes_tramites.id_solicitud')
             ->leftJoin('catalogo_tramites', 'solicitudes_tramites.id_tramite', '=', 'catalogo_tramites.id')
+            ->leftJoin('solicitudes_razones_sociales', 'solicitudes.id', '=', 'solicitudes_razones_sociales.id_solicitud')
             ->with([
                 'estatus',
                 'contacto',
@@ -379,7 +382,8 @@ class SolicitudController extends Controller
                 'propiedad.tipo',
                 'destino_obra',
                 'tramites',
-                'tramites.tramite'
+                'tramites.tramite',
+                'razon_social'
             ])
             ->whereBetween('solicitudes.fecha_ingreso', [$fechaInicioQuery, $fechaFinQuery])
             ->selectRaw('solicitudes.id, solicitudes.fecha_ingreso, solicitudes.id_contacto,
@@ -390,21 +394,22 @@ class SolicitudController extends Controller
                         'solicitudes.folio_digital', 'solicitudes.id_propiedad',
                         'solicitudes.id_destino_obra', 'solicitudes.id_estatus');
 
-        if ($nombreQuery)
-        {
+        if ($nombreQuery) {
             $solicitudesQuery->where(function ($query) use ($nombreQuery) {
-                $query->where(function ($query) use ($nombreQuery) {
-                    $query->where(function ($q1) use ($nombreQuery) {
-                        $q1->where('personas_solicitantes.nombre', 'like', '%' . $nombreQuery . '%')
+                // Búsqueda por nombre de solicitante
+                $query->where(function ($q1) use ($nombreQuery) {
+                    $q1->where('personas_solicitantes.nombre', 'like', '%' . $nombreQuery . '%')
                         ->orWhere('personas_solicitantes.apellidos', 'like', '%' . $nombreQuery . '%');
-                    })->orWhere(function ($q2) use ($nombreQuery) {
-                        $q2->where('personas_propietarios.nombre', 'like', '%' . $nombreQuery . '%')
+                })
+                // Búsqueda por nombre de propietario
+                ->orWhere(function ($q2) use ($nombreQuery) {
+                    $q2->where('personas_propietarios.nombre', 'like', '%' . $nombreQuery . '%')
                         ->orWhere('personas_propietarios.apellidos', 'like', '%' . $nombreQuery . '%');
-                    });
-                });
+                })
+                // Nueva búsqueda por nombre de razón social
+                ->orWhere('solicitudes_razones_sociales.nombre', 'like', '%' . $nombreQuery . '%');
             });
         }
-
         
         if (!is_array($tiposTramitesQuery)) {
             $tiposTramitesQuery = [$tiposTramitesQuery];
@@ -986,6 +991,7 @@ class SolicitudController extends Controller
             $fechaInicioQuery =  $request->input('fechaInicioQuery');
             $fechaFinQuery =  $request->input('fechaFinQuery');
             $rangoFechasManual = $request->input('rangoFechasManual');
+            $page = $request->input('page', 1);
 
             $filtros = [
                 'fechaInicioQuery' => $fechaInicioQuery,
@@ -997,6 +1003,7 @@ class SolicitudController extends Controller
                 'sortColumn' => $sortColumn,
                 'sortDirection' => $sortDirection,
                 'rangoFechasManual' => $rangoFechasManual,
+                'page' => $page,
             ];
 
             return redirect()->route('solicitudes', $filtros)->with('success', 'La imagen ha sido borrada con éxito!');
@@ -1117,12 +1124,29 @@ class SolicitudController extends Controller
                 { 
                     $propiedad = $solicitud->propiedad;
 
-                    // dd($nombreArchivoCroquis);
-
                     if ($propiedad)
                     {
-                        $propiedad->img_croquis = $nombreArchivoCroquis;
-                        $propiedad->save();
+                        if ($propiedad->editable)
+                        {
+                            $propiedad->img_croquis = $nombreArchivoCroquis;
+                            $propiedad->save();
+                        }
+                        else
+                        {
+                            Propiedad::where('clave_catastral', trim($propiedad->clave_catastral))
+                            ->update(['activa' => 0]);  //Se ponen inactivas todas las propiedades con la clave catastral
+
+                            $nuevaPropiedad = $propiedad->replicate();
+                            $nuevaPropiedad->img_croquis = $nombreArchivoCroquis;
+                            $nuevaPropiedad->editable = 1;
+                            $nuevaPropiedad->activa = 1;
+                            $nuevaPropiedad->save();
+                            
+                            $solicitud->id_propiedad = $nuevaPropiedad->id;
+                            $solicitud->save();
+
+                            $solicitud->load(['contacto', 'propiedad', 'propiedad.contacto', 'croquis_aux']);
+                        }
                     }
                     else
                     {
@@ -1164,6 +1188,8 @@ class SolicitudController extends Controller
                 $fechaFinQuery =  $request->input('fechaFinQuery');
                 $rangoFechasManual = $request->input('rangoFechasManual');
 
+                $page = $request->input('page', 1);
+
                 $filtros = [
                     'fechaInicioQuery' => $fechaInicioQuery,
                     'fechaFinQuery' => $fechaFinQuery,
@@ -1174,6 +1200,7 @@ class SolicitudController extends Controller
                     'sortColumn' => $sortColumn,
                     'sortDirection' => $sortDirection,
                     'rangoFechasManual' => $rangoFechasManual,
+                    'page' => $page
                 ];
 
                 return redirect()->route('solicitudes', $filtros)
@@ -1873,6 +1900,8 @@ class SolicitudController extends Controller
         return $contactoSolicitante;
     }
 
+    //CHECKPOINT: Falta agregar lo de la RAZÓN SOCIAL al STORE
+
     public function regresaPropiedad(Request $request, $contactoPropietario)
     {
         if ($request->idPropiedadSolicitud) 
@@ -1934,18 +1963,23 @@ class SolicitudController extends Controller
         return $propiedad;        
     }
 
-     public function regresaPropiedadActiva(Request $request, $contactoPropietario)
+    public function regresaPropiedadActiva(Request $request, $contactoPropietario)
     {
         $propiedad = Propiedad::where('clave_catastral', trim($request->claveCatastral))
-        ->where('id_tipo', $request->tipoPropiedad)
-        ->where('superficie', $request->superficiePropiedad)
-        ->where('superficie_construccion', $request->superficieConstruccionPropiedad)
-        ->where('calle', trim(mb_strtoupper($request->callePropiedad)))
-        ->where('numero', trim(mb_strtoupper($request->numeroPropiedad)))
-        ->where('id_colonia', $request->idColoniaPropiedad)
-        ->where('id_localidad', $request->idLocalidadPropiedad)
-        ->where('id_contacto', $contactoPropietario->id)
-        ->first();
+            ->where('id_tipo', $request->tipoPropiedad)
+            ->where('superficie', $request->superficiePropiedad)
+            ->where('superficie_construccion', $request->superficieConstruccionPropiedad)
+            ->where('calle', trim(mb_strtoupper($request->callePropiedad)))
+            ->where('numero', trim(mb_strtoupper($request->numeroPropiedad)))
+            ->where('id_colonia', $request->idColoniaPropiedad)
+            ->where('id_localidad', $request->idLocalidadPropiedad)
+            ->where('id_contacto', $contactoPropietario->id);
+
+        if ($request->imgCroquisPropiedad !== null) {
+            $propiedad->where('img_croquis', $request->imgCroquisPropiedad);
+        }
+
+        $propiedad = $propiedad->first();
 
         if ($propiedad)  //Si existe entonces la pone como no editable
         {
@@ -2048,6 +2082,8 @@ class SolicitudController extends Controller
             }
 
             $esSolicitante = filter_var($request->esSolicitante, FILTER_VALIDATE_BOOLEAN);
+            $solicitaOrganizacion = filter_var($request->solicitaOrganizacion, FILTER_VALIDATE_BOOLEAN);
+
             if ($esSolicitante && $validaPropiedad) //Si el solicitante es el propietario
             {
                 list($personaSolicitante, $esPersonaNueva) = $this->regresaPersonaSolicitante($request, $personaPropietario);
@@ -2068,6 +2104,14 @@ class SolicitudController extends Controller
                 'fecha_ingreso' => $request->fecha_ingreso,
                 'token_acceso' => $this->generaToken()
             ]);
+
+            if (!$esSolicitante)
+            {
+                if ($solicitaOrganizacion && $request->razonSocialSolicitante && strlen(trim($request->razonSocialSolicitante)) > 2)
+                {
+                    $this->procesarRazonSocial($solicitud->id, $request->solicitaOrganizacion, $request->razonSocialSolicitante);
+                }
+            }
 
             $folioDigital = Str::random(25);
 
@@ -2210,16 +2254,44 @@ class SolicitudController extends Controller
         ];
     }
 
+    public function procesarRazonSocial(?int $idSolicitud, bool $solicitaOrganizacion, ?string $razonSocialSolicitante): ?SolicitudRazonSocial
+    {
+        if (is_null($idSolicitud)) 
+        {
+            $razonSocial = null;
+        }
+        else
+        {
+            // Busca la razón social existente para la solicitud
+            $razonSocial = SolicitudRazonSocial::where('id_solicitud', $idSolicitud)->first();
+        }
 
-    //CHECKPOINT: En una NUEVA SOLICITUD primero selecciono CONSTANCIA DE UBICACION, y capturo el SOLICITANTE y la REFERENCIA
-    //            y después cambio el trámite a SUBDIVISIÓN y en PROPIETARIO pongo que no es el SOLICITANTE
-    //            la imagen del CROQUIS sí se podrá modificar mientras la PROPIEDAD esté EDITABLE 
-    //            si no está EDITABLE y si se modifica el croquis debe insertarse otra PROPIEDAD con la nueva imagen del croquis
-    //            y ponerse como activa esta última y la anterior como inactiva
-    //CHECKPOINT: Cuando se concluya el trámite de constancia de ubicación debe poner null los campos que no se incluyen
-    //CHECKPOINT: Cuando se concluya el trámite de una NO constancia de ubicación eliminar los posibles registros de las tablas relacionadas a la constancia de ubicación (croquis_aux y solicitud_referencias)
-    //CHECKPOINT: Estoy validando que actualice CORRECTAMENTE cuando sea CONST. UBIC.
+        if ($solicitaOrganizacion && $razonSocialSolicitante && strlen(trim($razonSocialSolicitante)) > 2) {
+            // Si no existe, la crea
+            if (!$razonSocial) {
+                return SolicitudRazonSocial::create([
+                    'id_solicitud' => $idSolicitud,
+                    'nombre' => trim(mb_strtoupper($razonSocialSolicitante)),
+                ]);
+            }
 
+            // Si ya existe, la actualiza solo si el nombre ha cambiado
+            if ($razonSocial->nombre !== trim(mb_strtoupper($razonSocialSolicitante))) {
+                $razonSocial->nombre = trim(mb_strtoupper($razonSocialSolicitante));
+                $razonSocial->save();
+            }
+
+            return $razonSocial;
+
+        } else {
+            // Si la organización no se solicita, busca si existe y la elimina
+            if ($razonSocial) {
+                $razonSocial->delete();
+            }
+
+            return null;
+        }
+    }
 
     public function update(Request $request, $id)
     {
@@ -2248,10 +2320,10 @@ class SolicitudController extends Controller
                 $contactoPropietario = $this->regresaContactoPropietario($request, $personaPropietario, $esPersonaNueva);
                 
                 $propiedad = $this->regresaPropiedad($request, $contactoPropietario);
-            }
-            
+            }            
             
             $esSolicitante = filter_var($request->esSolicitante, FILTER_VALIDATE_BOOLEAN);
+            $solicitaOrganizacion = filter_var($request->solicitaOrganizacion, FILTER_VALIDATE_BOOLEAN);
             if ($esSolicitante && $validaPropiedad) //Si el solicitante es el propietario
             {
                 list($personaSolicitante, $esPersonaNueva) = $this->regresaPersonaSolicitante($request, $personaPropietario);
@@ -2260,10 +2332,15 @@ class SolicitudController extends Controller
             else
             {
                 list($personaSolicitante, $esPersonaNueva) = $this->regresaPersonaSolicitante($request);
-                $contactoSolicitante = $this->regresaContactoSolicitante($request, $personaSolicitante, null, $esPersonaNueva);            
+                $contactoSolicitante = $this->regresaContactoSolicitante($request, $personaSolicitante, null, $esPersonaNueva);  
+                
+                if ($solicitaOrganizacion && $request->razonSocialSolicitante && strlen(trim($request->razonSocialSolicitante)) > 2)
+                {
+                    $this->procesarRazonSocial($id, $request->solicitaOrganizacion, $request->razonSocialSolicitante);
+                }
             }
 
-            $solicitud = Solicitud::findOrFail($id);  
+            $solicitud = Solicitud::find($id);  
             
             $guardaReferencia = false;
 
@@ -2291,7 +2368,7 @@ class SolicitudController extends Controller
                 $solicitud->id_propiedad = $propiedad->id;
             }
 
-            $solicitud->id_contacto = $contactoSolicitante->id;
+            // $solicitud->id_contacto = $contactoSolicitante->id;
             $solicitud->id_destino_obra = $request->idDestinoObra;
             $solicitud->id_estatus = $request->idEstatusSolicitud;
             $solicitud->fecha_ingreso = $request->fecha_ingreso;
@@ -2314,6 +2391,7 @@ class SolicitudController extends Controller
                 }
             }
             
+            $archivo = null;
             if ($request->idEstatusSolicitud == 99)   //Cuando es un TRÁMITE CONCLUÍDO
             {
                 $personaSolicitante->editable = 0;
@@ -2341,10 +2419,10 @@ class SolicitudController extends Controller
                     if ($solicitud->referencia)
                     {
                         $solicitud->referencia->delete();
-                    }          
+                    }  
                 }
                 else 
-                {
+                {                  
                     if ($solicitud->propiedad)  //Si ya tenía una propiedad asignada
                     {
                         $archivo =  $solicitud->propiedad->img_croquis;
@@ -2359,19 +2437,26 @@ class SolicitudController extends Controller
                     if ($contactoPropietario)
                     {
                         $contactoPropietario->delete();
-                    }
+                    }   
                 } 
-                
-                // Verificar si el archivo existe
-                if (Storage::disk('public')->exists('croquis/' . $archivo)) 
+
+                if ($archivo)
                 {
-                    Storage::disk('public')->delete('croquis/' . $archivo);
+                    // Verificar si el archivo existe
+                    if (Storage::disk('public')->exists('croquis/' . $archivo)) 
+                    {
+                        Storage::disk('public')->delete('croquis/' . $archivo);
+                    }
                 }
             }
 
-            if ($validaPropiedad) $propiedad->save();            
+            if ($validaPropiedad) $propiedad->save();  
             
             $solicitud->save();
+            //Actualiza el propietario en todas las solicitudes que tengan la misma propiedad y que no estén concluidas
+            Solicitud::where('id_propiedad', $propiedad->id)
+            ->where('id_estatus', '<', 6)
+            ->update(['id_contacto' => $contactoSolicitante->id]); 
 
             if ($request->idEstatusSolicitud == 99) 
             {
@@ -2423,10 +2508,12 @@ class SolicitudController extends Controller
    public function enviarSolicitudPorEmail($idSolicitud)
     {
         $solicitud = Solicitud::with(['contacto.persona', 'propiedad.contacto.persona', 'tramites'])
-            ->findOrFail($idSolicitud);
+            ->find($idSolicitud);
+
 
         // Verifica si hay email antes de intentar enviar
-        if (!empty($solicitud->contacto->email)) {
+        if ($solicitud && !empty($solicitud->contacto->email)) 
+        {
             Mail::to($solicitud->contacto->email)
                 ->queue(new SolicitudMail($solicitud));
 

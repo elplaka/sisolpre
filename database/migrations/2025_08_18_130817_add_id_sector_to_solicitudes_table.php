@@ -38,29 +38,9 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::table('solicitudes', function (Blueprint $table) {
-            // Verifica si la clave foránea existe antes de intentar eliminarla
-            // Esto es útil si la migración 'up' no se completó del todo
-            if (Schema::hasColumn('solicitudes', 'id_sector')) {
-                // Si la columna existe, intenta eliminar la clave foránea
-                // El nombre de la clave foránea por defecto es table_column_foreign
-                // Por ejemplo, 'solicitudes_id_sector_foreign'
-                // Puedes verificar el nombre exacto con SHOW CREATE TABLE solicitudes;
-                $foreignKeyExists = false;
-                $sm = Schema::getConnection()->getDoctrineSchemaManager();
-                $foreignKeys = $sm->listTableForeignKeys('solicitudes');
-                foreach ($foreignKeys as $foreignKey) {
-                    if ($foreignKey->getLocalColumns()[0] === 'id_sector' && $foreignKey->getForeignTableName() === 'sectores_tramites') {
-                        $table->dropForeign([$foreignKey->getName()]);
-                        $foreignKeyExists = true;
-                        break;
-                    }
-                }
-                // Si la clave foránea no se encontró o se eliminó, procede a eliminar la columna
-                if (Schema::hasColumn('solicitudes', 'id_sector')) {
-                    $table->dropColumn('id_sector');
-                }
-            }
+         Schema::table('solicitudes', function (Blueprint $table) {
+            $table->dropForeign(['id_sector']);
+            $table->dropColumn('id_sector');
         });
     }
 };

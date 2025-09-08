@@ -6,7 +6,14 @@
 <body>
     @php
         $norte = asset('img/norte.png');
-        $esSolicitante = !($solicitud->contacto->id != $solicitud->propiedad->contacto->id);
+        if ($solicitud->propiedad)  //Si el trámite lleva PROPIEDAD
+        { 
+            $esSolicitante = !($solicitud->contacto->id != $solicitud->propiedad->contacto->id);
+        }
+        else   //Si el trámite no lleva PROPIEDAD
+        {
+            $esSolicitante = 1;
+        }
     @endphp
     <table style="width: 100%; border-collapse: collapse; margin: 0; padding: 0; font-family: Arial, sans-serif;">
         <tbody>
@@ -18,15 +25,14 @@
             <tr>
                 <td style="text-align: center; padding: 0; margin: 0;">
                     <h2 style="color: #333333; line-height: 1.2; margin: 0; padding: 0; font-family: Arial, sans-serif; font-size: 14pt; font-weight: 600;">
-                        <span>DIRECCIÓN DE PLANEACIÓN MUNICIPAL URBANA</span>
+                        <span>Dirección de Planeación Urbana</span>
                     </h2>
                     <h1 style="color: #333333; line-height: 1.2; margin: 0; padding: 0; font-family: Arial, sans-serif; font-size: 15pt; font-weight: 800;">FORMATO ÚNICO DE SOLICITUD</h1>
                 </td>
             </tr>
         </tbody>
     </table>
-    <br>
-    <table style="width: 100%; border-collapse: collapse; margin: 0; padding: 0;">
+   <table style="width: 100%; border-collapse: collapse; margin: 0 0 20px; padding: 0;">
         <tbody>
             <tr>
                 <td style="padding-left: 20px; padding-right: 20px; text-align: center;">
@@ -37,12 +43,12 @@
                                     <table style="width: 100%; border-collapse: collapse; font-size: 12pt;">
                                         <tbody>
                                             <tr>
-                                                <td style="text-align: left; font-weight: bold; width: 3.5%; padding-right: 5px; vertical-align: top;">Folio:</td>
-                                                <td style="width: 40.5%; vertical-align: top; text-align: left;">{{ str_pad($solicitud->id, 4, '0', STR_PAD_LEFT) }}</td>
+                                                <td style="text-align: right; font-weight: bold; width: 40%; padding-right: 10px; vertical-align: top;">Folio:</td>
+                                                <td style="width: 60%; vertical-align: top; text-align: left;">{{ str_pad($solicitud->id, 4, '0', STR_PAD_LEFT) }}</td>
                                             </tr>
                                             <tr>
-                                                <td style="text-align: left; font-weight: bold; width: 26%; padding-left: 10px; vertical-align: top;">Fecha de Ingreso:</td>
-                                                <td style="width: 14%; vertical-align: top;">
+                                                <td style="text-align: right; font-weight: bold; width: 40%; padding-right: 10px; vertical-align: top;">Fecha de Ingreso:</td>
+                                                <td style="width: 60%; vertical-align: top; text-align: left;">
                                                     @php
                                                         $fechaIngreso = \Carbon\Carbon::parse($solicitud->fecha_ingreso)->locale('es');
                                                         $mes = $fechaIngreso->translatedFormat('F');
@@ -61,7 +67,6 @@
             </tr>
         </tbody>
     </table>
-    <br>
     <table style="width: 100%; border-collapse: collapse; margin: 0; padding: 0;">
         <tbody>
             <tr>
@@ -70,7 +75,7 @@
                         <tbody>
                             <tr>
                                 <td colspan="2" style="width: 100%; letter-spacing: 0.1em; font-weight: bold; text-align: center; background-color: #dadada; padding: 8px 0; line-height: 1.2; font-family: Arial, sans-serif;">
-                                    @if ($solicitud->contacto->id == $solicitud->propiedad->contacto->id)
+                                    @if ($solicitud->propiedad && $solicitud->contacto->id == $solicitud->propiedad->contacto->id)
                                         SOLICITANTE / PROPIETARIO
                                     @else
                                         SOLICITANTE
@@ -117,7 +122,6 @@
             </tr>
         </tbody>
     </table>
-    <br>
     @if (!$esSolicitante)
     <table style="width: 100%; border-collapse: collapse; margin: 0; padding: 0;">
         <tbody>
@@ -167,8 +171,9 @@
         </tbody>
     </table>
     @endif
+    @if ($solicitud->propiedad)
     <br>
-    <table style="width: 100%; border-collapse: collapse; margin: 0; padding: 0;">
+    <table style="width: 100%; border-collapse: collapse; margin: 0 0 20px; padding: 0;">
         <tbody>
             <tr>
                 <td style="padding-left: 20px; padding-right: 20px; text-align: center;">
@@ -266,6 +271,7 @@
             </tr>
         </tbody>
     </table>
+    @endif
     @php
        // Obtener los trámites agrupados directamente del accesor
         $tramitesAgrupados = $solicitud->grouped_tramites;
@@ -276,8 +282,7 @@
         // Calcular el ancho de cada celda
         $anchoCelda = $numeroTiposTramite > 0 ? (100 / $numeroTiposTramite) : 100;
     @endphp
-    <br>
-    <table style="width: 100%; border-collapse: collapse; margin: 0; padding: 0;">
+    <table style="width: 100%; border-collapse: collapse; margin: 0 0 20px; padding: 0;">
         <tbody>
             <tr>
                 <td style="padding-left: 20px; padding-right: 20px; text-align: center;">
@@ -316,7 +321,6 @@
             </tr>
         </tbody>
     </table>
-    <br>
     <table style="width: 100%; border-collapse: collapse; margin: 0; padding: 0;">
         <tbody>
             <tr>
@@ -351,7 +355,29 @@
             </tr>
         </tbody>
     </table>
-    <br>
+    @if ($solicitud->referencia)
+    <table style="width: 100%; border-collapse: collapse; margin: 0; padding: 0;">
+        <tbody>
+            <tr>
+                <td style="padding-left: 20px; padding-right: 20px; text-align: center;">
+                    <table style="width: 800px; max-width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #e5e7eb; border-radius: 18px; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); margin: 0 auto; overflow: hidden;">
+                        <tbody>
+                            <tr>
+                                <td colspan="2" style="width: 100%; letter-spacing: 0.1em; font-weight: bold; text-align: center; background-color: #dadada; padding: 8px 0; line-height: 1.2; font-family: Arial, sans-serif;">
+                                    REFERENCIA
+                                </td>
+                            </tr>
+                            <tr style="line-height: 0.75em;">
+                                <td style="width: 30%; text-align: right; font-weight: bold; padding: 4px 5px 4px 0;">Información de Referencia:</td>
+                                <td style="width: 70%; padding: 4px 0; text-align: left;">{{ $solicitud->referencia->contenido }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    @endif
     <table style="width: 100%; border-collapse: collapse; margin: 0; padding: 0;">
         <tbody>
             <tr>
@@ -373,10 +399,17 @@
                                                     <table cellpadding="0" cellspacing="0" style="width: 100%;">
                                                         <tr>
                                                             <td>
-                                                                <!-- Imagen principal -->
-                                                                <img src="{{ $message->embed(storage_path('app/public/croquis/' . $solicitud->propiedad->img_croquis)) }}"
-                                                                    alt="Croquis"
-                                                                    style="display: block; width: 100%; max-height: 6.5cm;">
+                                                                @if ($solicitud->propiedad)
+                                                                    <!-- Imagen principal -->
+                                                                    <img src="{{ $message->embed(storage_path('app/public/croquis/' . $solicitud->propiedad->img_croquis)) }}"
+                                                                        alt="Croquis"
+                                                                        style="display: block; width: 100%; max-height: 6.5cm;">
+                                                                @endif
+                                                                @if ($solicitud->croquis_aux)
+                                                                    <img src="{{ $message->embed(storage_path('app/public/croquis/' . $solicitud->croquis_aux->img)) }}"
+                                                                        alt="Croquis"
+                                                                        style="display: block; width: 100%; max-height: 6.5cm;">
+                                                                @endif
                                                             </td>
                                                             <td style="width: 1.8cm; vertical-align: top; padding: 5px 5px 0 0;">
                                                                 <!-- Imagen norte alineada arriba a la derecha -->
@@ -398,12 +431,11 @@
             </tr>
         </tbody>
     </table>
-    <br>
     <!-- Párrafo introductorio -->
-    <p style="font-family: Arial, sans-serif; font-size: 10pt; margin: 20px 0; text-align: center;">
+    <p style="font-family: Arial, sans-serif; font-size: 10pt; margin: 20px 0; text-align: justify;">
         Tu solicitud ha sido registrada exitosamente en el <strong>Sistema de Planeación Municipal Urbana</strong>.  
         En la SOLICITUD IMPRESA encontrarás un <strong>código QR</strong> que te permitirá que te permitirá acceder a la información relacionada.  
-        Para lo cual será necesario contar con el siguiente token de acceso:
+        Para lo cual será necesario contar con el siguiente
     </p>
 
     <!-- Tabla con token centrado -->

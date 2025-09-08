@@ -63,6 +63,11 @@ class Solicitud extends Model
         return $this->hasOne(CroquisAux::class, 'id_solicitud');
     }
 
+    public function razon_social()
+    {
+        return $this->hasOne(SolicitudRazonSocial::class, 'id_solicitud');
+    }
+
     // --- ¡Este es el accesor clave! ---
     protected function groupedTramites(): Attribute
     {

@@ -2687,30 +2687,33 @@
         // Extraer caracteres 5-7 (posiciones 4-6 en base 0)
         const segmentoClave = claveCatastral.value.substring(4, 7)
 
-        // Comparar
-        if (idFormateado != segmentoClave) {
-            const result = await Swal.fire({
-                icon: 'warning',
-                title: 'Advertencia',
-                html: `<div style="text-align: center; font-size: 12pt">
-                    La CLAVE de la LOCALIDAD de la PROPIEDAD NO COINCIDE con la de la CLAVE CATASTRAL. <br> ¿Deseas guardar de todas formas? </div>`,
-                showCancelButton: true,
-                confirmButtonText: 'Aceptar',
-                cancelButtonText: 'Cancelar',
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                backdrop: false,
-                didOpen: () => {
-                    const swalContainer = document.querySelector('.swal2-container')
-                    if (swalContainer) {
-                        swalContainer.style.setProperty('z-index', '99999', 'important')
+        if (!tramitesSeleccionados.value.includes(ID_CONSTANCIA_UBICACION)) 
+        {
+            // Comparar
+            if (idFormateado != segmentoClave) {
+                const result = await Swal.fire({
+                    icon: 'warning',
+                    title: 'Advertencia',
+                    html: `<div style="text-align: center; font-size: 12pt">
+                        La CLAVE de la LOCALIDAD de la PROPIEDAD NO COINCIDE con la de la CLAVE CATASTRAL. <br> ¿Deseas guardar de todas formas? </div>`,
+                    showCancelButton: true,
+                    confirmButtonText: 'Aceptar',
+                    cancelButtonText: 'Cancelar',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    backdrop: false,
+                    didOpen: () => {
+                        const swalContainer = document.querySelector('.swal2-container')
+                        if (swalContainer) {
+                            swalContainer.style.setProperty('z-index', '99999', 'important')
+                        }
                     }
-                }
-            })
+                })
 
-            if (result.isDismissed) {
-                isSavingModal.value = false
-                return
+                if (result.isDismissed) {
+                    isSavingModal.value = false
+                    return
+                }
             }
         }
 
@@ -5823,14 +5826,15 @@
                                     {{ solicitud.propiedad.contacto.persona.nombre + ' ' + solicitud.propiedad.contacto.persona.apellidos }}
                                 </td>
                                 <td v-else class="px-4 py-2">
-                                    <!-- Check if solicitud.propiedad exists -->
-                                    <template v-if="solicitud.propiedad">
+                                <template v-if="solicitud.propiedad">
                                         {{
                                             solicitud.propiedad.contacto.persona.nombre +
                                             ' ' +
                                             solicitud.propiedad.contacto.persona.apellidos +
                                             ' / ' +
-                                            (solicitud.razon_social ? solicitud.razon_social.nombre : (solicitud.contacto.persona.nombre || '') + ' ' + (solicitud.contacto.persona.apellidos || ''))
+                                            (solicitud.razon_social
+                                                ? solicitud.razon_social.nombre + ' «' + (solicitud.contacto.persona.nombre || '') + ' ' + (solicitud.contacto.persona.apellidos || '') + '»'
+                                                : (solicitud.contacto.persona.nombre || '') + ' ' + (solicitud.contacto.persona.apellidos || ''))
                                         }}
                                     </template>
                                     <template v-else>

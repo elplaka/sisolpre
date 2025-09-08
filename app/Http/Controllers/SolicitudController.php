@@ -2302,6 +2302,7 @@ class SolicitudController extends Controller
             return back()->withErrors($errores)->with('activeTab', $this->activeTab);
         }
 
+        $propiedad = null;
         $personaPropietario = null;
         $contactoPropietario = null;
 
@@ -2453,10 +2454,13 @@ class SolicitudController extends Controller
             if ($validaPropiedad) $propiedad->save();  
             
             $solicitud->save();
-            //Actualiza el propietario en todas las solicitudes que tengan la misma propiedad y que no estén concluidas
-            Solicitud::where('id_propiedad', $propiedad->id)
-            ->where('id_estatus', '<', 6)
-            ->update(['id_contacto' => $contactoSolicitante->id]); 
+            if ($validaPropiedad)
+            {
+                //Actualiza el propietario en todas las solicitudes que tengan la misma propiedad y que no estén concluidas
+                Solicitud::where('id_propiedad', $propiedad->id)
+                ->where('id_estatus', '<', 6)
+                ->update(['id_contacto' => $contactoSolicitante->id]); 
+            }
 
             if ($request->idEstatusSolicitud == 99) 
             {

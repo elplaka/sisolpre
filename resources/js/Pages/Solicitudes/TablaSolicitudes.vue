@@ -3013,12 +3013,12 @@
             //     numQuery.value = '';
             // }
 
-            nombreQuery.value = ''
-            claveCatastralQuery.value = ''
-            tiposTramitesQuery.value = []
-            tramitesQuery.value = []
-            localidadesQueryFiltradas.value = []
-            estatusQuery.value = []
+            // nombreQuery.value = ''
+            // claveCatastralQuery.value = ''
+            // tiposTramitesQuery.value = []
+            // tramitesQuery.value = []
+            // localidadesQueryFiltradas.value = []
+            // estatusQuery.value = []
         }
 
         const filtros = {
@@ -4222,6 +4222,37 @@
     // Función para obtener el icono
     const getSortDirectionIcon = (direction) => {
         return sortDirectionIcons[direction] || '';
+    };
+
+    const resetFilters = () => {
+        nombreQuery.value = '';
+        claveCatastralQuery.value = '';
+        tiposTramitesQuery.value = [];
+        tramitesQuery.value = [];
+        localidadesQueryFiltradas.value = [];
+        estatusQuery.value = [];     
+    };
+
+    const handleNumInput = () => {
+        // 1. Limpieza del filtro opuesto (folio)
+        folioQuery.value = ''; 
+        
+        // 2. Limpieza de los filtros adicionales
+        resetFilters()
+
+        // Llama a la función de búsqueda
+        fetchSolicitudes(false);
+    };
+
+    const handleFolioInput = () => {
+        // 1. Limpieza del filtro opuesto (num)
+        numQuery.value = ''; 
+        
+        // 2. Limpieza de los filtros adicionales
+        resetFilters()
+
+        // Llama a la función de búsqueda
+        fetchSolicitudes(false);
     };
 </script>
 
@@ -6168,7 +6199,7 @@
                                 class="custom-input bg-gray-50 border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-color1-500 focus:border-color1-500 block w-full pl-9 p-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500"
                                 placeholder="Número"
                                 v-model="numQuery"
-                                @input="folioQuery = ''; fetchSolicitudes(false)"
+                                @input="handleNumInput"
                                 :disabled="folioQuery.length > 0 && folioQuery != 'n' && folioQuery != 'N'"/>
                             <button
                                 v-if="numQuery"
@@ -6323,7 +6354,7 @@
                                 class="custom-input bg-gray-50 border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-color1-500 focus:border-color1-500 block w-full pl-9 p-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500"
                                 placeholder="Folio"
                                 v-model="folioQuery"
-                                @input="numQuery = ''; fetchSolicitudes(false)"
+                                @input="handleFolioInput"
                                 :disabled="numQuery.length > 0"/>
                             <button
                                 v-if="folioQuery"

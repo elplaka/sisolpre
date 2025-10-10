@@ -13,32 +13,27 @@
         $type = pathinfo($path, PATHINFO_EXTENSION);
         $data = file_get_contents($path);
         $escudo = 'data:image/' . $type . ';base64,' . base64_encode($data);
+
+        if ($solicitud->propiedad) {
+            $imgCroquis = $solicitud->propiedad->img_croquis;
+        } else {
+            // ✅ Corrected code: Check if the relationship exists before accessing it
+            if ($solicitud->croquis_aux) {
+                $imgCroquis = $solicitud->croquis_aux->img;
+            } else {
+                // Handle the case where there is no 'croquis_aux' relationship
+                $imgCroquis = ''; // Or a default image name
+            }
+        }
+
+        $path = 'public/croquis/' . $imgCroquis;
         
-        if ($solicitud->propiedad)
-        {
-            $imgCroquis = $solicitud->propiedad->img_croquis; // El nombre de tu archivo de imagen
-        }
-        else 
-        {
-            $imgCroquis = $solicitud->croquis_aux->img; // El nombre de tu archivo de imagen
-        }
-
-        $path = 'public/croquis/' . $imgCroquis; // La ruta relativa dentro de la carpeta 'storage'
-        // Verifica si el archivo existe antes de intentar leerlo
         if (Storage::exists($path) && $imgCroquis) {
-            // Obtener el contenido del archivo
             $data = Storage::get($path);
-            // Obtener el tipo MIME de la imagen (ej. 'image/jpeg', 'image/png')
-            // Esto es más robusto que solo la extensión
             $type = Storage::mimeType($path);
-
-            // Codificar la imagen en base64
             $croquis = 'data:' . $type . ';base64,' . base64_encode($data); 
         } else {
-            // Manejar el caso donde la imagen no se encuentra
-            // Puedes asignar una imagen por defecto, un placeholder, o un string vacío.
-            $croquis = ''; // O la ruta a una imagen de "no encontrado" en base64
-            // Log::warning("El archivo de croquis no se encontró en: " . $path);
+            $croquis = '';
         }
 
         $path = getcwd() . '/img/norte.png';
@@ -46,12 +41,9 @@
         $data = file_get_contents($path);
         $norte = 'data:image/' . $type . ';base64,' . base64_encode($data);
 
-        if ($solicitud->propiedad)  //Si el trámite lleva PROPIEDAD
-        { 
+        if ($solicitud->propiedad) {
             $esSolicitante = !($solicitud->contacto->id != $solicitud->propiedad->contacto->id);
-        }
-        else   //Si el trámite no lleva PROPIEDAD
-        {
+        } else {
             $esSolicitante = 1;
         }
     @endphp
@@ -72,7 +64,7 @@
      </table>    
     <table style="width: 100%; border-collapse: collapse; font-size: 12pt;">
         <tr>
-            <td style="text-align: left; font-weight: bold; width: 5%;">Folio:</td>
+            <td style="text-align: left; font-weight: bold; width: 5%;">Número:</td>
             <td style="width: 40%;">{{ str_pad($solicitud->id, 4, '0', STR_PAD_LEFT) }}</td>
 
             <td style="text-align: right; font-weight: bold; width: 26%; height:1.25cm">Fecha de Ingreso:</td>
@@ -108,8 +100,10 @@
                         <span style="color: red;">«SIN CAPTURAR»</span>
                     @endif
                 </td>
+                @if ($solicitud->propiedad->contacto->email && strlen(trim($solicitud->propiedad->contacto->email)) > 0)
                 <td class="tdPrevFieldName" style="width: 13%;">E-mail:</td>
                 <td style="width: 57%;">{{ $solicitud->propiedad->contacto->email }}</td>
+                @endif
             </tr>
             <tr><span style="display: block; margin-top: 0.25cm"></span></tr>
         @endif
@@ -195,24 +189,43 @@
             <td class="tdPrevFieldName" style="width: 20%;">Domicilio:</td>
             <td colspan="3" style="width: 80%;">
                 @if ($solicitud->propiedad->calle)
-                    {{ $solicitud->propiedad->calle }},
+                    {{ $solicitud->propiedad->calle }}
                 @else
                     <span style="color: red;">«CALLE SIN CAPTURAR»</span>
                 @endif
                 @if ($solicitud->propiedad->numero)
-                    &nbsp; N° 
-                    {{ $solicitud->propiedad->numero }},
+                    {{-- Elimina los espacios en blanco y convierte a mayúsculas para una comparación robusta --}}
+                    ,@php
+                        $numeroPropiedad = trim(strtoupper($solicitud->propiedad->numero));
+                    @endphp
+
+                    @if ($numeroPropiedad != 'S/N')
+                        &nbsp;N°
+                    @endif
+                    {{ $solicitud->propiedad->numero }}
                 @else
                     <span style="color: red;">«NÚMERO SIN CAPTURAR»</span>
                 @endif 
                 @if ($solicitud->propiedad->colonia)
-                   @php
+                   ,@php
                         $coloniaNombre = $solicitud->propiedad->colonia->nombre;
-                        $showColPrefix = !str_starts_with($coloniaNombre, 'FRACC') && !str_starts_with($coloniaNombre, 'INFONA');
+                        // Define los prefijos que no deben mostrarse
+                        $prefixesToExclude = ['FRACC', 'INFONA', 'COL.', 'COLONIA', 'COL', 'COL,'];
+
+                        // Inicializa showColPrefix a true por defecto
+                        $showColPrefix = true;
+
+                        // Itera sobre los prefijos a excluir para ver si la colonia comienza con alguno de ellos
+                        foreach ($prefixesToExclude as $prefix) {
+                            if (str_starts_with($coloniaNombre, $prefix)) {
+                                $showColPrefix = false;
+                                break; // Sal del bucle una vez que encuentres una coincidencia
+                            }
+                        }
                     @endphp
 
                     @if ($showColPrefix)
-                        &nbsp; COL. 
+                       &nbsp; COL. 
                     @endif
                     {{ $coloniaNombre }}
                 {{-- @else
@@ -299,8 +312,18 @@
                 </td>
             </tr>
             <tr style="line-height: 0.75em;">
-                <td class="tdPrevFieldName" style="width: 25%; padding-bottom: 10px;">Información de Referencia:</td>
-                <td style="width: 75%; padding-top: 7px; padding-bottom: 15px;">{{ $solicitud->referencia->contenido }}</td>
+                <td class="tdPrevFieldName" style="width: 25%;">Información de Referencia:</td>
+                <td style="width: 75%; padding-top: 7px;">{{ $solicitud->referencia->contenido }}</td>
+            </tr>
+            <tr style="line-height: 0.75em;">
+                <td class="tdPrevFieldName" style="width: 15%; padding-bottom: 15px;">Localidad:</td>
+                <td style="width: 40%; padding-bottom: 15px;"> 
+                    @if ($solicitud->referencia->localidad)
+                        {{ $solicitud->referencia->localidad->nombre }}
+                    @else
+                        <span style="color: red;">«SIN SELECCIONAR»</span>
+                    @endif
+                </td>
             </tr>
         </table>
     @endif

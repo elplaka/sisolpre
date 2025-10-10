@@ -67,42 +67,54 @@
         return formattedClave.trim();
     };
 
-    const getDireccion = (propiedad) => {
+    const getDireccion = (solicitud) => {
     // Si la propiedad es nula o no tiene datos de dirección en sus campos principales
-    if (!propiedad || (!propiedad.calle && !propiedad.numero && !propiedad.colonia?.nombre && !propiedad.localidad?.nombre)) {
+    if ((!solicitud.propiedad || (!solicitud.propiedad.calle 
+    && !solicitud.propiedad.numero && !solicitud.propiedad.colonia?.nombre 
+    && !solicitud.propiedad.localidad?.nombre))
+    && !solicitud.referencia.localidad) {
         return 'SIN DOMICILIO';
     }
 
     let direccion = '';
 
-    // Agregar calle si existe
-    if (propiedad.calle) {
-        direccion += propiedad.calle;
-    }
-
-    // Agregar número si existe
-    if (propiedad.numero) {
-        // Agregar ' N° ' solo si la calle no está vacía
-        direccion += (propiedad.calle ? ' N° ' : 'N° ') + propiedad.numero;
-    }
-
-    // Agregar colonia si existe la relación y tiene un nombre
-    if (propiedad.colonia?.nombre) {
-        let nombreColonia = propiedad.colonia.nombre.toUpperCase(); // Convertir a mayúsculas para la comparación
-        let prefijo = '';
-
-        // Comprobar si el nombre de la colonia no empieza con 'FRAC' ni 'INFONAV'
-        if (!nombreColonia.startsWith('FRAC') && !nombreColonia.startsWith('INFONAV')) {
-            prefijo = 'COL. ';
+    if (solicitud.propiedad)
+    {
+        // Agregar calle si existe
+        if (solicitud.propiedad.calle) {
+            direccion += solicitud.propiedad.calle;
         }
 
-        direccion += (direccion ? ', ' : '') + prefijo + propiedad.colonia.nombre;
+        // Agregar número si existe
+        if (solicitud.propiedad.numero) {
+            // Agregar ' N° ' solo si la calle no está vacía
+            direccion += (solicitud.propiedad.calle ? ' N° ' : 'N° ') + solicitud.propiedad.numero;
+        }
+
+        // Agregar colonia si existe la relación y tiene un nombre
+        if (solicitud.propiedad.colonia?.nombre) {
+            let nombreColonia = solicitud.propiedad.colonia.nombre.toUpperCase(); // Convertir a mayúsculas para la comparación
+            let prefijo = '';
+
+            // Comprobar si el nombre de la colonia no empieza con 'FRAC' ni 'INFONAV'
+            if (!nombreColonia.startsWith('FRAC') && !nombreColonia.startsWith('INFONAV')) {
+                prefijo = 'COL. ';
+            }
+
+            direccion += (direccion ? ', ' : '') + prefijo + solicitud.propiedad.colonia.nombre;
+        }
+
+        // Agregar localidad si existe la relación y tiene un nombre
+        if (solicitud.propiedad.localidad?.nombre) {
+            direccion += (direccion ? ', ' : '') + solicitud.propiedad.localidad.nombre;
+        }
     }
 
-    // Agregar localidad si existe la relación y tiene un nombre
-    if (propiedad.localidad?.nombre) {
-        direccion += (direccion ? ', ' : '') + propiedad.localidad.nombre;
+    if (solicitud.referencia?.localidad)
+    {
+        direccion = solicitud.referencia.localidad.nombre
     }
+
 
     return direccion;
 };
@@ -186,7 +198,7 @@
                         }}
                     </p>
                     <div :id="'tooltip-propiedad-' + solicitud.id" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-[0.625rem] font-medium text-white transition-opacity duration-300 bg-color1-500 rounded-lg shadow-xs opacity-90 tooltip dark:bg-gray-700">
-                        {{ getDireccion(solicitud.propiedad) }}
+                        {{ getDireccion(solicitud) }}
                         <div class="tooltip-arrow opacity-90" data-popper-arrow></div>
                     </div>
                 </li>

@@ -16,7 +16,6 @@
         tiposTramites: Array,
         tramites: Array,
         localidades: Array,
-        localidadesQuery: Array,
         numQuery: String,
         folioQuery: String,
         nombreQuery: String,
@@ -45,62 +44,6 @@
         periodoActual: Object
     })
 
-    // Paleta de colores neutros (Guinda a Gris Oscuro)
-    const colorPalette = ref([
-        'DarkRed', // Guinda Profundo
-        'blue', // Rojo Cereza (más claro)
-        'OliveDrab', // Borgoña Clásico
-        'OrangeRed', // Rosa Viejo/Malva (contraste suave)
-        ]);
-
-    const getItemStyle = (index) => {
-        // 1. Obtén el array de colores (o un array vacío si es null/undefined)
-        const colors = colorPalette.value || [];
-
-        // 2. Si el array de colores no tiene elementos, devuelve el color de respaldo
-        if (colors.length === 0) {
-            return {
-                'border-left': '4px solid #CCCCCC', // Gris de respaldo
-                'padding-left': '12px',
-                'margin-bottom': '4px !important'
-            };
-        }
-
-        // 3. Calcula el color rotativo y devuelve el estilo completo
-        const color = colors[index % colors.length];
-
-        return {
-            'border-left': `4px solid ${color}`,
-            'padding-left': '12px',
-            'padding-bottom': '12px',
-            'margin-bottom': '4px !important'
-        };
-    };
-
-    const getBorderStyle = (tramiteId) => {
-        const colors = colorPalette.value || [];
-
-        // Si la paleta está vacía o el ID no es válido, usa un color de respaldo
-        if (colors.length === 0 || typeof tramiteId !== 'number') {
-            return {
-                'border-left': '4px solid #CCCCCC', // Gris de respaldo
-                'padding-left': '8px', // Un padding-left más compacto para un span
-                'border-top-left-radius': '0',
-                'border-bottom-left-radius': '0',
-            };
-        }
-
-        // Calcula el color usando el ID del trámite
-        const color = colors[tramiteId % colors.length];
-
-        return {
-            'border-left': `4px solid ${color}`,
-            'padding-left': '8px', // Dale un padding-left para separar el texto del borde
-            'border-top-left-radius': '0',
-            'border-bottom-left-radius': '0',
-        };
-    };
-
     const ID_CONSTANCIA_UBICACION = 18;
     
     const intervalo = ref(null)
@@ -119,7 +62,6 @@
     const rangoFechasAceptacionQuery = ref([])
     const tiposTramitesQuery = ref([])
     const tramitesQuery = ref([])
-    const localidadesQueryFiltradas = ref([])
     const estatusQuery = ref([])
     const filtroChkSolicitudes = ref(0)
     const rangoFechasIngresoManual = ref(false)
@@ -137,17 +79,8 @@
         estatusQuery.value = []
     }
 
-    const resetFiltrosLocalidades = () => {
-        localidadesQueryFiltradas.value = []
-    }
-
     const selectedCountText = computed(() => {
         const total = tramitesQuery.value.length + estatusQuery.value.length
-        return total > 0 ? `(${total})` : ''
-    })
-
-    const selectedCountTextLocalidades = computed(() => {
-        const total = localidadesQueryFiltradas.value.length
         return total > 0 ? `(${total})` : ''
     })
 
@@ -2251,6 +2184,7 @@
                         }
                     })
                     isProcessingModal.value = false
+                    // fetchSolicitudes(false, true)
                 }
                 uploadProgress.value = 100
                 permiteDescartarCroquis.value = false
@@ -2382,10 +2316,7 @@
             }
         }
     } 
-
-    //CHECKPOINT: Al filtrar por NÚMERO DE SOLICITUD se traba
-    //CHECKPOINT: En la localidad de referencia se encima el titulo con el select
-    //CHECKPOINT: Si hay filtro de localidad y se ACTUALIZA una solicitud se borran los filtros
+    
   
     //CHECKPOINT: Validar que el número de la propiedad no exceda del límite de caracteres de la BD  OK
     //CHECKPOINT: Al imprimir la solicitud preliminar y la oficial en ocasiones no se abre la ventana modal
@@ -2394,7 +2325,7 @@
     //CHECKPOINT: Falta validar que no se repitan los trámites en diferente solicitudes (Ver caso de SANDRA LUZ GONZALEZ HERNANDEZ)
 
     //CHECKPOINT: Al ordenar por PROPIETARIO/SOLICITANTE en la tabla de solicitudes no aparece el ícono de
-    //ORDENAR a un lado del header y no ordena los solicitantes de CONSTANCIA DE UBICACIÓN  OK
+    //ORDENAR a un lado del header y no ordena los solicitantes de CONSTANCIA DE UBICACIÓN
 
     //CHECKPOINT: Agregar LOCALIDAD y TIPO PROPIEDAD a la CONSTANCIA DE UBICACIÓN --- OK        
     //CHECKPOINT: Modificar el query para corregir las estadísticas de LOCALIDAD y TIPO PROPIEDAD y
@@ -2646,6 +2577,7 @@
     const enviarSolicitud = async (formData) => {
         await router.post('/solicitudes/store', formData, {
             onSuccess: (page) => {
+                // fetchSolicitudes()
                 Swal.fire({
                     toast: true,
                     icon: 'success',
@@ -2728,13 +2660,12 @@
                     {
                         isSavingModal.value = false
                     }
+
                 } 
                 else 
                 {
                     const hasValidationErrors = errors && Object.keys(errors).length > 0
                     const errorMessage = hasValidationErrors ? Object.values(errors).join('<br>') : 'Hubo un error al guardar la información.'
-
-                    isSavingModal.value = false
 
                     Swal.fire({
                         icon: hasValidationErrors ? 'warning' : 'error',
@@ -2980,6 +2911,129 @@
         return Object.fromEntries(urlParams.entries())
     }
 
+    // function fetchSolicitudes(onMounted, polling = false) {
+    //     const page = router.page.props.solicitudes?.current_page ? router.page.props.solicitudes.current_page : 1
+    //     const paramsObject = buildQueryParams(page)
+
+    //     let showLoaderTimeout = null
+
+    //     if (onMounted) {
+    //         //Si está cargando al montar el componente
+    //         // isLoading.value = true //Muestra la pantalla de Cargando...
+    //         sortColumn.value = 'fecha_ingreso'
+    //         sortDirection.value = 'asc'
+    //     } else {
+    //         if (!polling) {
+    //             showLoaderTimeout = setTimeout(() => {
+    //                 isSearching.value = true //Muestra la pantalla de Buscando...
+    //             }, 200) // solo mostrar si tarda más de 200ms
+    //         }
+    //     }
+
+    //     const filtros = {
+    //         fechaIngresoInicioQuery: fechaIngresoInicioQuery.value,
+    //         fechaIngresoFinQuery: fechaIngresoFinQuery.value,
+    //         nombreQuery: nombreQuery.value,
+    //         tiposTramitesQuery: tiposTramitesQuery.value,
+    //         tramitesQuery: tramitesQuery.value,
+    //         estatusQuery: estatusQuery.value,
+    //         idRangoFechasQuery: idRangoFechasQuery.value,
+    //         rangoFechasIngresoManual: rangoFechasIngresoManual.value,
+    //         filtroChkSolicitudes: filtroChkSolicitudes.value,
+    //         sortColumn: sortColumn.value,
+    //         sortDirection: sortDirection.value
+    //     }
+
+    //     const formData = new FormData()
+
+    //     for (const key in filtros) {
+    //         const value = filtros[key]
+
+    //         // Si es un array, agregar cada elemento con el mismo nombre
+    //         if (Array.isArray(value)) {
+    //             value.forEach((item, index) => {
+    //                 formData.append(`${key}[${index}]`, item)
+    //             })
+    //         } else {
+    //             formData.append(key, value ?? '')
+    //         }
+    //     }
+
+    //     formData.append('page', paramsObject.page)
+
+    //     if (polling)  //Cuando se refresca automáticamente manda el ONLY
+    //     {
+    //         //Realiza la solicitud GET con los parámetros de búsqueda
+    //         router.post(
+    //             '/solicitudes',
+    //             formData,
+    //             {
+    //                 preserveState: true,
+    //                 replace: true,
+    //                 only: ['solicitudes'], 
+
+    //                 onStart: () => {},
+    //                 onFinish: () => {
+    //                     const currentPage = router.page.props.solicitudes.current_page;
+    //                     const lastPage = router.page.props.solicitudes.last_page;
+
+    //                     // Si la página actual es mayor que la última página, redirige a la página 1
+    //                     if (currentPage > lastPage) {
+    //                         // Utiliza Inertia.get para redirigir a la página 1 sin recargar toda la página
+    //                         router.get(
+    //                             router.page.url.split('?')[0], // Obtén la URL base
+    //                             { ...router.page.props.filters, page: 1 }, // Pasa los filtros y la página 1
+    //                             { preserveState: true } // Mantén el estado
+    //                         );
+    //                     }
+    //                     if (onMounted) {
+    //                         isLoading.value = false
+    //                     } else {
+    //                         clearTimeout(showLoaderTimeout)
+    //                         isSearching.value = false
+    //                     }
+    //                     filtroChkSolicitudes.value = router.page.props.filtroChkSolicitudes
+    //                 }
+    //             }
+    //         )
+    //     }
+    //     else 
+    //     {
+    //         //Realiza la solicitud GET con los parámetros de búsqueda
+    //         router.post(
+    //             '/solicitudes',
+    //             formData,
+    //             {
+    //                 preserveState: true,
+    //                 replace: true,
+
+    //                 onStart: () => {},
+    //                 onFinish: () => {
+    //                     const currentPage = router.page.props.solicitudes.current_page;
+    //                     const lastPage = router.page.props.solicitudes.last_page;
+
+    //                     // Si la página actual es mayor que la última página, redirige a la página 1
+    //                     if (currentPage > lastPage) {
+    //                         // Utiliza Inertia.get para redirigir a la página 1 sin recargar toda la página
+    //                         router.get(
+    //                             router.page.url.split('?')[0], // Obtén la URL base
+    //                             { ...router.page.props.filters, page: 1 }, // Pasa los filtros y la página 1
+    //                             { preserveState: true } // Mantén el estado
+    //                         );
+    //                     }
+    //                     if (onMounted) {
+    //                         isLoading.value = false
+    //                     } else {
+    //                         clearTimeout(showLoaderTimeout)
+    //                         isSearching.value = false
+    //                     }
+    //                     filtroChkSolicitudes.value = router.page.props.filtroChkSolicitudes
+    //                 }
+    //             }
+    //         )
+    //     }
+    // }
+
     function fetchSolicitudes(onMounted, polling = false) {
         const page = router.page.props.solicitudes?.current_page ?? 1
         const paramsObject = buildQueryParams(page)
@@ -3004,20 +3058,19 @@
         if (numQuery.value || folioQuery.value)
         {
             // 1. Aplica la lógica de exclusividad mutua
-            // if (numQuery.value) 
-            // {
-            //     folioQuery.value = '';
-            // } 
-            // else if (folioQuery.value) 
-            // {
-            //     numQuery.value = '';
-            // }
+            if (numQuery.value) 
+            {
+                folioQuery.value = '';
+            } 
+            else if (folioQuery.value) 
+            {
+                numQuery.value = '';
+            }
 
             nombreQuery.value = ''
             claveCatastralQuery.value = ''
             tiposTramitesQuery.value = []
             tramitesQuery.value = []
-            localidadesQueryFiltradas.value = []
             estatusQuery.value = []
         }
 
@@ -3032,7 +3085,6 @@
             claveCatastralQuery: claveCatastralQuery.value,
             tiposTramitesQuery: tiposTramitesQuery.value,
             tramitesQuery: tramitesQuery.value,
-            localidadesQueryFiltradas: localidadesQueryFiltradas.value,
             estatusQuery: estatusQuery.value,
             idRangoFechasIngresoQuery: idRangoFechasIngresoQuery.value,
             rangoFechasIngresoManual: rangoFechasIngresoManual.value,
@@ -3065,25 +3117,18 @@
         const requestOptions = {
             preserveState: true,
             replace: true,
-            preserveScroll: true,
             onStart: () => {
                 // Lógica común de inicio
             },
             onFinish: () => {
+                // Lógica común de finalización
                 const currentPage = router.page.props.solicitudes.current_page;
                 const lastPage = router.page.props.solicitudes.last_page;
-                
-                if (currentPage > lastPage)   //Si la página actual excede al número de páginas obtenidas
-                {
-                    const newFilters = { 
-                        ...router.page.props.filters, 
-                        page: 1 
-                    };
-                    
-                    //Vuelve a cargar la página con la página #1
+
+                if (currentPage > lastPage) {
                     router.get(
                         router.page.url.split('?')[0],
-                        newFilters,
+                        { ...router.page.props.filters, page: 1 },
                         { preserveState: true }
                     );
                 }
@@ -3103,6 +3148,9 @@
             requestOptions.only = ['solicitudes']
         }
 
+        console.log('rangoFechasAceptacionManual222.value', rangoFechasAceptacionManual.value)
+
+        // 4. Realiza la solicitud una sola vez con las opciones configuradas
         router.post('/solicitudes', formData, requestOptions)
     }
 
@@ -3135,6 +3183,8 @@
             fechaIngresoFinQuery.value = rangoFechasIngresoQuery.value[1]
         }
 
+        console.log('ONDATECHENGE')
+
         fetchSolicitudes(false)
     }
 
@@ -3161,6 +3211,8 @@
         rangoFechasAceptacionManual.value = !coincideConShortcut
         rangoFechasAceptacionShortcut.value = coincideConShortcut
 
+        console.log('rangoFechasAceptacionManual++++.value', rangoFechasAceptacionManual.value)
+
         if (rangoFechasAceptacionManual.value)
         {
             fechaAceptacionInicioQuery.value = rangoFechasAceptacionQuery.value[0]
@@ -3171,14 +3223,14 @@
     }
 
     function sortTable(column) {
-        if (column == 'asc' || column == 'desc')
-        {
-            sortDirection.value = column  
-        }
-        else
-        {
+        if (sortColumn.value === column) {
+            sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
+        } else {
             sortColumn.value = column
         }
+
+        // const paramsObject = buildQueryParams();
+        // isLoading.value = true
 
         router.post(
             '/solicitudes',
@@ -3981,6 +4033,8 @@
                 rangoFechasIngresoManual.value = false;
                 rangoFechasAceptacionManual.value = false
 
+                console.log('damaiana')
+
                 return [start, end];
             },
         },
@@ -4060,6 +4114,9 @@
         }
     })
 
+    //CHECKPOINT: Refresco la página de SOLICITUDES y le cambio la FECHA DE ACEPTACIÓN del 2 al 12 de sept 2025
+    //Y no me regresa ningún valor, porque rangoFechasAceptacionManual es false y debe ser true
+
     watch(rangoFechasAceptacionQuery, (nuevoValor) => {
         if (Array.isArray(nuevoValor) && nuevoValor.length === 2 && nuevoValor[0] && nuevoValor[1]) {
             fechaAceptacionInicioQuery.value = nuevoValor[0]
@@ -4068,7 +4125,9 @@
             rangoFechasIngresoQuery.value[1] = null
             fechaIngresoInicioQuery.value = null
             fechaIngresoFinQuery.value = null
+            console.log('rangoFechasAceptacionManual---.value', rangoFechasAceptacionManual.value)
             onDateChangeAceptacion(nuevoValor)
+            console.log('rangoFechasAceptacionManual###.value', rangoFechasAceptacionManual.value)
         }
     })
 
@@ -4079,11 +4138,6 @@
     watch(estatusQuery, () => {
         fetchSolicitudes(false)
     })
-
-    watch(localidadesQueryFiltradas, () => {
-        fetchSolicitudes(false)
-    })
-
 
 
     function handlePageChange(page) {
@@ -4100,7 +4154,6 @@
             claveCatastralQuery: claveCatastralQuery.value,
             tiposTramitesQuery: tiposTramitesQuery.value,
             tramitesQuery: tramitesQuery.value,
-            localidadesQueryFiltradas: localidadesQueryFiltradas.value,
             estatusQuery: estatusQuery.value,
             filtroChkSolicitudes: filtroChkSolicitudes.value,
             rangoFechasIngresoManual: rangoFechasIngresoManual.value,
@@ -4156,73 +4209,7 @@
         if (newValue === '') {
             busquedaIndexada.value = false;
         }
-
-        if (folioQuery.value == 'n' || folioQuery.value == 'N')
-        {
-            busquedaIndexada.value = false
-        }
     });
-
-    const orderByItems = ref([
-        { 
-            nombre: 'Número de Solicitud', 
-            value: 'id',
-            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 9l14 0" /><path d="M5 15l14 0" /><path d="M11 4l-4 16" /><path d="M17 4l-4 16" /></svg>'
-        },
-        { 
-            nombre: 'Fecha de Ingreso', 
-            value: 'fecha_ingreso',
-            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12.5 21h-6.5a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v5" /><path d="M16 3v4" /><path d="M8 3v4" /><path d="M4 11h16" /><path d="M19 22v-6" /><path d="M22 19l-3 -3l-3 3" /></svg>'
-        },
-        { 
-            nombre: 'Propietario/Solicitante', 
-            value: 'id_propietario',
-            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" /><path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /><path d="M21 21v-2a4 4 0 0 0 -3 -3.85" /></svg>'
-        },
-        { 
-            nombre: 'Clave Catastral', 
-            value: 'clave_catastral',
-            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /><path d="M11.85 21.48a1.992 1.992 0 0 1 -1.263 -.58l-4.244 -4.243a8 8 0 1 1 13.385 -3.585" /><path d="M20 21l2 -2l-2 -2" /><path d="M17 17l-2 2l2 2" /></svg>'
-        },
-        { 
-            nombre: 'Trámite', 
-            value: 'id_tramite',
-            icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M5 12v-7a2 2 0 0 1 2 -2h7l5 5v4" /><path d="M5 21h14" /><path d="M5 18h14" /><path d="M5 15h14" /></svg>'
-        },
-        { 
-            nombre: 'Folio', 
-            value: 'folio',
-            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" /><path d="M10 8v8" /><path d="M14 8v8" /><path d="M8 10h8" /><path d="M8 14h8" /></svg>'
-        },
-        { 
-            nombre: 'Fecha de Aceptación', 
-            value: 'fecha_aceptacion',
-            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12.5 21h-6.5a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v5" /><path d="M19 16v6" /><path d="M22 19l-3 3l-3 -3" /><path d="M16 3v4" /><path d="M8 3v4" /><path d="M4 11h16" /></svg>'
-        },
-        { 
-            nombre: 'Localidad', 
-            value: 'id_localidad',
-            icon: '<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-600"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" fill="none"/><path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z" fill="none" /></svg>'
-        },
-    ]);
-
-    const getSelectedItem = (value) => {
-        return orderByItems.value.find(item => item.value === value);
-    };
-
-    // Asegúrate de definir esto en tu componente Vue, cerca de tus datos (data/setup)
-    const sortDirectionIcons = {
-        // ICONO ASCENDENTE (Flecha hacia arriba)
-       asc: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 9l3 -3l3 3" /><path d="M5 5m0 .5a.5 .5 0 0 1 .5 -.5h4a.5 .5 0 0 1 .5 .5v4a.5 .5 0 0 1 -.5 .5h-4a.5 .5 0 0 1 -.5 -.5z" /><path d="M5 14m0 .5a.5 .5 0 0 1 .5 -.5h4a.5 .5 0 0 1 .5 .5v4a.5 .5 0 0 1 -.5 .5h-4a.5 .5 0 0 1 -.5 -.5z" /><path d="M17 6v12" /></svg>',
-        
-        // ICONO DESCENDENTE (Flecha hacia abajo)
-       desc: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 5m0 .5a.5 .5 0 0 1 .5 -.5h4a.5 .5 0 0 1 .5 .5v4a.5 .5 0 0 1 -.5 .5h-4a.5 .5 0 0 1 -.5 -.5z" /><path d="M5 14m0 .5a.5 .5 0 0 1 .5 -.5h4a.5 .5 0 0 1 .5 .5v4a.5 .5 0 0 1 -.5 .5h-4a.5 .5 0 0 1 -.5 -.5z" /><path d="M14 15l3 3l3 -3" /><path d="M17 18v-12" /></svg>'
-    };
-
-    // Función para obtener el icono
-    const getSortDirectionIcon = (direction) => {
-        return sortDirectionIcons[direction] || '';
-    };
 </script>
 
 <template>
@@ -4233,12 +4220,12 @@
                     <span v-if="solicitudBloqueada" class="pl-0 pr-2 py-0 flex items-center justify-center">Solicitud</span>
                     <span v-if="solicitudBloqueada" class="bg-color3-500 text-white px-3 py-0 rounded-r-md flex items-center justify-center">
                         Folio
-                        {{ (folioSolicitud % 100000).toString().padStart(5, '0') }}
+                        {{ (folioSolicitud % 10000).toString().padStart(4, '0') }}
                     </span>
                     <span v-if="!solicitudBloqueada" class="pl-0 pr-2 py-0 flex items-center justify-center">Editar solicitud</span>
                     <span v-if="!solicitudBloqueada" class="bg-color1 text-white px-3 py-0 rounded-r-md flex items-center justify-center">
                         N°
-                        {{ (idSolicitudEditar % 100000).toString().padStart(5, '0') }}
+                        {{ (idSolicitudEditar % 10000).toString().padStart(4, '0') }}
                     </span>
                 </div>
                 <span v-else class="whitespace-nowrap">Nueva solicitud</span>
@@ -6157,7 +6144,7 @@
                                 class="icon icon-tabler icons-tabler-outline icon-tabler-hash"
                                 :class="{
                                     'text-gray-600 dark:text-gray-400': !(folioQuery.length > 0), /* Color normal si NO está indexado */
-                                    'text-gray-400': (folioQuery.length > 0 && folioQuery != 'n' && folioQuery != 'N') /* gray-400 si SÍ está indexado/deshabilitado */
+                                    'text-gray-400': (folioQuery.length > 0) /* gray-400 si SÍ está indexado/deshabilitado */
                                 }">
                                 <path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 9l14 0" /><path d="M5 15l14 0" /><path d="M11 4l-4 16" /><path d="M17 4l-4 16" />
                             </svg>
@@ -6168,8 +6155,8 @@
                                 class="custom-input bg-gray-50 border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-color1-500 focus:border-color1-500 block w-full pl-9 p-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500"
                                 placeholder="Número"
                                 v-model="numQuery"
-                                @input="folioQuery = ''; fetchSolicitudes(false)"
-                                :disabled="folioQuery.length > 0 && folioQuery != 'n' && folioQuery != 'N'"/>
+                                @input="fetchSolicitudes(false)"
+                                :disabled="folioQuery.length > 0"/>
                             <button
                                 v-if="numQuery"
                                 @click=";((numQuery = ''), fetchSolicitudes(false))"
@@ -6190,8 +6177,8 @@
                         type="daterange"
                         unlink-panels
                         range-separator="-"
-                        start-placeholder="-"
-                        end-placeholder="-"
+                        start-placeholder=""
+                        end-placeholder=""
                         :shortcuts="shortcuts"
                         class="custom-date-picker w-full md:w-[260px]"
                         value-format="YYYY-MM-DD"
@@ -6246,7 +6233,7 @@
                         <div class="relative w-full group">
                             <!-- Añade 'group' aquí -->
                             <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  
+                            <svg xmlns="http://www.w3.org/2000/svg"  width="18"  height="18"  viewBox="0 0 24 24"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  
                             class="icon icon-tabler icons-tabler-outline icon-tabler-map-pin-code" 
                             :class="{
                                     'text-gray-600 dark:text-gray-400': !busquedaIndexada, /* Color normal si NO está indexado */
@@ -6300,7 +6287,7 @@
                             </svg>
                         </template>
 
-                        <el-option :style="getItemStyle(item.id - 1)" class="custom-option" v-for="item in tiposTramites" :key="item.id" :label="item.nombre" :value="item.id">
+                        <el-option class="custom-option" v-for="item in tiposTramites" :key="item.id" :label="item.nombre" :value="item.id">
                             {{ item.nombre }}
                         </el-option>
                     </el-select>
@@ -6323,7 +6310,7 @@
                                 class="custom-input bg-gray-50 border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-color1-500 focus:border-color1-500 block w-full pl-9 p-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500"
                                 placeholder="Folio"
                                 v-model="folioQuery"
-                                @input="numQuery = ''; fetchSolicitudes(false)"
+                                @input="fetchSolicitudes(false)"
                                 :disabled="numQuery.length > 0"/>
                             <button
                                 v-if="folioQuery"
@@ -6344,8 +6331,8 @@
                         type="daterange"
                         unlink-panels
                         range-separator="-"
-                        start-placeholder="-"
-                        end-placeholder="-"
+                        start-placeholder=""
+                        end-placeholder=""
                         :shortcuts="shortcuts"
                         class="custom-date-picker w-full md:w-[260px]"
                         value-format="YYYY-MM-DD"
@@ -6354,98 +6341,12 @@
                         :prefix-icon="CustomCalendarDown"
                         :disabled="busquedaIndexada"
                         :clearable="false"/>
-                </div>                 
-                <!-- FILTRO DE LOCALIDADES -->
-                <div class="flex md:flex-row items-stretch md:items-center justify-end gap-2 w-full md:w-[25%]">
-                    <div class="flex items-center w-full md:w-[100%]">
-                       <button
-                            :class="{
-                                'disabled-button': solicitudes.length == 0 || busquedaIndexada,
-                                'has-selections': parseInt(selectedCountTextLocalidades.replace(/[()]/g, '')) > 0
-                            }"
-                            :disabled="solicitudes.length == 0 || busquedaIndexada"
-                            id="filterDropdownButton"
-                            data-dropdown-toggle="filterDropdownLocalidades"                        
-                            class="filter-button group w-full md:w-full flex items-center justify-between py-2 pl-2 pr-1 text-sm font-normal text-gray-600 focus:outline-none bg-white rounded-lg border border-gray-300 hover:bg-gray-100 hover:text-primary-700 focus:z-10 focus:border-color1-500 focus:ring-1 focus:ring-color1-500 dark:focus:ring-color1-700 dark:bg-color1-800 dark:text-color1-400 dark:border-color1-600 dark:hover:text-white dark:hover:bg-color1-700"
-                            type="button">                            
-                            <div class="flex items-center">
-                                <svg 
-                                    xmlns="http://www.w3.org/2000/svg" 
-                                    aria-hidden="true" 
-                                    viewBox="0 0 24 24" 
-                                    stroke="currentColor" 
-                                    stroke-width="2" 
-                                    stroke-linecap="round" 
-                                    stroke-linejoin="round" 
-                                    class="icon icon-tabler icons-tabler-outline icon-tabler-map-pin h-5 w-5 mr-2 text-gray-600">
-                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                    <path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" fill="none"/> 
-                                    <path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z" fill="none" />
-                                </svg>
+                </div> 
 
-                                <span v-if="selectedCountTextLocalidades.replace(/[()]/g, '') > 1"> Localidades {{ selectedCountTextLocalidades }} </span>
-                                <span v-else> Localidad {{ selectedCountTextLocalidades }} </span>  
-                            </div>
-                            <div class="flex items-center">         
-                                <svg
-                                    v-if="parseInt(selectedCountTextLocalidades.replace(/[()]/g, '')) > 0"
-                                    class="reset-icon mr-2 ml-2 w-4 h-4 text-current opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity hover:text-color1-600"
-                                    viewBox="0 -960 960 960"
-                                    fill="currentColor"
-                                    @click.prevent.stop="resetFiltrosLocalidades">
-                                    <path
-                                        d="m336-280 144-144 144 144 56-56-144-144 144-144-56-56-144 144-144-144-56 56 144 144-144 144 56 56ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/>
-                                </svg>
-                            
-                                <svg xmlns="http://www.w3.org/2000/svg" 
-                                    class="mr-1 w-3.5 h-3.5 text-gray-600" 
-                                    fill="none" viewBox="0 0 24 24" 
-                                    stroke="currentColor" 
-                                    stroke-width="1.5">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                                </svg>
-                            </div>
-                        </button>
-                        <div
-                            id="filterDropdownLocalidades"
-                            class="z-10 hidden w-full md:w-[22em] p-3 bg-white rounded-lg shadow dark:bg-gray-700"
-                            style="position: absolute; top: 100%; left: 0; z-index: 50; margin-top: -8px">
-                            <div class="flex flex-col w-full">
-                                <div class="w-full">                                    
-                                    <ul v-if="localidadesQuery && localidadesQuery.length > 0" class="text-sm max-h-32 overflow-y-auto pt-2 pl-3 mb-3 w-full" aria-labelledby="filterDropdownButton">
-                                        <li v-for="localidad in localidadesQuery" :key="localidad.id" class="flex items-center mb-0 w-full">
-                                            <input
-                                                :id="`localidad-${localidad.id}`"
-                                                type="checkbox"
-                                                class="mb-1 w-4 h-4 bg-gray-100 border-gray-300 rounded text-color1-600 focus:ring-color1-300 dark:focus:ring-color1-600 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
-                                                v-model="localidadesQueryFiltradas"
-                                                :value="localidad.id"
-                                                :disabled="localidad.count === 0"
-                                                :class="{
-                                                    'cursor-not-allowed opacity-50 text-gray-400': localidad.count === 0,
-                                                    'cursor-pointer': localidad.count > 0,
-                                                    'hover:border-color1-600 hover:border-2 cursor-pointer': localidad.count > 0
-                                                }"/>
-                                            <label
-                                                :for="`localidad-${localidad.id}`"
-                                                class="mb-1 ml-2 text-xs uppercase text-gray-600 dark:text-gray-100"
-                                                :class="{
-                                                    'cursor-not-allowed opacity-50 text-gray-400': localidad.count === 0,
-                                                    'cursor-pointer': localidad.count > 0,
-                                                    'hover:text-color1-600 cursor-pointer': localidad.count > 0
-                                                }">
-                                                {{ localidad.nombre }} ({{ localidad.count }})
-                                            </label>
-                                        </li>
-                                    </ul>
-                                </div>                                
-                            </div>
-                        </div>
-                    </div>     
-                </div>
-                <div class="flex md:flex-row items-stretch md:items-center justify-end gap-2 w-full md:w-[18%]">
+                <!-- Botones de acción -->
+                <div class="flex flex-col md:flex-row items-stretch md:items-center justify-end gap-2 w-full md:w-auto">
                     <!-- Botón Filtros -->
-                    <div class="flex items-center w-full md:w-[100%]">
+                    <div class="flex items-center w-full md:w-auto">
                        <button
                             :class="{
                                 'disabled-button': solicitudes.length == 0 || busquedaIndexada, /* Simplificar a disabled-button */
@@ -6454,41 +6355,38 @@
                             :disabled="solicitudes.length == 0 || busquedaIndexada"
                             id="filterDropdownButton"
                             data-dropdown-toggle="filterDropdown"
-                            class="filter-button group w-full md:w-full flex items-center justify-between py-2 pl-2 pr-1 text-sm font-normal text-gray-600 focus:outline-none bg-white rounded-lg border border-gray-300 hover:bg-gray-100 hover:text-primary-700 focus:z-10 focus:border-color1-500 focus:ring-1 focus:ring-color1-500 dark:focus:ring-color1-700 dark:bg-color1-800 dark:text-color1-400 dark:border-color1-600 dark:hover:text-white dark:hover:bg-color1-700"
+                            class="filter-button group w-full md:w-auto flex items-center justify-center py-2 pl-2 pr-1 text-sm font-normal text-gray-600 focus:outline-none bg-white rounded-lg border border-gray-300 hover:bg-gray-100 hover:text-primary-700 focus:z-10 focus:border-color1-500 focus:ring-1 focus:ring-color1-500 dark:focus:ring-color1-700 dark:bg-color1-800 dark:text-color1-400 dark:border-color1-600 dark:hover:text-white dark:hover:bg-color1-700"
                             type="button">
-                            <div class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" 
-                                    aria-hidden="true" 
-                                    viewBox="0 0 24 24"  stroke="currentColor" 
-                                    stroke-width="2" 
-                                    stroke-linecap="round" 
-                                    stroke-linejoin="round" 
-                                    class="icon icon-tabler icons-tabler-outline icon-tabler-filter h-4 w-5 mr-2 text-gray-600">
-                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                    <path d="M4 4h16v2.172a2 2 0 0 1 -.586 1.414l-4.414 4.414v7l-6 2v-8.5l-4.48 -4.928a2 2 0 0 1 -.52 -1.345v-2.227z" 
-                                        fill="none" />  
-                                </svg>
-                                + Filtros {{ selectedCountText }}
-                            </div>
-                            <div class="flex items-center">         
-                                <svg
-                                    v-if="parseInt(selectedCountText.replace(/[()]/g, '')) > 0"
-                                    class="reset-icon mr-0 ml-2 w-4 h-4 text-current opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity hover:text-color1-600"
-                                    viewBox="0 -960 960 960"
-                                    fill="currentColor"
-                                    @click.prevent.stop="resetFiltros">
-                                    <path
-                                        d="m336-280 144-144 144 144 56-56-144-144 144-144-56-56-144 144-144-144-56 56 144 144-144 144 56 56ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/>
-                                </svg>
+                           <svg xmlns="http://www.w3.org/2000/svg" 
+                                aria-hidden="true" 
+                                viewBox="0 0 24 24"  stroke="currentColor" 
+                                stroke-width="2" 
+                                stroke-linecap="round" 
+                                stroke-linejoin="round" 
+                                class="icon icon-tabler icons-tabler-outline icon-tabler-filter h-4 w-5 mr-2 text-gray-600">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <path d="M4 4h16v2.172a2 2 0 0 1 -.586 1.414l-4.414 4.414v7l-6 2v-8.5l-4.48 -4.928a2 2 0 0 1 -.52 -1.345v-2.227z" 
+                                    fill="none" />  
+                            </svg>
+                            + Filtros {{ selectedCountText }}
 
-                                <svg xmlns="http://www.w3.org/2000/svg" 
-                                        class="mr-1 ml-6 w-3.5 h-3.5 text-gray-600" 
-                                        fill="none" viewBox="0 0 24 24" 
-                                        stroke="currentColor" 
-                                        stroke-width="1.5">                  
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                                </svg>
-                            </div>
+                            <svg
+                                v-if="parseInt(selectedCountText.replace(/[()]/g, '')) > 0"
+                                class="reset-icon mr-0 ml-2 w-4 h-4 text-current opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity hover:text-color1-600"
+                                viewBox="0 -960 960 960"
+                                fill="currentColor"
+                                @click.prevent="resetFiltros">
+                                <path
+                                    d="m336-280 144-144 144 144 56-56-144-144 144-144-56-56-144 144-144-144-56 56 144 144-144 144 56 56ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/>
+                            </svg>
+
+                            <svg xmlns="http://www.w3.org/2000/svg" 
+                                    class="mr-1 ml-6 w-3.5 h-3.5 text-gray-600" 
+                                    fill="none" viewBox="0 0 24 24" 
+                                    stroke="currentColor" 
+                                    stroke-width="1.5">                  
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                            </svg>
                         </button>
                         <!-- Dropdown Filtros -->
                         <div
@@ -6613,251 +6511,291 @@
                         </div>
                     </div>     
                 </div>
-                <div class="flex items-center w-full xs:w-1/2 md:w-[8%]">
-                    <el-select
-                        v-model="sortColumn"
-                        class="custom-select w-full"
-                        :class="['custom-select', busquedaIndexada ? 'is-disabled' : '']"
-                        collapse-tags
-                        collapse-tags-tooltip
-                        :max-collapse-tags="1"
-                        @change="sortTable"
-                        :disabled="busquedaIndexada"
-                        value-key="value">                        
-                        <template #prefix>
-                            <div class="flex items-center ml-1">
-                                <svg 
-                                    xmlns="http://www.w3.org/2000/svg" 
-                                    class="w-5 h-5 mr-2" 
-                                    :class="{
-                                        'text-gray-600 dark:text-gray-400': !busquedaIndexada, 
-                                        'text-gray-400': busquedaIndexada 
-                                    }"
-                                    viewBox="0 0 24 24" 
-                                    fill="none" 
-                                    stroke="currentColor" 
-                                    stroke-width="2" 
-                                    stroke-linecap="round" 
-                                    stroke-linejoin="round">
-                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                    <path d="M3 9l4 -4l4 4m-4 -4v14" />
-                                    <path d="M21 15l-4 4l-4 -4m4 4v-14" />
-                                </svg>
-                                <span 
-                                    v-if="getSelectedItem(sortColumn)"
-                                    v-html="getSelectedItem(sortColumn).icon" 
-                                    class="w-5 h-5 mr-1" :class="{
-                                        'text-gray-600 dark:text-gray-400': !busquedaIndexada, 
-                                        'text-gray-400': busquedaIndexada 
-                                    }">
-                                </span>
-                            </div>
-                        </template>
-                        <el-option
-                            key="header-title"
-                            label="Ordenar por..."
-                            value="header-title"
-                            disabled> 
-                            <div class="flex items-center text-base font-semibold text-gray-500 py-1 border-b border-gray-200 cursor-default">
-                                Ordenar por...
-                            </div>
-                        </el-option>                        
-                        <el-option 
-                            v-for="item in orderByItems" 
-                            :key="item.value" 
-                            :label="' '"
-                            :value="item.value">
-                            
-                            <div class="flex items-center">
-                                <span 
-                                    v-html="item.icon" 
-                                    class="w-5 h-5 mr-2">
-                                </span>
-                                <span>{{ item.nombre }}</span>
-                            </div>                            
-                        </el-option>
-                    </el-select>
-                </div>
-                <div class="flex items-center w-full xs:w-1/2 md:w-[14%]">
-                    <el-select
-                        v-model="sortDirection" 
-                        class="custom-select w-full"
-                        :class="['custom-select', busquedaIndexada ? 'is-disabled' : '']"
-                        @change="sortTable"
-                        :disabled="busquedaIndexada"
-                        value-key="value">
-                        
-                        <template #prefix>
-                            <div class="flex items-center ml-1">
-                                <span 
-                                    v-html="getSortDirectionIcon(sortDirection)"
-                                    class="w-5 h-5 mr-1"
-                                    :class="{
-                                        'text-gray-600 dark:text-gray-400': !busquedaIndexada, 
-                                        'text-gray-400': busquedaIndexada 
-                                    }">
-                                </span>
-                                <span :class="{
-                                        'text-gray-600 dark:text-gray-400': !busquedaIndexada, 
-                                        'text-gray-400': busquedaIndexada 
-                                    }" v-if="sortDirection=='asc'">
-                                    Ascendente
-                                </span>
-                                <span :class="{
-                                        'text-gray-600 dark:text-gray-400': !busquedaIndexada, 
-                                        'text-gray-400': busquedaIndexada 
-                                    }" v-else>
-                                    Descendente
-                                </span>
-                            </div>
-                        </template>                        
-                        <el-option 
-                            label=" " 
-                            value="asc"> 
-                            <div class="flex items-center">
-                                <span 
-                                    v-html="getSortDirectionIcon('asc')" 
-                                    class="w-5 h-5 mr-2">
-                                </span>
-                                <span>Ascendente</span>
-                            </div>
-                        </el-option>
-                        <el-option 
-                            label=" " 
-                            value="desc"> 
-                            <div class="flex items-center">
-                                <span 
-                                    v-html="getSortDirectionIcon('desc')" 
-                                    class="w-5 h-5 mr-2">
-                                </span>
-                                <span>Descendente</span>
-                            </div>
-                        </el-option>
-                    </el-select>
-                </div>
             </div>
-            <div class="overflow-x-auto">
-                <div class="grid 
-                            grid-cols-1           /* Por defecto: 1 columna (móvil) */
-                            sm:grid-cols-2        /* En pantallas pequeñas (sm): 2 columnas */
-                            lg:grid-cols-3        /* En pantallas grandes (lg): 3 columnas */
-                            xl:grid-cols-4        /* En pantallas extra-grandes (xl): 4 columnas */
-                            gap-4 px-2 py-4">
-                    
-                    <div v-for="solicitud in solicitudes" :key="solicitud.id" 
-                        @click="abreModalEditarSolicitud(solicitud)"
-                        class="p-4 border rounded-lg shadow-lg bg-white dark:bg-gray-800 dark:border-gray-700 
-                                hover:shadow-xl hover:ring-2 hover:ring-color1-500 transition duration-150 cursor-pointer">
-                        
-                        <div class="flex items-start justify-between pb-4 border-b border-gray-200 dark:border-gray-700">
-                            <div class="flex flex-col">
-                                <span class="text-sm font-semibold text-gray-600 dark:text-gray-400">
-                                    Solicitud # {{ solicitud.id ? (solicitud.id % 100000).toString().padStart(5, '0') : '-' }}
-                                </span>
-                                <span v-if="solicitud.folio" class="mt-1">
-                                    <span class="inline-flex items-center justify-center rounded-full px-2 py-1 text-sm font-bold bg-color1-50 text-color1-800">
-                                        FOLIO: {{ (solicitud.folio % 100000).toString().padStart(5, '0') }}
-                                    </span>
-                                </span>
-                            </div>
-                            
-                            <button @click.stop="imprimirSolicitud(solicitud)" 
-                                class="p-1 text-gray-400 hover:text-gray-800 dark:hover:text-gray-100">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5Zm-3 0h.008v.008H15V10.5Z" />
-                                </svg>
-                            </button>
-                        </div>
-
-                        <div class="pt-1 space-y-2 text-sm">                            
-                            <div v-if="solicitud.propiedad" class="border-b dark:border-gray-700 pb-2">
-                                <span v-if="solicitud.id_contacto == solicitud.propiedad?.id_contacto" class="font-bold text-gray-700 dark:text-gray-300">Propietario/Solicitante: </span>
-                                <p class="text-gray-600 dark:text-gray-400 break-words text-xs">
-                                    <template v-if="solicitud.id_contacto == solicitud.propiedad?.id_contacto">
-                                        {{ solicitud.propiedad.contacto.persona.nombre + ' ' + solicitud.propiedad.contacto.persona.apellidos }}
-                                    </template>
-                                    <template v-else-if="solicitud.propiedad">
-                                        <span class="block mt-0">
-                                            <span class="text-gray-700 font-bold dark:text-gray-300 text-sm block">Propietario:</span>
-                                            <span class="text-gray-600 dark:text-gray-400 block -mt-0">
-                                                {{ solicitud.propiedad.contacto.persona.nombre + ' ' + solicitud.propiedad.contacto.persona.apellidos }}
-                                            </span>
-                                        </span>
-
-                                        <span class="block mt-1">
-                                            <span class="text-gray-700 font-bold text-sm block">Solicitante:</span>
-                                            <span class="text-xs text-gray-600 dark:text-gray-400 block -mt-0">
-                                                {{ (solicitud.contacto.persona.nombre || '') + ' ' + (solicitud.contacto.persona.apellidos || '') }}
-                                            </span>
-                                        </span>
-                                        <span v-if="solicitud.razon_social" class="block mt-1">
-                                            <span class="text-gray-700 font-bold text-sm block">Organización / Razón Social:</span>
-                                            <span class="text-xs text-gray-600 dark:text-gray-400 block -mt-0">
-                                                {{ solicitud.razon_social.nombre }}
-                                            </span>
-                                        </span>
+            <div class="bg-white dark:bg-gray-800 relative shadow-md sm:rounded-lg overflow-visible"> 
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th scope="col" class="px-3 py-1 cursor-pointer" @click="sortTable('id')">
+                                    <div class="flex items-center justify-center">
+                                        <span class="mr-1 normal-case text-base">#</span>
+                                        <svg v-if="sortColumn === 'id'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4 text-color1">
+                                            <path
+                                                v-if="sortDirection === 'asc'"
+                                                fill-rule="evenodd"
+                                                d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Zm14.47 3.97a.75.75 0 0 1 1.06 0l3.75 3.75a.75.75 0 1 1-1.06 1.06L18 10.81V21a.75.75 0 0 1-1.5 0V10.81l-2.47 2.47a.75.75 0 1 1-1.06-1.06l3.75-3.75ZM2.25 9A.75.75 0 0 1 3 8.25h9.75a.75.75 0 0 1 0 1.5H3A.75.75 0 0 1 2.25 9Zm0 4.5a.75.75 0 0 1 .75-.75h5.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z"
+                                                clip-rule="evenodd"/>
+                                            <path
+                                                v-else
+                                                fill-rule="evenodd"
+                                                d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Zm0 4.5A.75.75 0 0 1 3 8.25h9.75a.75.75 0 0 1 0 1.5H3A.75.75 0 0 1 2.25 9Zm15-.75A.75.75 0 0 1 18 9v10.19l2.47-2.47a.75.75 0 1 1 1.06 1.06l-3.75 3.75a.75.75 0 0 1-1.06 0l-3.75-3.75a.75.75 0 1 1 1.06-1.06l2.47 2.47V9a.75.75 0 0 1 .75-.75Zm-15 5.25a.75.75 0 0 1 .75-.75h9.75a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z"
+                                                clip-rule="evenodd"/>
+                                        </svg>
+                                    </div>
+                                </th>
+                                <th scope="col" class="px-3 py-2 cursor-pointer" @click="sortTable('fecha_ingreso')">
+                                    <div class="flex items-end">
+                                        <span class="normal-case text-base mr-1 p-0 m-0 leading-none whitespace-nowrap inline-flex items-center">Fecha<br>Ingreso</span>
+                                        <svg v-if="sortColumn === 'fecha_ingreso'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4 text-color1 flex-none">
+                                            <path
+                                                v-if="sortDirection === 'asc'"
+                                                fill-rule="evenodd"
+                                                d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Zm14.47 3.97a.75.75 0 0 1 1.06 0l3.75 3.75a.75.75 0 1 1-1.06 1.06L18 10.81V21a.75.75 0 0 1-1.5 0V10.81l-2.47 2.47a.75.75 0 1 1-1.06-1.06l3.75-3.75ZM2.25 9A.75.75 0 0 1 3 8.25h9.75a.75.75 0 0 1 0 1.5H3A.75.75 0 0 1 2.25 9Zm0 4.5a.75.75 0 0 1 .75-.75h5.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z"
+                                                clip-rule="evenodd"/>
+                                            <path
+                                                v-else
+                                                fill-rule="evenodd"
+                                                d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Zm0 4.5A.75.75 0 0 1 3 8.25h9.75a.75.75 0 0 1 0 1.5H3A.75.75 0 0 1 2.25 9Zm15-.75A.75.75 0 0 1 18 9v10.19l2.47-2.47a.75.75 0 1 1 1.06 1.06l-3.75 3.75a.75.75 0 0 1-1.06 0l-3.75-3.75a.75.75 0 1 1 1.06-1.06l2.47 2.47V9a.75.75 0 0 1 .75-.75Zm-15 5.25a.75.75 0 0 1 .75-.75h9.75a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z"
+                                                clip-rule="evenodd"/>
+                                        </svg>
+                                    </div>
+                                </th>                                
+                                <th scope="col" class="px-4 py-2 cursor-pointer" @click="sortTable('id_propietario')">
+                                    <div class="flex items-center">
+                                        <span class="mr-1 normal-case text-base hidden md:inline">Propietario / Solicitante </span>
+                                        <span class="mr-1 normal-case text-base inline md:hidden">Propietario/Solicitante</span>
+                                        <svg v-if="sortColumn === 'id_propietario'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4 text-color1">
+                                            <path
+                                                v-if="sortDirection === 'asc'"
+                                                fill-rule="evenodd"
+                                                d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Zm14.47 3.97a.75.75 0 0 1 1.06 0l3.75 3.75a.75.75 0 1 1-1.06 1.06L18 10.81V21a.75.75 0 0 1-1.5 0V10.81l-2.47 2.47a.75.75 0 1 1-1.06-1.06l3.75-3.75ZM2.25 9A.75.75 0 0 1 3 8.25h9.75a.75.75 0 0 1 0 1.5H3A.75.75 0 0 1 2.25 9Zm0 4.5a.75.75 0 0 1 .75-.75h5.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z"
+                                                clip-rule="evenodd"/>
+                                            <path
+                                                v-else
+                                                fill-rule="evenodd"
+                                                d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Zm0 4.5A.75.75 0 0 1 3 8.25h9.75a.75.75 0 0 1 0 1.5H3A.75.75 0 0 1 2.25 9Zm15-.75A.75.75 0 0 1 18 9v10.19l2.47-2.47a.75.75 0 1 1 1.06 1.06l-3.75 3.75a.75.75 0 0 1-1.06 0l-3.75-3.75a.75.75 0 1 1 1.06-1.06l2.47 2.47V9a.75.75 0 0 1 .75-.75Zm-15 5.25a.75.75 0 0 1 .75-.75h9.75a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z"
+                                                clip-rule="evenodd"/>
+                                        </svg>
+                                    </div>
+                                </th>
+                                <th scope="col" class="px-4 py-2 cursor-pointer" @click="sortTable('clave_catastral')">
+                                    <div class="flex items-end">
+                                        <span class="mr-1 normal-case text-base p-0 m-0 leading-none whitespace-nowrap inline-flex items-center">Clave Catastral</span>
+                                        <svg v-if="sortColumn === 'clave_catastral'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4 text-color1 flex-none">
+                                            <path
+                                                v-if="sortDirection === 'asc'"
+                                                fill-rule="evenodd"
+                                                d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Zm14.47 3.97a.75.75 0 0 1 1.06 0l3.75 3.75a.75.75 0 1 1-1.06 1.06L18 10.81V21a.75.75 0 0 1-1.5 0V10.81l-2.47 2.47a.75.75 0 1 1-1.06-1.06l3.75-3.75ZM2.25 9A.75.75 0 0 1 3 8.25h9.75a.75.75 0 0 1 0 1.5H3A.75.75 0 0 1 2.25 9Zm0 4.5a.75.75 0 0 1 .75-.75h5.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z"
+                                                clip-rule="evenodd"/>
+                                            <path
+                                                v-else
+                                                fill-rule="evenodd"
+                                                d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Zm0 4.5A.75.75 0 0 1 3 8.25h9.75a.75.75 0 0 1 0 1.5H3A.75.75 0 0 1 2.25 9Zm15-.75A.75.75 0 0 1 18 9v10.19l2.47-2.47a.75.75 0 1 1 1.06 1.06l-3.75 3.75a.75.75 0 0 1-1.06 0l-3.75-3.75a.75.75 0 1 1 1.06-1.06l2.47 2.47V9a.75.75 0 0 1 .75-.75Zm-15 5.25a.75.75 0 0 1 .75-.75h9.75a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z"
+                                                clip-rule="evenodd"/>
+                                        </svg>
+                                    </div>
+                                </th>
+                                <th scope="col" class="px-4 py-2 cursor-pointer" @click="sortTable('id_tramite')">
+                                    <div class="flex items-center">
+                                        <span class="mr-1 normal-case text-base">Trámite(s)</span>
+                                        <svg v-if="sortColumn === 'id_tramite'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4 text-color1">
+                                            <path
+                                                v-if="sortDirection === 'asc'"
+                                                fill-rule="evenodd"
+                                                d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Zm14.47 3.97a.75.75 0 0 1 1.06 0l3.75 3.75a.75.75 0 1 1-1.06 1.06L18 10.81V21a.75.75 0 0 1-1.5 0V10.81l-2.47 2.47a.75.75 0 1 1-1.06-1.06l3.75-3.75ZM2.25 9A.75.75 0 0 1 3 8.25h9.75a.75.75 0 0 1 0 1.5H3A.75.75 0 0 1 2.25 9Zm0 4.5a.75.75 0 0 1 .75-.75h5.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z"
+                                                clip-rule="evenodd"/>
+                                            <path
+                                                v-else
+                                                fill-rule="evenodd"
+                                                d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Zm0 4.5A.75.75 0 0 1 3 8.25h9.75a.75.75 0 0 1 0 1.5H3A.75.75 0 0 1 2.25 9Zm15-.75A.75.75 0 0 1 18 9v10.19l2.47-2.47a.75.75 0 1 1 1.06 1.06l-3.75 3.75a.75.75 0 0 1-1.06 0l-3.75-3.75a.75.75 0 1 1 1.06-1.06l2.47 2.47V9a.75.75 0 0 1 .75-.75Zm-15 5.25a.75.75 0 0 1 .75-.75h9.75a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z"
+                                                clip-rule="evenodd"/>
+                                        </svg>
+                                    </div>
+                                </th>
+                                <th scope="col" class="px-4 py-2 cursor-pointer" @click="sortTable('folio')">
+                                    <div class="flex items-center justify-center">
+                                        <span class="mr-1 normal-case text-base">Folio</span>
+                                        <svg v-if="sortColumn === 'folio'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4 text-color1">
+                                            <path
+                                                v-if="sortDirection === 'asc'"
+                                                fill-rule="evenodd"
+                                                d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Zm14.47 3.97a.75.75 0 0 1 1.06 0l3.75 3.75a.75.75 0 1 1-1.06 1.06L18 10.81V21a.75.75 0 0 1-1.5 0V10.81l-2.47 2.47a.75.75 0 1 1-1.06-1.06l3.75-3.75ZM2.25 9A.75.75 0 0 1 3 8.25h9.75a.75.75 0 0 1 0 1.5H3A.75.75 0 0 1 2.25 9Zm0 4.5a.75.75 0 0 1 .75-.75h5.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z"
+                                                clip-rule="evenodd"/>
+                                            <path
+                                                v-else
+                                                fill-rule="evenodd"
+                                                d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Zm0 4.5A.75.75 0 0 1 3 8.25h9.75a.75.75 0 0 1 0 1.5H3A.75.75 0 0 1 2.25 9Zm15-.75A.75.75 0 0 1 18 9v10.19l2.47-2.47a.75.75 0 1 1 1.06 1.06l-3.75 3.75a.75.75 0 0 1-1.06 0l-3.75-3.75a.75.75 0 1 1 1.06-1.06l2.47 2.47V9a.75.75 0 0 1 .75-.75Zm-15 5.25a.75.75 0 0 1 .75-.75h9.75a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z"
+                                                clip-rule="evenodd"/>
+                                        </svg>
+                                    </div>
+                                </th>
+                                <th scope="col" class="px-4 py-2 cursor-pointer" @click="sortTable('fecha_aceptacion')">
+                                    <div class="flex items-end">
+                                        <span class="mr-1 normal-case text-base p-0 m-0 leading-none whitespace-nowrap inline-flex items-center">Fecha<br>Aceptación</span>
+                                        <svg v-if="sortColumn === 'fecha_aceptacion'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4 text-color1 flex-none">
+                                            <path
+                                                v-if="sortDirection === 'asc'"
+                                                fill-rule="evenodd"
+                                                d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Zm14.47 3.97a.75.75 0 0 1 1.06 0l3.75 3.75a.75.75 0 1 1-1.06 1.06L18 10.81V21a.75.75 0 0 1-1.5 0V10.81l-2.47 2.47a.75.75 0 1 1-1.06-1.06l3.75-3.75ZM2.25 9A.75.75 0 0 1 3 8.25h9.75a.75.75 0 0 1 0 1.5H3A.75.75 0 0 1 2.25 9Zm0 4.5a.75.75 0 0 1 .75-.75h5.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z"
+                                                clip-rule="evenodd"/>
+                                            <path
+                                                v-else
+                                                fill-rule="evenodd"
+                                                d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Zm0 4.5A.75.75 0 0 1 3 8.25h9.75a.75.75 0 0 1 0 1.5H3A.75.75 0 0 1 2.25 9Zm15-.75A.75.75 0 0 1 18 9v10.19l2.47-2.47a.75.75 0 1 1 1.06 1.06l-3.75 3.75a.75.75 0 0 1-1.06 0l-3.75-3.75a.75.75 0 1 1 1.06-1.06l2.47 2.47V9a.75.75 0 0 1 .75-.75Zm-15 5.25a.75.75 0 0 1 .75-.75h9.75a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z"
+                                                clip-rule="evenodd"/>
+                                        </svg>
+                                    </div>
+                                </th>
+                                <th scope="col" class="px-4 py-2 cursor-pointer" @click="sortTable('id_estatus')">
+                                    <div class="flex items-center">
+                                        <span class="mr-1 normal-case text-base">Estatus</span>
+                                        <svg v-if="sortColumn === 'id_estatus'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4 text-color1">
+                                            <path
+                                                v-if="sortDirection === 'asc'"
+                                                fill-rule="evenodd"
+                                                d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Zm14.47 3.97a.75.75 0 0 1 1.06 0l3.75 3.75a.75.75 0 1 1-1.06 1.06L18 10.81V21a.75.75 0 0 1-1.5 0V10.81l-2.47 2.47a.75.75 0 1 1-1.06-1.06l3.75-3.75ZM2.25 9A.75.75 0 0 1 3 8.25h9.75a.75.75 0 0 1 0 1.5H3A.75.75 0 0 1 2.25 9Zm0 4.5a.75.75 0 0 1 .75-.75h5.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z"
+                                                clip-rule="evenodd"/>
+                                            <path
+                                                v-else
+                                                fill-rule="evenodd"
+                                                d="M2.25 4.5A.75.75 0 0 1 3 3.75h14.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Zm0 4.5A.75.75 0 0 1 3 8.25h9.75a.75.75 0 0 1 0 1.5H3A.75.75 0 0 1 2.25 9Zm15-.75A.75.75 0 0 1 18 9v10.19l2.47-2.47a.75.75 0 1 1 1.06 1.06l-3.75 3.75a.75.75 0 0 1-1.06 0l-3.75-3.75a.75.75 0 1 1 1.06-1.06l2.47 2.47V9a.75.75 0 0 1 .75-.75Zm-15 5.25a.75.75 0 0 1 .75-.75h9.75a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Z"
+                                                clip-rule="evenodd"/>
+                                        </svg>
+                                    </div>
+                                </th>
+                                <th scope="col" class="px-4 py-2 cursor-pointer" @click="sortTable('id_estatus')">
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="solicitud in solicitudes" :key="solicitud.id" class="text-xs border-b dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                <th scope="row" class="px-3 py-2 font-normal ">
+                                    {{ solicitud.id ? (solicitud.id % 10000).toString().padStart(4, '0') : '-' }}
+                                </th>
+                                <td class="px-4 py-2">
+                                    {{ formatDate(solicitud.fecha_ingreso) }}
+                                </td>                                
+                                <td v-if="solicitud.id_contacto == solicitud.propiedad?.id_contacto" class="px-4 py-2 w-80">
+                                    {{ solicitud.propiedad.contacto.persona.nombre + ' ' + solicitud.propiedad.contacto.persona.apellidos }}
+                                </td>
+                                <td v-else class="px-4 py-2">
+                                    <template v-if="solicitud.propiedad">
+                                        {{
+                                            solicitud.propiedad.contacto.persona.nombre +
+                                            ' ' +
+                                            solicitud.propiedad.contacto.persona.apellidos +
+                                            ' / ' +
+                                            (solicitud.razon_social
+                                                ? solicitud.razon_social.nombre + ' «' + (solicitud.contacto.persona.nombre || '') + ' ' + (solicitud.contacto.persona.apellidos || '') + '»'
+                                                : (solicitud.contacto.persona.nombre || '') + ' ' + (solicitud.contacto.persona.apellidos || ''))
+                                        }}
                                     </template>
                                     <template v-else>
-                                        {{ solicitud.contacto.persona.nombre + ' ' + solicitud.contacto.persona.apellidos + (solicitud.razon_social ? ' «' + solicitud.razon_social.nombre + '»' : '') }}
+                                        {{
+                                            solicitud.contacto.persona.nombre +
+                                            ' ' +
+                                            solicitud.contacto.persona.apellidos +
+                                            (solicitud.razon_social
+                                                ? ' «' + solicitud.razon_social.nombre + '»'
+                                                : '')
+                                        }}
                                     </template>
-                                </p>
-                            </div>
-                            <div v-else class="border-b dark:border-gray-700 pb-2">
-                                <span class="font-bold text-gray-700 dark:text-gray-300">Solicitante: </span>
-                                <p class="text-gray-600 dark:text-gray-400 break-words text-xs">
-                                    {{ (solicitud.contacto.persona.nombre || '') + ' ' + (solicitud.contacto.persona.apellidos || '') }}
-                                </p>
-                            </div>
-                            <div class="flex flex-col space-y-1 pt-1">
-                                <div>
-                                    <span class="font-bold text-gray-700 dark:text-gray-300">Fecha Ingreso: </span>
-                                    <span class="text-gray-600 dark:text-gray-400 text-xs">{{ formatDate(solicitud.fecha_ingreso) }}</span>
-                                </div>
-                                <div v-if="solicitud.fecha_aceptacion">
-                                    <span class="font-bold text-gray-700 dark:text-gray-300">Fecha Aceptación: </span>
-                                    <span class="text-gray-600 dark:text-gray-400 text-xs">{{ formatDate(solicitud.fecha_aceptacion) }}</span>
-                                </div>
-                                <div v-if="solicitud.propiedad && solicitud.propiedad.clave_catastral" @mousedown.stop>
-                                    <span class="font-bold text-gray-700 dark:text-gray-300">Cve. Catastral: </span>
-                                    <span class="text-xs text-gray-600 dark:text-gray-400 select-text cursor-text" @click.stop>{{ solicitud.propiedad.clave_catastral }}</span>
-                                </div>
-                                <div v-if="solicitud.propiedad && solicitud.propiedad.localidad">
-                                    <span class="font-bold text-gray-700 dark:text-gray-300">Localidad: </span>
-                                    <span class="text-xs text-gray-600 dark:text-gray-400">{{ solicitud.propiedad.localidad.nombre }}</span>
-                                </div>
-                                <div v-if="solicitud.referencia?.localidad && solicitud.referencia?.localidad">
-                                    <span class="font-bold text-gray-700 dark:text-gray-300">Localidad: </span>
-                                    <span class="text-xs text-gray-600 dark:text-gray-400">{{ solicitud.referencia.localidad.nombre }}</span>
-                                </div>
-                                <div class="flex items-baseline">
-                                    <span class="font-bold text-gray-700 dark:text-gray-300 mr-1">Estatus:</span>
-                                    <span class="flex items-center gap-1 text-gray-600 dark:text-gray-400 font-semibold text-xs"
-                                        :style="{ color: solicitud.estatus.color }">
+                                </td>
+                                <td class="px-4 py-2 leading-none whitespace-nowrap">
+                                    <template v-if="solicitud.propiedad && solicitud.propiedad.clave_catastral">
+                                        <template v-for="(char, index) in solicitud.propiedad.clave_catastral.toString().split('')" :key="'char-' + index">
+                                            
+                                            <span :class="[
+                                                'text-center w-[7.15px] font-medium inline-block', // w-[7px] e inline-block simulan el ancho fijo de la celda
+                                                {
+                                                    // Si el índice del grupo es PAR, usa Gray-600
+                                                    'text-gray-500': Math.floor(index / 3) % 2 === 0, 
+                                                    
+                                                    // Si el índice del grupo es IMPAR, usa Gray-500
+                                                    'text-gray-400': Math.floor(index / 3) % 2 !== 0 
+                                                }
+                                            ]">
+                                                {{ char }}
+                                            </span>
+                                        </template>
+                                    </template>
+                                    <template v-else>
+                                        <span class="text-center text-gray-500 font-medium inline-block">N/A</span>
+                                    </template>
+                                </td>
+                                <td class="px-4 py-2">
+                                    <ul v-if="solicitud.tramites && solicitud.tramites.length > 0">
+                                        <li v-for="sTramites in solicitud.tramites" :key="sTramites.id" class="flex items-start gap-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="flex-shrink-0 w-2 h-2 text-color1-300 mt-1" fill="currentColor" viewBox="0 0 16 16">
+                                                <path d="M2 2v13.5l6-3.5 6 3.5V2z" />
+                                            </svg>
+                                            <span>{{ sTramites.tramite.nombre_abreviado }}</span>
+                                        </li>
+                                    </ul>
+                                    <div v-else class="text-gray-500">SIN TRÁMITES</div>
+                                </td>
+                                <td class="px-4 py-2 font-semibold text-center">
+                                    <span :class="{
+                                        // justify-center centra el contenido horizontalmente.
+                                        'inline-flex items-center justify-center rounded-full px-1 py-[2px] ring-1 ring-inset shadow-sm w-14': true,
+
+                                        // Clases para cuando SÍ hay folio (color2)
+                                        'bg-white text-color1-700 ring-color1-700/10': solicitud.folio,
+
+                                        // Clases para cuando NO hay folio (color3)
+                                        'bg-white text-color3-700 ring-color3-700/10': !solicitud.folio
+                                    }">
+                                        {{ solicitud.folio ? (solicitud.folio % 10000).toString().padStart(4, '0') : '----' }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-2">
+                                    {{ formatDate(solicitud.fecha_aceptacion) }}
+                                </td>
+                                <td class="px-4 py-2">
+                                    <span class="flex items-center gap-1">
+                                        <span :style="{ color: solicitud.estatus.color }">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4">
+                                                <path
+                                                    fill-rule="evenodd"
+                                                    d="M5.25 2.25a3 3 0 0 0-3 3v4.318a3 3 0 0 0 .879 2.121l9.58 9.581c.92.92 2.39 1.186 3.548.428a18.849 18.849 0 0 0 5.441-5.44c.758-1.16.492-2.629-.428-3.548l-9.58-9.581a3 3 0 0 0-2.122-.879H5.25ZM6.375 7.5a1.125 1.125 0 1 0 0-2.25 1.125 1.125 0 0 0 0 2.25Z"
+                                                    clip-rule="evenodd"
+                                                />
+                                            </svg>
+                                        </span>
                                         {{ solicitud.estatus.nombre }}
                                     </span>
-                                </div>
-                            </div>
-
-                            <div class="pt-2">
-                                <span class="font-bold text-gray-700 dark:text-gray-300 block mb-1">Trámites: </span>
-                                <div v-if="solicitud.tramites && solicitud.tramites.length > 0" class="flex flex-wrap gap-x-2 gap-y-1">
-                                      <span 
-                                        v-for="sTramites in solicitud.tramites" 
-                                        :key="sTramites.id" 
-                                        class="text-gray-600 dark:text-gray-400 bg-gray-100  dark:bg-gray-700 px-2 py-0.5 rounded-md text-xs font-medium"
-                                        
-                                        :style="getBorderStyle(sTramites.tramite.tipo_tramite.id - 1)">
-                                        
-                                        {{ sTramites.tramite.nombre_abreviado }}
-                                    </span>
-                                </div>
-                                <div v-else class="inline text-color1-500 text-xs">SIN TRÁMITES</div>
-                            </div>
-                        </div>
-                    </div>
+                                </td>
+                                <td class="px-4 py-2 flex items-center justify-end text-left">
+                                    <button
+                                        @click="toggleDropdown(solicitud.id, $event)"
+                                        :id="`dropdown-button-${solicitud.id}`"
+                                        class="inline-flex items-center p-0.5 text-sm font-medium text-gray-500 hover:text-gray-800 rounded-lg focus:outline-none dark:text-gray-400 dark:hover:text-gray-100"
+                                        type="button">
+                                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
+                                        </svg>
+                                    </button>
+                                    <div
+                                        v-show="dropdownVisible === solicitud.id"
+                                        :id="'dropdown-' + solicitud.id"
+                                        class="border border-gray-100 absolute right-0 mb-3 z-50 w-44 bg-white rounded divide-y divide-gray-100 shadow-2xl dark:bg-gray-700 dark:divide-gray-600">
+                                        <ul class="text-left py-1 text-sm text-gray-700 dark:text-gray-200" style="text-align: left !important">
+                                            <li class="text-left hover:bg-gray-100 hover:font-bold dark:hover:bg-gray-600 hover:text-gray-700 dark:hover:text-white">
+                                                <button
+                                                    @click="abreModalEditarSolicitud(solicitud)"
+                                                    class="w-full py-2 px-4 text-left hover:bg-transparent dark:hover:bg-transparent hover:text-inherit dark:hover:text-inherit">
+                                                    <span v-if="solicitud.id_estatus >= 6">Ver</span>
+                                                    <span v-else>Editar</span>
+                                                </button>
+                                            </li>
+                                            <li class="hover:bg-gray-100 hover:font-bold dark:hover:bg-gray-600 hover:text-gray-700 dark:hover:text-white">
+                                                <button
+                                                    @click="imprimirSolicitud(solicitud)"
+                                                    class="w-full py-2 px-4 text-left hover:bg-transparent dark:hover:bg-transparent hover:text-inherit dark:hover:text-inherit">
+                                                    <span>Imprimir</span>
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
+                <!-- <Pagination :data="pagination" /> -->
+                <Pagination :data="pagination" @page-changed="handlePageChange" />
             </div>
-            <Pagination :data="pagination" @page-changed="handlePageChange" />
             <div v-if="isLoading" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 transition-opacity">
                 <div class="flex items-center">
                     <svg class="animate-spin h-8 w-8 text-color1-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -6867,6 +6805,14 @@
                     <span class="ml-2 text-gray-300">Cargando...</span>
                 </div>
             </div>
+            <!-- <div v-if="isSearching" class="fixed inset-0 z-50 flex items-center justify-center bg-white bg-opacity-60 transition-opacity">
+                <div class="flex items-center">
+                    <svg class="h-8 w-8 text-color1-500 animate-bounce" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.35-5.65a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <span class="ml-2 text-gray-800">Buscando...</span>
+                </div>
+            </div> -->
         </div>
     </section>
 </template>

@@ -1,13 +1,617 @@
+<script setup>
+    import { ref, onMounted, computed, onUnmounted, watch, nextTick } from 'vue'
+    import { router } from '@inertiajs/vue3'
+    import SolicitudesPorPeriodo from './SolicitudesPorPeriodo.vue';
+    import SolicitudesPorPeriodoTable from './SolicitudesPorPeriodoTable.vue';
+    import TramitesMasSolicitados from './TramitesMasSolicitados.vue';
+    import TramitesMasSolicitadosTable from './TramitesMasSolicitadosTable.vue';
+    import TiposPropiedadRequeridos from './TiposPropiedadRequeridos.vue';
+    import TiposPropiedadRequeridosTable from './TiposPropiedadRequeridosTable.vue';
+    import LocalidadesMasSolicitadas from './LocalidadesMasSolicitadas.vue';
+    import LocalidadesMasSolicitadasTable from './LocalidadesMasSolicitadasTable.vue';
+
+    const updateText = () => {
+        const spanElement = document.getElementById('selected-option-text');
+        // const spanElement2 = document.getElementById('selected-option-text2');
+
+        
+        if (spanElement) 
+        {
+            if (window.innerWidth < 768) 
+            { // Cambia el texto en pantallas pequeñas
+                if (!tipoEstadistica) spanElement.textContent = 'Sele...';
+                // spanElement2.textContent = 'Sele...';
+
+            } else 
+            { // Regresa al texto original en pantallas grandes
+                if (!tipoEstadistica) spanElement.textContent = 'Selecciona un Gráfico';
+                // spanElement2.textContent = 'Selecciona una Estadística';
+            }
+        }
+    };
+    
+    const props = defineProps({
+        periodoActual: Object,
+        tipoGrafico: String,
+        tipoEstadistica: String,
+        fechaInicioQuery: String,
+        fechaFinQuery: String,
+        solicitudesPorPeriodo: Array,
+        totalSolicitudesPorPeriodo: Number,
+        agruparPorDia: Boolean,
+        tramitesMasSolicitados: Array,
+        totalTramitesMasSolicitados: Number,
+        elementosRanking: Number,
+        tiposPropiedad: Array,
+        localidadesMasSolicitadas: Array,
+        vieneDeDashboard: {
+            type: Boolean,
+            default: false,
+        },
+    })
+
+    const rangoFechasQuery = ref([])
+    const rangoFechasManual = ref(false)
+    // const fechaInicioQuery = ref('')
+    // const fechaFinQuery = ref('')
+    const periodoActual = ref(props.periodoActual || {})
+    const estadisticaName = ref('')
+    const estadisticaLabel = ref('')
+    const inicializarRango = ref(false)
+    const verTabla = ref(false)
+
+    // Lógica para establecer el rango de fechas al cargar el componente
+    const establecerRangoInicial = () => {
+        const hoy = new Date();
+
+        // Obtenemos el año, mes y día de hoy
+        const yearHoy = hoy.getFullYear();
+        const monthHoy = String(hoy.getMonth() + 1).padStart(2, '0'); // Los meses van de 0 a 11, por eso se suma 1
+        const dayHoy = String(hoy.getDate()).padStart(2, '0');
+
+        // Obtenemos el año, mes y día del primer día del mes
+        const primerDiaDelMes = new Date(yearHoy, hoy.getMonth(), 1);
+        const yearPrimerDia = primerDiaDelMes.getFullYear();
+        const monthPrimerDia = String(primerDiaDelMes.getMonth() + 1).padStart(2, '0');
+        const dayPrimerDia = String(primerDiaDelMes.getDate()).padStart(2, '0');
+
+        // Construimos las cadenas de fecha en el formato 'YYYY-MM-DD'
+        const fechaHoyFormateada = `${yearHoy}-${monthHoy}-${dayHoy}`;
+        const primerDiaDelMesFormateado = `${yearPrimerDia}-${monthPrimerDia}-${dayPrimerDia}`;        
+
+        // Asignamos el array de fechas formateadas a la variable reactiva
+        rangoFechasQuery.value = [primerDiaDelMesFormateado, fechaHoyFormateada];
+
+        inicializarRango.value = false
+    };
+
+    const graficos = [
+            { id: '1', name: 'Barras', svg: '<svg xmlns="http://www.w3.org/2000/svg" class="size-4" viewBox="0 0 24 24" fill="currentColor" class="size-6"><path d="M18.375 2.25c-1.035 0-1.875.84-1.875 1.875v15.75c0 1.035.84 1.875 1.875 1.875h.75c1.035 0 1.875-.84 1.875-1.875V4.125c0-1.036-.84-1.875-1.875-1.875h-.75ZM9.75 8.625c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v11.25c0 1.035-.84 1.875-1.875 1.875h-.75a1.875 1.875 0 0 1-1.875-1.875V8.625ZM3 13.125c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v6.75c0 1.035-.84 1.875-1.875 1.875h-.75A1.875 1.875 0 0 1 3 19.875v-6.75Z" /></svg>' },
+            // { id: '2', name: 'Pastel', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6"><path fill-rule="evenodd" d="M2.25 13.5a8.25 8.25 0 0 1 8.25-8.25.75.75 0 0 1 .75.75v6.75H18a.75.75 0 0 1 .75.75 8.25 8.25 0 0 1-16.5 0Z" clip-rule="evenodd" /><path fill-rule="evenodd" d="M12.75 3a.75.75 0 0 1 .75-.75 8.25 8.25 0 0 1 8.25 8.25.75.75 0 0 1-.75.75h-7.5a.75.75 0 0 1-.75-.75V3Z" clip-rule="evenodd" /></svg>' },
+            { id: '3', name: 'Dona', svg: '<svg xmlns="http://www.w3.org/2000/svg"  viewBox="0 -960 960 960" width="20px" fill="currentColor"><path d="M441-82Q287-97 184-211T81-480q0-155 103-269t257-129v120q-104 14-172 93t-68 185q0 106 68 185t172 93v120Zm80 0v-120q94-12 159-78t79-160h120q-14 143-114.5 243.5T521-82Zm238-438q-14-94-79-160t-159-78v-120q143 14 243.5 114.5T879-520H759Z"/></svg>' },
+            { id: '4', name: 'Líneas', svg: '<svg xmlns="http://www.w3.org/2000/svg" class="size-5" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M120-240q-33 0-56.5-23.5T40-320q0-33 23.5-56.5T120-400h10.5q4.5 0 9.5 2l182-182q-2-5-2-9.5V-600q0-33 23.5-56.5T400-680q33 0 56.5 23.5T480-600q0 2-2 20l102 102q5-2 9.5-2h21q4.5 0 9.5 2l142-142q-2-5-2-9.5V-640q0-33 23.5-56.5T840-720q33 0 56.5 23.5T920-640q0 33-23.5 56.5T840-560h-10.5q-4.5 0-9.5-2L678-420q2 5 2 9.5v10.5q0 33-23.5 56.5T600-320q-33 0-56.5-23.5T520-400v-10.5q0-4.5 2-9.5L420-522q-5 2-9.5 2H400q-2 0-20-2L198-340q2 5 2 9.5v10.5q0 33-23.5 56.5T120-240Z"/></svg>' },
+            { id: '5', name: 'Radial', svg: '<svg  xmlns="http://www.w3.org/2000/svg"  class="size-5" viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="1.5"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-chart-radar"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3l9.5 7l-3.5 11h-12l-3.5 -11z" /><path d="M12 7.5l5.5 4l-2.5 5.5h-6.5l-2 -5.5z" /><path d="M2.5 10l9.5 3l9.5 -3" /><path d="M12 3v10l6 8" /><path d="M6 21l6 -8" /></svg>' },
+    ];
+
+    const estadisticas_graficos = [
+        { 
+            estadisticaId: '1', 
+            estadisticaName: 'Solicitudes por periodo',
+            estadisticaLabel: 'Solicitudes',
+            graficos: ['4'] // Líneas
+        },
+        { 
+            estadisticaId: '2', 
+            estadisticaName: 'Trámites más solicitados',
+            estadisticaLabel: 'Trámites más solicitados',
+            graficos: ['1'] // Barras
+        },
+        { 
+            estadisticaId: '3', 
+            estadisticaName: 'Tipos de propiedad requeridos',
+            estadisticaLabel: 'Tipos de propiedad requeridos',
+            graficos: ['3'] // Dona
+        },
+        { 
+            estadisticaId: '4', 
+            estadisticaName: 'Localidades con mayor demanda',
+            estadisticaLabel: 'Localidades con mayor demanda',
+            graficos: ['5'] // Dona
+        },
+    ];
+
+    const selectedOption = ref('')
+
+    function selectOption(option) 
+    {
+        if (selectedOption.value && selectedOption.value.estadisticaId === option.estadisticaId) {
+            toggleDropdown();
+            return; 
+        }
+
+        if (!option)
+        {
+            return;
+        }
+
+        selectedOption.value = option;
+
+        const svgGrafico = graficos.find(grafico => grafico.id === option?.graficos[0]);
+        document.getElementById('selected-option-svg').innerHTML = svgGrafico?.svg
+        document.getElementById('selected-option-text').innerHTML = option?.estadisticaName
+
+
+        estadisticaLabel.value = option.estadisticaLabel
+        if (rangoFechasManual.value)
+        {
+            estadisticaName.value = option.estadisticaLabel + ' entre ' + selectedShortcutDescription.value
+        }
+        else
+        {
+            estadisticaName.value = option.estadisticaLabel + ' en ' + selectedShortcutDescription.value
+        }
+
+        tipoEstadistica.value = option.estadisticaId
+
+        fetchEstadisticas(true);
+
+        isDropdownOpen.value = false;
+    }
+
+   onMounted(() => {
+        establecerRangoInicial()
+
+        if (props.fechaInicioQuery != null)   //Si se abrió la estadísticas desde los paneles
+        { 
+            rangoFechasQuery.value[0] = props.fechaInicioQuery
+            rangoFechasQuery.value[1] = props.fechaFinQuery
+
+            tipoEstadistica.value = props.tipoEstadistica
+
+            selectOption(estadisticas_graficos[tipoEstadistica.value])
+        }
+
+        document.addEventListener('click', closeDropdown);
+
+        window.addEventListener('resize', updateText);
+
+        inicializarRango.value = false
+    })
+
+    const selectedShortcutDescription = ref('General');
+
+    watch(rangoFechasQuery, (newRange) => {
+        // 1. Manejar casos donde el rango sea nulo, indefinido o vacío
+        if (!newRange || newRange.length === 0) {
+            if (inicializarRango.value) 
+            {
+                selectedShortcutDescription.value = 'General';
+                rangoFechasManual.value = false 
+                return;         
+            }
+            else 
+            {
+                selectedShortcutDescription.value = 'el Mes Actual';
+                inicializarRango.value = true
+                rangoFechasManual.value = false 
+                return;
+            }
+        }
+
+        // 2. Convertir las cadenas a objetos Date, ahora correctamente como UTC
+        const start = new Date(newRange[0] + 'T00:00:00.000Z');
+        const end = new Date(newRange[1] + 'T00:00:00.000Z');
+
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+            selectedShortcutDescription.value = '-----';
+            return;
+        }
+        
+        // 3. Encontrar el atajo coincidente comparando componentes de fecha en UTC
+        const matchedShortcut = shortcuts.value.find(shortcut => {
+            const shortcutRange = shortcut.value();
+
+            if (!Array.isArray(shortcutRange) || shortcutRange.length < 2) {
+                return false;
+            }
+
+            const shortcutRangeStart = shortcutRange[0];
+            const shortcutRangeEnd = shortcutRange[1];
+
+            // Usar los métodos UTC para la comparación
+            const startMatches = start.getUTCFullYear() === shortcutRangeStart.getUTCFullYear() &&
+                                start.getUTCMonth() === shortcutRangeStart.getUTCMonth() &&
+                                start.getUTCDate() === shortcutRangeStart.getUTCDate();
+
+            const endMatches = end.getUTCFullYear() === shortcutRangeEnd.getUTCFullYear() &&
+                            end.getUTCMonth() === shortcutRangeEnd.getUTCMonth() &&
+                            end.getUTCDate() === shortcutRangeEnd.getUTCDate();
+
+            return startMatches && endMatches;
+        });
+
+        // 4. Actualizar la descripción
+        if (matchedShortcut) 
+        {
+            selectedShortcutDescription.value = matchedShortcut.descripcion;
+            rangoFechasManual.value = false 
+        } 
+        else 
+        {
+            if (inicializarRango.value) 
+            {
+                const fechaInicioFormateada = formatDate(rangoFechasQuery.value[0]);
+                const fechaFinFormateada = formatDate(rangoFechasQuery.value[1]);
+                selectedShortcutDescription.value =  fechaInicioFormateada + ' y ' + fechaFinFormateada;
+                rangoFechasManual.value = true // 'Rango personalizado';
+            }
+            else 
+            {
+                selectedShortcutDescription.value = 'el Mes Actual';
+                inicializarRango.value = true
+                rangoFechasManual.value = false 
+            }
+        }
+    }, { immediate: true });
+
+    const shortcuts = computed(() => {
+        // Shortcuts estáticos que siempre van al inicio
+        const staticShortcuts = [
+            // {
+            //     id: 10,
+            //     text: 'Últ. Año',
+            //     value: () => {
+            //         const end = new Date();
+            //         const start = new Date();
+            //         start.setFullYear(start.getFullYear() - 1);
+            //         return [start, end];
+            //     },
+            // },
+        ];
+
+        if (!periodoActual.value) {
+            return staticShortcuts;
+        }
+
+        // Mapa para agrupar los shortcuts por año.
+        const groupedShortcuts = new Map();
+
+        const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        const fullMonthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']; // 🎯 Nuevo array de nombres completos
+        const quarterStartMonths = { 'Q1': 0, 'Q2': 3, 'Q3': 6, 'Q4': 9 };
+        const quarterNames = ['Trim 1', 'Trim 2', 'Trim 3', 'Trim 4'];
+        const fullQuarterNames = ['Primer', 'Segundo', 'Tercer', 'Cuarto'];
+
+        const inicioPeriodo = new Date(periodoActual.value.inicio + 'T00:00:00');
+        const today = new Date();
+
+        // Función auxiliar para agregar un shortcut al grupo de su año
+        const addShortcut = (shortcut) => {
+            const year = shortcut.year;
+            if (!groupedShortcuts.has(year)) {
+                groupedShortcuts.set(year, []);
+            }
+            groupedShortcuts.get(year).push(shortcut);
+        };
+
+        // --- Generar shortcuts mensuales ---
+        let monthlyDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        while (monthlyDate >= inicioPeriodo) {
+            const startOfMonth = new Date(monthlyDate.getFullYear(), monthlyDate.getMonth(), 1);
+            const endOfMonth = new Date(monthlyDate.getFullYear(), monthlyDate.getMonth() + 1, 0);
+
+            addShortcut({
+                type: 'monthly',
+                year: monthlyDate.getFullYear(),
+                month: monthlyDate.getMonth(),
+                text: `${monthlyDate.getFullYear().toString()} - ${monthNames[monthlyDate.getMonth()]}`,
+                value: () => [startOfMonth, endOfMonth],
+            });
+            monthlyDate.setMonth(monthlyDate.getMonth() - 1);
+        }
+
+        // --- Generar shortcuts trimestrales ---
+        let startQuarterMonth = inicioPeriodo.getMonth();
+        let startQuarterYear = inicioPeriodo.getFullYear();
+        if (startQuarterMonth < quarterStartMonths['Q4']) {
+            if (startQuarterMonth < quarterStartMonths['Q3']) {
+                if (startQuarterMonth < quarterStartMonths['Q2']) {
+                    startQuarterMonth = quarterStartMonths['Q1'];
+                } else {
+                    startQuarterMonth = quarterStartMonths['Q2'];
+                }
+            } else {
+                startQuarterMonth = quarterStartMonths['Q3'];
+            }
+        } else {
+            startQuarterMonth = quarterStartMonths['Q4'];
+        }
+
+        let currentQuarterDate = new Date(startQuarterYear, startQuarterMonth, 1);
+        
+        while (currentQuarterDate <= today) {
+            const month = currentQuarterDate.getMonth();
+            const quarterIndex = Math.floor(month / 3);
+            const startOfQuarter = new Date(currentQuarterDate.getFullYear(), month, 1);
+            const endOfQuarter = new Date(startOfQuarter);
+            endOfQuarter.setMonth(endOfQuarter.getMonth() + 3);
+            endOfQuarter.setDate(endOfQuarter.getDate() - 1);
+
+            const finalStart = startOfQuarter < inicioPeriodo ? inicioPeriodo : startOfQuarter;
+
+            addShortcut({
+                type: 'quarterly',
+                year: currentQuarterDate.getFullYear(),
+                quarter: quarterIndex,
+                text: `${currentQuarterDate.getFullYear().toString()} - ${quarterNames[quarterIndex]}`,
+                value: () => [finalStart, endOfQuarter],
+            });
+
+            currentQuarterDate.setMonth(currentQuarterDate.getMonth() + 3);
+        }
+
+        // --- Ordenar, aplanar y agregar el atajo de año ---
+        let finalShortcuts = [];
+        const sortedYears = [...groupedShortcuts.keys()].sort((a, b) => b - a);
+
+        sortedYears.forEach(year => {
+            // Agregamos un atajo para el año completo
+            finalShortcuts.push({
+                type: 'year',
+                year: year, // 🎯 Asegúrate de agregar esta línea para que 'year' esté disponible.
+                text: `${year}`,
+                value: () => {
+                    const startOfYear = new Date(year, 0, 1);
+                    const endOfYear = new Date(year, 11, 31);
+                    const finalStart = startOfYear < inicioPeriodo ? inicioPeriodo : startOfYear;
+                    return [finalStart, endOfYear];
+                },
+            });
+
+            const yearShortcuts = groupedShortcuts.get(year);
+            const quarterly = yearShortcuts.filter(sc => sc.type === 'quarterly');
+            const monthly = yearShortcuts.filter(sc => sc.type === 'monthly');
+            quarterly.sort((a, b) => b.quarter - a.quarter);
+            monthly.sort((a, b) => b.month - a.month);
+            finalShortcuts = finalShortcuts.concat(monthly, quarterly);
+        });
+
+        // Mapeamos a la estructura final y agregamos IDs y descripciones
+        finalShortcuts = finalShortcuts.map((sc, index) => {
+            let descripcion = '';
+            // Genera la descripción basada en el tipo de atajo
+            switch (sc.type) {
+                case 'year':
+                    // Ahora 'sc.year' estará definido correctamente
+                    descripcion = `${sc.year}`;
+                    break;
+                case 'monthly':
+                    descripcion = `${fullMonthNames[sc.month]} de ${sc.year}`;
+                    break;
+                case 'quarterly':
+                    descripcion = `el ${fullQuarterNames[sc.quarter]} Trimestre de ${sc.year}`;
+                    break;
+                default:
+                    descripcion = sc.text;
+            }
+            return {
+                id: `sc-${sc.year}-${sc.type}-${index}`,
+                text: sc.text,
+                value: sc.value,
+                descripcion: descripcion,
+            };
+        });
+
+        return [...staticShortcuts, ...finalShortcuts];
+    });
+
+      const isDropdownOpen = ref(false);
+      const dropdownRef = ref(null);
+      const isLoading = ref(false)
+      const tipoGrafico = ref('')
+      const tipoEstadistica = ref('') 
+      const elementosRanking = ref(props.elementosRanking || 3)
+      const estadisticasCargadas = ref(true)
+
+        // Funciones
+        const toggleDropdown = () => {
+            isDropdownOpen.value = !isDropdownOpen.value;
+        };
+
+        const closeDropdown = (event) => {
+            if (dropdownRef.value && !dropdownRef.value.contains(event.target)) {
+                isDropdownOpen.value = false;
+            }
+        };
+
+        onUnmounted(() => {
+            document.removeEventListener('click', closeDropdown);
+
+            window.removeEventListener('resize', updateText);
+        });
+
+        async function fetchEstadisticas(onMounted, inputDate = false) 
+        {
+            if (rangoFechasQuery.value === null) {
+                establecerRangoInicial();
+
+                // Esperamos a que Vue actualice el DOM y el valor
+                await nextTick();
+            }
+
+            let showLoaderTimeout = null
+
+            if (inputDate) estadisticasCargadas.value = true
+            else estadisticasCargadas.value = false
+
+            // isLoading.value = true //Muestra la pantalla de Cargando...
+
+            if (onMounted) 
+            {
+                //Si está cargando al montar el componente
+                // isLoading.value = true //Muestra la pantalla de Cargando...
+            } 
+
+            const filtros = {
+                tipoGrafico: tipoGrafico.value,
+                tipoEstadistica: tipoEstadistica.value,
+                fechaInicioQuery: rangoFechasQuery.value[0] || '',
+                fechaFinQuery: rangoFechasQuery.value[1] || '',
+                solicitudes: props.solicitudesPorPeriodo,
+                tramitesMasSolicitados : props.tramitesMasSolicitados,
+                elementosRanking: elementosRanking.value,
+                tiposPropiedad: props.tiposPropiedad,
+                localidadesMasSolicitadas: props.localidadesMasSolicitadas
+            }
+
+            const formData = new FormData()
+
+            for (const key in filtros) {
+                const value = filtros[key]
+
+                // Si es un array, agregar cada elemento con el mismo nombre
+                if (Array.isArray(value)) {
+                    value.forEach((item, index) => {
+                        formData.append(`${key}[${index}]`, item)
+                    })
+                } else {
+                    formData.append(key, value ?? '')
+                }
+            }
+
+            if (props.vieneDeDashboard)
+            {
+                // Realiza la solicitud GET con los parámetros de búsqueda
+                router.post(
+                    '/estadisticas',
+                    formData,
+                    {
+                        preserveState: true,
+                        replace: true,
+                        onStart: () => { // <--- Inicia el estado de carga
+                            setTimeout(() => {
+                                isLoading.value = true;
+                                // Aquí iría la lógica para cargar los datos de los gráficos
+                            }, 100); // 1.5 segundos de retraso simulado
+                        },
+                        onSuccess: () => { // <--- Inicia el estado de carga
+                            isLoading.value = false
+                        }, 
+                        onFinish: () => {
+                            if (onMounted) 
+                            {
+                                isLoading.value = false
+                                estadisticasCargadas.value = true
+                                if (estadisticaLabel.value) 
+                                {
+                                    if (rangoFechasManual.value)
+                                    {
+                                        estadisticaName.value = estadisticaLabel.value + ' entre ' + selectedShortcutDescription.value
+                                    }
+                                    else
+                                    {
+                                        estadisticaName.value = estadisticaLabel.value + ' en ' + selectedShortcutDescription.value
+                                    }
+                                }
+                            } 
+                            else 
+                            {
+                                clearTimeout(showLoaderTimeout)
+                            }
+                        },
+                    }
+                )
+            }
+            else 
+            {
+                // Realiza la solicitud GET con los parámetros de búsqueda
+                router.post(
+                    '/estadisticas',
+                    formData,
+                    {
+                        preserveState: true,
+                        replace: true,
+                        onStart: () => { // <--- Inicia el estado de carga
+                            setTimeout(() => {
+                                // isLoading.value = true;
+                                // Aquí iría la lógica para cargar los datos de los gráficos
+                            }, 100); // 1.5 segundos de retraso simulado
+                        },
+                        onSuccess: () => { // <--- Inicia el estado de carga
+                            isLoading.value = false
+                        }, 
+                        onFinish: () => {
+                            if (onMounted) 
+                            {
+                                isLoading.value = false
+                                estadisticasCargadas.value = true
+                                if (estadisticaLabel.value) 
+                                {
+                                    if (rangoFechasManual.value)
+                                    {
+                                        estadisticaName.value = estadisticaLabel.value + ' entre ' + selectedShortcutDescription.value
+                                    }
+                                    else
+                                    {
+                                        estadisticaName.value = estadisticaLabel.value + ' en ' + selectedShortcutDescription.value
+                                    }
+                                }
+                            } 
+                            else 
+                            {
+                                clearTimeout(showLoaderTimeout)
+                            }
+                        },
+                    }
+                )
+            }
+        }
+
+    function svgEstadistica(id) {
+        const grafico = graficos.find(g => g.id === id);
+        return grafico ? grafico.svg : ''; // Retorna el SVG o una cadena vacía si no se encuentra
+    }
+
+    watch(elementosRanking, () => {
+        if (elementosRanking.value < 2) {
+            elementosRanking.value = 2;
+        } else if (elementosRanking.value > 10) {
+            elementosRanking.value = 10;
+        }
+    });
+
+    const formatDate = (dateString) => {
+    if (!dateString) {
+            return '';
+        }
+        // Divide la cadena 'yyyy-MM-dd' en sus componentes
+        const [year, month, day] = dateString.split('-');
+        // Reorganiza los componentes al formato 'dd/MM/yyyy'
+        return `${day}/${month}/${year}`;
+    };
+</script>
+
 <template>
-    <!-- <section class="bg-gray-50 dark:bg-gray-900 p-3 sm:p-5">
-        <div class="mx-auto max-w-screen-xl lg:px-0 w-[100%] sm:w-[100%] md:w-[100%] lg:w-[100%]">
-            <h1 class="text-2xl font-bold">Estadísticas </h1>
+    <section class="bg-gray-50 dark:bg-gray-900 p-3 sm:p-5 h-screen overflow-hidden flex flex-col">
+        <div v-if="isLoading" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 transition-opacity">
+            <div class="flex items-center">
+                <svg class="animate-spin h-8 w-8 text-color1-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="ml-2 text-gray-300">Cargando...</span>
+            </div>
         </div>
-        <br />
-        <div class="bg-white dark:bg-gray-800 relative shadow-md sm:rounded-lg overflow-visible">
-            <div class="relative flex flex-wrap items-center justify-between gap-2 md:gap-3 p-2">
-                <div class="flex items-center w-full md:w-auto" ref="pickerWrapper">
-                     <el-date-picker
+        <div class="mx-auto max-w-screen-xl lg:px-0 w-[100%] sm:w-[100%] md:w-[100%] lg:w-[100%] mt-20">
+            <div class="flex items-center space-x-4">
+                <h1 class="text-2xl font-bold">Estadísticas </h1>
+            </div>
+        </div>
+        <br>        
+        <div class="bg-white dark:bg-gray-800 relative shadow-md sm:rounded-lg overflow-hidden flex flex-col flex-grow">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-start p-2">
+                <div class="w-full md:w-[250px]">
+                    <el-date-picker
                         v-model="rangoFechasQuery"
                         type="daterange"
                         unlink-panels
@@ -15,191 +619,243 @@
                         start-placeholder="Fecha Inicial"
                         end-placeholder="Fecha Final"
                         :shortcuts="shortcuts"
-                        class="custom-date-picker w-full md:w-[260px]"
+                        class="custom-date-picker w-full"
                         value-format="YYYY-MM-DD"
                         format="DD/MM/YYYY"
-                        @change="onDateChange"/>
-                        <el-date-picker
-                        type="daterange"
-                        unlink-panels
-                        range-separator="-"
-                        start-placeholder="Fecha Inicial"
-                        end-placeholder="Fecha Final"
-                        class="custom-date-picker w-full md:w-[260px]"
-                        value-format="YYYY-MM-DD"
-                        format="DD/MM/YYYY"/>
+                        @change="fetchEstadisticas(true, true)"/>
+                </div>
+                <form class="w-full md:w-auto">
+                    <div class="flex w-full space-x-2 md:w-auto md:flex-none">
+                        <div class="relative flex-1 md:w-auto md:flex-none">
+                            <!-- <button @click.prevent.stop="toggleDropdown" id="states-button"  class="h-[38px] w-full shrink-0 z-10 inline-flex items-center justify-between px-2 text-[15px] font-normal text-center text-gray-500 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 focus:ring-1 focus:ring-color1-500 focus:border-color1-500 dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-gray-700 dark:text-white dark:border-gray-600" type="button"> -->
+                           <button @click.prevent.stop="toggleDropdown" id="states-button" :class="{ 'ring-1 ring-color1-500 border-color1-500': isDropdownOpen }" class="h-[38px] w-full mt-2 md:mt-0 shrink-0 z-10 inline-flex items-center justify-between px-2 text-[15px] font-normal text-center text-gray-500 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-gray-700 dark:text-white dark:border-gray-600" type="button"> 
+                                <div class="flex items-center text-color1-700">
+                                <svg 
+                                    xmlns="http://www.w3.org/2000/svg" 
+                                    width="16" 
+                                    height="16" 
+                                    viewBox="0 0 24 24" 
+                                    fill="none" 
+                                    stroke="currentColor" 
+                                    stroke-width="2" 
+                                    stroke-linecap="round" 
+                                    stroke-linejoin="round"
+                                    v-if="!tipoEstadistica"
+                                    class="icon icon-tabler icons-tabler-outline icon-tabler-chart-bubble mr-0.5">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M6 16m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
+                                    <path d="M16 19m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+                                    <path d="M14.5 7.5m-4.5 0a4.5 4.5 0 1 0 9 0a4.5 4.5 0 1 0 -9 0" />
+                                </svg>
+                                <span id="selected-option-svg" class="flex items-center ml-2 text-color1-700 transform scale-x-[-1]">
+                                </span>
+                                <span id="selected-option-text" class="flex items-center ml-2 mr-2 text-color3-600">
+                                    Selecciona una opción
+                                </span>
+                                </div>
+                                <svg class="w-2.5 h-2.5 ms-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
+                                </svg>
+                            </button>
+
+                            <div id="dropdown-states" ref="dropdownRef" v-if="isDropdownOpen" class="absolute top-full mt-1 left-0 z-20 bg-white divide-y divide-gray-100 rounded-lg shadow-xl w-72 dark:bg-gray-700">
+                                <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
+                                    <li v-for="(option, index) in estadisticas_graficos" :key="index">
+                                        <a 
+                                            href="#" 
+                                            class="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
+                                            @click.prevent="selectOption(option)">
+                                            <div v-html="svgEstadistica(option.graficos[0])" class="me-2 transform scale-x-[-1]"></div>
+                                            {{ option.estadisticaName }}
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>             
+                    </div>
+                </form>
+                <div v-if="tipoEstadistica == '2'" class="md:ml-3 mt-2 md:mt-0 relative">
+                    <el-tooltip content="Elementos del Ranking" placement="top" popper-class="dark-tooltip">
+                    <input
+                        type="number"
+                        id="elementos_ranking"
+                        class="custom-input pl-10 block w-full md:w-20 p-2 text-sm text-gray-700 border border-gray-300 rounded-lg bg-gray-50 focus:ring-color1-500 focus:border-color1-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500"
+                        v-model="elementosRanking"
+                        min="2"
+                        max="10"
+                        @input="fetchEstadisticas(true, true)"/>
+                    </el-tooltip>
+                    
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-color1-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" height="18px" stroke="currentColor"  stroke-width="0.25" viewBox="0 -960 960 960" width="24px"  fill="currentColor">
+                            <path d="M480-160q75 0 127.5-52.5T660-340q0-75-52.5-127.5T480-520q-75 0-127.5 52.5T300-340q0 75 52.5 127.5T480-160ZM363-572q20-11 42.5-17.5T451-598L350-800H250l113 228Zm234 0 114-228H610l-85 170 19 38q14 4 27 8.5t26 11.5ZM256-208q-17-29-26.5-62.5T220-340q0-36 9.5-69.5T256-472q-42 14-69 49.5T160-340q0 47 27 82.5t69 49.5Zm448 0q42-14 69-49.5t27-82.5q0-47-27-82.5T704-472q17 29 26.5 62.5T740-340q0 36-9.5 69.5T704-208ZM480-80q-40 0-76.5-11.5T336-123q-9 2-18 2.5t-19 .5q-91 0-155-64T80-339q0-87 58-149t143-69L120-880h280l80 160 80-160h280L680-559q85 8 142.5 70T880-340q0 92-64 156t-156 64q-9 0-18.5-.5T623-123q-31 20-67 31.5T480-80Zm0-260ZM363-572 250-800l113 228Zm234 0 114-228-114 228ZM406-230l28-91-74-53h91l29-96 29 96h91l-74 53 28 91-74-56-74 56Z" />
+                        </svg>
+                    </div>
+                </div>
+                <div v-if="tipoEstadistica == '4'" class="md:ml-3 mt-2 md:mt-0 relative">
+                    <el-tooltip content="Elementos del Ranking" placement="top" popper-class="dark-tooltip">
+                    <input
+                        type="number"
+                        id="elementos_ranking"
+                        class="custom-input pl-10 block w-full md:w-20 p-2 text-sm text-gray-700 border border-gray-300 rounded-lg bg-gray-50 focus:ring-color1-500 focus:border-color1-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500"
+                        v-model="elementosRanking"
+                        min="2"
+                        max="10"
+                        @input="fetchEstadisticas(true, true)"/>
+                    </el-tooltip>
+                    
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-color1-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" height="18px" stroke="currentColor"  stroke-width="0.25" viewBox="0 -960 960 960" width="24px"  fill="currentColor">
+                            <path d="M480-160q75 0 127.5-52.5T660-340q0-75-52.5-127.5T480-520q-75 0-127.5 52.5T300-340q0 75 52.5 127.5T480-160ZM363-572q20-11 42.5-17.5T451-598L350-800H250l113 228Zm234 0 114-228H610l-85 170 19 38q14 4 27 8.5t26 11.5ZM256-208q-17-29-26.5-62.5T220-340q0-36 9.5-69.5T256-472q-42 14-69 49.5T160-340q0 47 27 82.5t69 49.5Zm448 0q42-14 69-49.5t27-82.5q0-47-27-82.5T704-472q17 29 26.5 62.5T740-340q0 36-9.5 69.5T704-208ZM480-80q-40 0-76.5-11.5T336-123q-9 2-18 2.5t-19 .5q-91 0-155-64T80-339q0-87 58-149t143-69L120-880h280l80 160 80-160h280L680-559q85 8 142.5 70T880-340q0 92-64 156t-156 64q-9 0-18.5-.5T623-123q-31 20-67 31.5T480-80Zm0-260ZM363-572 250-800l113 228Zm234 0 114-228-114 228ZM406-230l28-91-74-53h91l29-96 29 96h91l-74 53 28 91-74-56-74 56Z" />
+                        </svg>
+                    </div>
+                </div>
+                <div v-if="tipoEstadistica" class="flex flex-col items-end w-full md:w-auto ml-8 mt-2">
+                    <el-switch
+                    v-model="verTabla"
+                    class="custom-switch w-full md:w-auto"
+                    size="large"
+                    inactive-text="Ver gráfico"
+                    active-text="Ver tabla"/>
                 </div>
             </div>
-<el-select id="select" name="selected" value="4" class="mt-2 block">
-  <button type="button" class="grid w-full cursor-default grid-cols-1 rounded-md bg-white py-1.5 pr-2 pl-3 text-left text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-600 sm:text-sm/6">
-    <el-selectedcontent class="col-start-1 row-start-1 flex items-center gap-3 pr-6">
-      <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="" class="size-5 shrink-0 rounded-full bg-gray-100" />
-      <span class="block truncate">Tom Cook</span>
-    </el-selectedcontent>
-    <svg viewBox="0 0 16 16" fill="currentColor" data-slot="icon" aria-hidden="true" class="col-start-1 row-start-1 size-5 self-center justify-self-end text-gray-500 sm:size-4">
-      <path d="M5.22 10.22a.75.75 0 0 1 1.06 0L8 11.94l1.72-1.72a.75.75 0 1 1 1.06 1.06l-2.25 2.25a.75.75 0 0 1-1.06 0l-2.25-2.25a.75.75 0 0 1 0-1.06ZM10.78 5.78a.75.75 0 0 1-1.06 0L8 4.06 6.28 5.78a.75.75 0 0 1-1.06-1.06l2.25-2.25a.75.75 0 0 1 1.06 0l2.25 2.25a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" fill-rule="evenodd" />
-    </svg>
-  </button>
+            <span id="badge-estadistica" v-if="estadisticasCargadas" class="flex justify-center w-full mt-2 px-2 text-xl font-medium text-gray-700 ">
+                {{ estadisticaName }}
+            </span>
+            <!-- <div class="flex-grow flex flex-col overflow-hidden px-10">                   
+                <div class="flex-grow flex flex-col">              
+                    <SolicitudesPorPeriodo class="pb-1" v-if="tipoEstadistica == '1' && props.solicitudesPorPeriodo && props.solicitudesPorPeriodo.length > 0" :solicitudes="props.solicitudesPorPeriodo" />
+                    <TramitesMasSolicitados class="pb-1" v-if="tipoEstadistica == '2' && props.tramitesMasSolicitados && props.tramitesMasSolicitados.length > 0" :tramitesMasSolicitados="props.tramitesMasSolicitados" />
+                    <TiposPropiedadRequeridos class="pb-1" v-if="tipoEstadistica == '3' && props.tiposPropiedad && props.tiposPropiedad.length > 0" :tiposPropiedad="props.tiposPropiedad" />
+                    <LocalidadesMasSolicitadas class="pb-1" v-if="tipoEstadistica == '4' && props.localidadesMasSolicitadas && props.localidadesMasSolicitadas.length > 0" :localidadesMasSolicitadas="props.localidadesMasSolicitadas" />
+                </div>
+            </div> -->
+            <div class="flex-grow flex flex-col overflow-y-auto px-10">
+                <div class="flex-grow flex flex-col">
+                    <SolicitudesPorPeriodo class="pb-1 h-full" v-if="tipoEstadistica == '1' && !verTabla && props.solicitudesPorPeriodo && props.solicitudesPorPeriodo.length > 0" :solicitudes="props.solicitudesPorPeriodo" />
+                    <SolicitudesPorPeriodoTable class="pb-1" v-if="tipoEstadistica == '1' && verTabla && props.solicitudesPorPeriodo && props.solicitudesPorPeriodo.length > 0" :solicitudes="props.solicitudesPorPeriodo" :totalSolicitudes="totalSolicitudesPorPeriodo" :agruparPorDia="props.agruparPorDia" />
+                    
+                    <TramitesMasSolicitados class="pb-1 h-full" v-if="tipoEstadistica == '2' && !verTabla && props.tramitesMasSolicitados && props.tramitesMasSolicitados.length > 0" :tramitesMasSolicitados="props.tramitesMasSolicitados" />
+                    <TramitesMasSolicitadosTable class="pb-1 h-full" v-if="tipoEstadistica == '2' && verTabla && props.tramitesMasSolicitados && props.tramitesMasSolicitados.length > 0" :tramitesMasSolicitados="props.tramitesMasSolicitados" :totalTramitesMasSolicitados="props.totalTramitesMasSolicitados"/>
+                    
+                    <TiposPropiedadRequeridos class="pb-1 h-full" v-if="tipoEstadistica == '3' && !verTabla && props.tiposPropiedad && props.tiposPropiedad.length > 0" :tiposPropiedad="props.tiposPropiedad" />
+                    <TiposPropiedadRequeridosTable class="pb-1 h-full" v-if="tipoEstadistica == '3' && verTabla && props.tiposPropiedad && props.tiposPropiedad.length > 0" :tiposPropiedad="props.tiposPropiedad" :totalSolicitudes="totalSolicitudesPorPeriodo"/>
 
-  <el-options anchor="bottom start" popover class="max-h-56 w-(--button-width) overflow-auto rounded-md bg-white py-1 text-base shadow-lg outline-1 outline-black/5 [--anchor-gap:--spacing(1)] data-leave:transition data-leave:transition-discrete data-leave:duration-100 data-leave:ease-in data-closed:data-leave:opacity-0 sm:text-sm">
-    <el-option value="1" class="group/option relative block cursor-default py-2 pr-9 pl-3 text-gray-900 select-none focus:bg-indigo-600 focus:text-white focus:outline-hidden">
-      <div class="flex items-center">
-        <img src="https://images.unsplash.com/photo-1491528323818-fdd1faba62cc?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="" class="size-5 shrink-0 rounded-full" />
-        <span class="ml-3 block truncate font-normal group-aria-selected/option:font-semibold">Wade Cooper</span>
-      </div>
-      <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-indigo-600 group-not-aria-selected/option:hidden group-focus/option:text-white in-[el-selectedcontent]:hidden">
-        <svg viewBox="0 0 20 20" fill="currentColor" data-slot="icon" aria-hidden="true" class="size-5">
-          <path d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd" fill-rule="evenodd" />
-        </svg>
-      </span>
-    </el-option>
-    <el-option value="2" class="group/option relative block cursor-default py-2 pr-9 pl-3 text-gray-900 select-none focus:bg-indigo-600 focus:text-white focus:outline-hidden">
-      <div class="flex items-center">
-        <img src="https://images.unsplash.com/photo-1550525811-e5869dd03032?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="" class="size-5 shrink-0 rounded-full" />
-        <span class="ml-3 block truncate font-normal group-aria-selected/option:font-semibold">Arlene Mccoy</span>
-      </div>
-      <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-indigo-600 group-not-aria-selected/option:hidden group-focus/option:text-white in-[el-selectedcontent]:hidden">
-        <svg viewBox="0 0 20 20" fill="currentColor" data-slot="icon" aria-hidden="true" class="size-5">
-          <path d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd" fill-rule="evenodd" />
-        </svg>
-      </span>
-    </el-option>
-    <el-option value="3" class="group/option relative block cursor-default py-2 pr-9 pl-3 text-gray-900 select-none focus:bg-indigo-600 focus:text-white focus:outline-hidden">
-      <div class="flex items-center">
-        <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2.25&w=256&h=256&q=80" alt="" class="size-5 shrink-0 rounded-full" />
-        <span class="ml-3 block truncate font-normal group-aria-selected/option:font-semibold">Devon Webb</span>
-      </div>
-      <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-indigo-600 group-not-aria-selected/option:hidden group-focus/option:text-white in-[el-selectedcontent]:hidden">
-        <svg viewBox="0 0 20 20" fill="currentColor" data-slot="icon" aria-hidden="true" class="size-5">
-          <path d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd" fill-rule="evenodd" />
-        </svg>
-      </span>
-    </el-option>
-    <el-option value="4" class="group/option relative block cursor-default py-2 pr-9 pl-3 text-gray-900 select-none focus:bg-indigo-600 focus:text-white focus:outline-hidden">
-      <div class="flex items-center">
-        <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="" class="size-5 shrink-0 rounded-full" />
-        <span class="ml-3 block truncate font-normal group-aria-selected/option:font-semibold">Tom Cook</span>
-      </div>
-      <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-indigo-600 group-not-aria-selected/option:hidden group-focus/option:text-white in-[el-selectedcontent]:hidden">
-        <svg viewBox="0 0 20 20" fill="currentColor" data-slot="icon" aria-hidden="true" class="size-5">
-          <path d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd" fill-rule="evenodd" />
-        </svg>
-      </span>
-    </el-option>
-    <el-option value="5" class="group/option relative block cursor-default py-2 pr-9 pl-3 text-gray-900 select-none focus:bg-indigo-600 focus:text-white focus:outline-hidden">
-      <div class="flex items-center">
-        <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="" class="size-5 shrink-0 rounded-full" />
-        <span class="ml-3 block truncate font-normal group-aria-selected/option:font-semibold">Tanya Fox</span>
-      </div>
-      <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-indigo-600 group-not-aria-selected/option:hidden group-focus/option:text-white in-[el-selectedcontent]:hidden">
-        <svg viewBox="0 0 20 20" fill="currentColor" data-slot="icon" aria-hidden="true" class="size-5">
-          <path d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd" fill-rule="evenodd" />
-        </svg>
-      </span>
-    </el-option>
-    <el-option value="6" class="group/option relative block cursor-default py-2 pr-9 pl-3 text-gray-900 select-none focus:bg-indigo-600 focus:text-white focus:outline-hidden">
-      <div class="flex items-center">
-        <img src="https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="" class="size-5 shrink-0 rounded-full" />
-        <span class="ml-3 block truncate font-normal group-aria-selected/option:font-semibold">Hellen Schmidt</span>
-      </div>
-      <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-indigo-600 group-not-aria-selected/option:hidden group-focus/option:text-white in-[el-selectedcontent]:hidden">
-        <svg viewBox="0 0 20 20" fill="currentColor" data-slot="icon" aria-hidden="true" class="size-5">
-          <path d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd" fill-rule="evenodd" />
-        </svg>
-      </span>
-    </el-option>
-    <el-option value="7" class="group/option relative block cursor-default py-2 pr-9 pl-3 text-gray-900 select-none focus:bg-indigo-600 focus:text-white focus:outline-hidden">
-      <div class="flex items-center">
-        <img src="https://images.unsplash.com/photo-1568409938619-12e139227838?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="" class="size-5 shrink-0 rounded-full" />
-        <span class="ml-3 block truncate font-normal group-aria-selected/option:font-semibold">Caroline Schultz</span>
-      </div>
-      <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-indigo-600 group-not-aria-selected/option:hidden group-focus/option:text-white in-[el-selectedcontent]:hidden">
-        <svg viewBox="0 0 20 20" fill="currentColor" data-slot="icon" aria-hidden="true" class="size-5">
-          <path d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd" fill-rule="evenodd" />
-        </svg>
-      </span>
-    </el-option>
-    <el-option value="8" class="group/option relative block cursor-default py-2 pr-9 pl-3 text-gray-900 select-none focus:bg-indigo-600 focus:text-white focus:outline-hidden">
-      <div class="flex items-center">
-        <img src="https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="" class="size-5 shrink-0 rounded-full" />
-        <span class="ml-3 block truncate font-normal group-aria-selected/option:font-semibold">Mason Heaney</span>
-      </div>
-      <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-indigo-600 group-not-aria-selected/option:hidden group-focus/option:text-white in-[el-selectedcontent]:hidden">
-        <svg viewBox="0 0 20 20" fill="currentColor" data-slot="icon" aria-hidden="true" class="size-5">
-          <path d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd" fill-rule="evenodd" />
-        </svg>
-      </span>
-    </el-option>
-    <el-option value="9" class="group/option relative block cursor-default py-2 pr-9 pl-3 text-gray-900 select-none focus:bg-indigo-600 focus:text-white focus:outline-hidden">
-      <div class="flex items-center">
-        <img src="https://images.unsplash.com/photo-1584486520270-19eca1efcce5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="" class="size-5 shrink-0 rounded-full" />
-        <span class="ml-3 block truncate font-normal group-aria-selected/option:font-semibold">Claudie Smitham</span>
-      </div>
-      <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-indigo-600 group-not-aria-selected/option:hidden group-focus/option:text-white in-[el-selectedcontent]:hidden">
-        <svg viewBox="0 0 20 20" fill="currentColor" data-slot="icon" aria-hidden="true" class="size-5">
-          <path d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd" fill-rule="evenodd" />
-        </svg>
-      </span>
-    </el-option>
-    <el-option value="10" class="group/option relative block cursor-default py-2 pr-9 pl-3 text-gray-900 select-none focus:bg-indigo-600 focus:text-white focus:outline-hidden">
-      <div class="flex items-center">
-        <img src="https://images.unsplash.com/photo-1561505457-3bcad021f8ee?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="" class="size-5 shrink-0 rounded-full" />
-        <span class="ml-3 block truncate font-normal group-aria-selected/option:font-semibold">Emil Schaefer</span>
-      </div>
-      <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-indigo-600 group-not-aria-selected/option:hidden group-focus/option:text-white in-[el-selectedcontent]:hidden">
-        <svg viewBox="0 0 20 20" fill="currentColor" data-slot="icon" aria-hidden="true" class="size-5">
-          <path d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd" fill-rule="evenodd" />
-        </svg>
-      </span>
-    </el-option>
-  </el-options>
-</el-select>
+                    <div v-if="tipoEstadistica == '4' && props.localidadesMasSolicitadas && props.localidadesMasSolicitadas.length > 0" class="pt-3 pb-2">
+                        <LocalidadesMasSolicitadas class="pb-2" v-if="!verTabla" :localidadesMasSolicitadas="props.localidadesMasSolicitadas" />
+                        <LocalidadesMasSolicitadasTable v-if="verTabla" :localidadesMasSolicitadas="props.localidadesMasSolicitadas" :totalSolicitudes="totalSolicitudesPorPeriodo"/>
+                        
+                    </div>                    
+                </div>
+                <div v-if="props.solicitudesPorPeriodo && props.solicitudesPorPeriodo.length == 0" class="flex-grow flex flex-col items-center justify-start">
+                    <div class="max-w-md w-full bg-color1-50 dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
+                        <h3 class="text-xl font-semibold text-color1-700 dark:text-gray-100 mb-2">
+                            No se encontraron solicitudes
+                        </h3>
+                        <p class="text-sm text-color1-900 dark:text-gray-400">
+                            Intenta ajustar el rango de fechas para ver los resultados.
+                        </p>
+                    </div>
+                </div>
+                <div v-if="props.tiposPropiedad && props.tiposPropiedad.length == 0" class="flex-grow flex flex-col items-center justify-start">
+                    <div class="max-w-md w-full bg-color1-50 dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
+                        <h3 class="text-xl font-semibold text-color1-700 dark:text-gray-100 mb-2">
+                            No se encontraron solicitudes
+                        </h3>
+                        <p class="text-sm text-color1-900 dark:text-gray-400">
+                            Intenta ajustar el rango de fechas para ver los resultados.
+                        </p>
+                    </div>
+                </div>
+                <div v-if="props.tramitesMasSolicitados && props.tramitesMasSolicitados.length == 0" class="flex-grow flex flex-col items-center justify-start">
+                    <div class="max-w-md w-full bg-color1-50 dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
+                        <h3 class="text-xl font-semibold text-color1-700 dark:text-gray-100 mb-2">
+                            No se encontraron trámites
+                        </h3>
+                        <p class="text-sm text-color1-900 dark:text-gray-400">
+                            Intenta ajustar el rango de fechas para ver los resultados.
+                        </p>
+                    </div>
+                </div>
+                <div v-if="props.localidadesMasSolicitadas && props.localidadesMasSolicitadas.length == 0" class="flex-grow flex flex-col items-center justify-start">
+                    <div class="max-w-md w-full bg-color1-50 dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
+                        <h3 class="text-xl font-semibold text-color1-700 dark:text-gray-100 mb-2">
+                            No se encontraron solicitudes
+                        </h3>
+                        <p class="text-sm text-color1-900 dark:text-gray-400">
+                            Intenta ajustar el rango de fechas para ver los resultados.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div v-if="tipoEstadistica == '1'" class="inline-flex items-center gap-x-1 bg-gray-100 px-2 py-1 text-sm font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
+                <div class="flex items-center ml-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-text-scan-2 h-5 w-5">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M4 8v-2a2 2 0 0 1 2 -2h2" />
+                        <path d="M4 16v2a2 2 0 0 0 2 2h2" />
+                        <path d="M16 4h2a2 2 0 0 1 2 2v2" />
+                        <path d="M16 20h2a2 2 0 0 0 2 -2v-2" />
+                        <path d="M8 12h8" />
+                        <path d="M8 9h6" />
+                        <path d="M8 15h4" />
+                    </svg>
+                    <div class="ml-2">
+                        Total de Solicitudes: <strong> {{ totalSolicitudesPorPeriodo }} </strong>
+                    </div>
+                </div>
+            </div>
+            <div v-if="tipoEstadistica == '2'" class="inline-flex items-center gap-x-1 bg-gray-100 px-2 py-1 text-sm font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
+                <div class="flex items-center ml-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-text-scan-2 h-5 w-5">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M4 8v-2a2 2 0 0 1 2 -2h2" />
+                        <path d="M4 16v2a2 2 0 0 0 2 2h2" />
+                        <path d="M16 4h2a2 2 0 0 1 2 2v2" />
+                        <path d="M16 20h2a2 2 0 0 0 2 -2v-2" />
+                        <path d="M8 12h8" />
+                        <path d="M8 9h6" />
+                        <path d="M8 15h4" />
+                    </svg>
+                    <div class="ml-2">
+                        Total de Trámites: <strong> {{ totalTramitesMasSolicitados }} </strong>
+                    </div>
+                </div>
+            </div>
+            <div v-if="tipoEstadistica == '3'" class="inline-flex items-center gap-x-1 bg-gray-100 px-2 py-1 text-sm font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
+                <div class="flex items-center ml-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-text-scan-2 h-5 w-5">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M4 8v-2a2 2 0 0 1 2 -2h2" />
+                        <path d="M4 16v2a2 2 0 0 0 2 2h2" />
+                        <path d="M16 4h2a2 2 0 0 1 2 2v2" />
+                        <path d="M16 20h2a2 2 0 0 0 2 -2v-2" />
+                        <path d="M8 12h8" />
+                        <path d="M8 9h6" />
+                        <path d="M8 15h4" />
+                    </svg>
+                    <div class="ml-2">
+                        Total de Solicitudes: <strong> {{ totalSolicitudesPorPeriodo }} </strong>
+                    </div>
+                </div>
+            </div>
+            <div v-if="tipoEstadistica == '4'" class="inline-flex items-center gap-x-1 bg-gray-100 px-2 py-1 text-sm font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
+                <div class="flex items-center ml-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-text-scan-2 h-5 w-5">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M4 8v-2a2 2 0 0 1 2 -2h2" />
+                        <path d="M4 16v2a2 2 0 0 0 2 2h2" />
+                        <path d="M16 4h2a2 2 0 0 1 2 2v2" />
+                        <path d="M16 20h2a2 2 0 0 0 2 -2v-2" />
+                        <path d="M8 12h8" />
+                        <path d="M8 9h6" />
+                        <path d="M8 15h4" />
+                    </svg>
+                    <div class="ml-2">
+                        Total de Solicitudes: <strong> {{ totalSolicitudesPorPeriodo }} </strong>
+                    </div>
+                </div>
+            </div>
         </div>
-        
-<form class="max-w-sm mx-auto">
-  <div class="flex">
-      <button id="states-button" data-dropdown-toggle="dropdown-states" class="shrink-0 z-10 inline-flex items-center py-2.5 px-4 text-sm font-medium text-center text-gray-500 bg-gray-100 border border-gray-300 rounded-s-lg hover:bg-gray-200 focus:ring-4 focus:outline-none focus:ring-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-gray-700 dark:text-white dark:border-gray-600" type="button">
-          <svg aria-hidden="true" class="h-3 me-2" viewBox="0 0 15 12" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="0.5" width="14" height="12" rx="2" fill="white"/><mask id="mask0_12694_49953" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="15" height="12"><rect x="0.5" width="14" height="12" rx="2" fill="white"/></mask><g mask="url(#mask0_12694_49953)"><path fill-rule="evenodd" clip-rule="evenodd" d="M14.5 0H0.5V0.8H14.5V0ZM14.5 1.6H0.5V2.4H14.5V1.6ZM0.5 3.2H14.5V4H0.5V3.2ZM14.5 4.8H0.5V5.6H14.5V4.8ZM0.5 6.4H14.5V7.2H0.5V6.4ZM14.5 8H0.5V8.8H14.5V8ZM0.5 9.6H14.5V10.4H0.5V9.6ZM14.5 11.2H0.5V12H14.5V11.2Z" fill="#D02F44"/><rect x="0.5" width="6" height="5.6" fill="#46467F"/><g filter="url(#filter0_d_12694_49953)"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.83317 1.20005C1.83317 1.42096 1.68393 1.60005 1.49984 1.60005C1.31574 1.60005 1.1665 1.42096 1.1665 1.20005C1.1665 0.979135 1.31574 0.800049 1.49984 0.800049C1.68393 0.800049 1.83317 0.979135 1.83317 1.20005ZM3.1665 1.20005C3.1665 1.42096 3.01727 1.60005 2.83317 1.60005C2.64908 1.60005 2.49984 1.42096 2.49984 1.20005C2.49984 0.979135 2.64908 0.800049 2.83317 0.800049C3.01727 0.800049 3.1665 0.979135 3.1665 1.20005ZM4.1665 1.60005C4.3506 1.60005 4.49984 1.42096 4.49984 1.20005C4.49984 0.979135 4.3506 0.800049 4.1665 0.800049C3.98241 0.800049 3.83317 0.979135 3.83317 1.20005C3.83317 1.42096 3.98241 1.60005 4.1665 1.60005ZM5.83317 1.20005C5.83317 1.42096 5.68393 1.60005 5.49984 1.60005C5.31574 1.60005 5.1665 1.42096 5.1665 1.20005C5.1665 0.979135 5.31574 0.800049 5.49984 0.800049C5.68393 0.800049 5.83317 0.979135 5.83317 1.20005ZM2.1665 2.40005C2.3506 2.40005 2.49984 2.22096 2.49984 2.00005C2.49984 1.77913 2.3506 1.60005 2.1665 1.60005C1.98241 1.60005 1.83317 1.77913 1.83317 2.00005C1.83317 2.22096 1.98241 2.40005 2.1665 2.40005ZM3.83317 2.00005C3.83317 2.22096 3.68393 2.40005 3.49984 2.40005C3.31574 2.40005 3.1665 2.22096 3.1665 2.00005C3.1665 1.77913 3.31574 1.60005 3.49984 1.60005C3.68393 1.60005 3.83317 1.77913 3.83317 2.00005ZM4.83317 2.40005C5.01726 2.40005 5.1665 2.22096 5.1665 2.00005C5.1665 1.77913 5.01726 1.60005 4.83317 1.60005C4.64908 1.60005 4.49984 1.77913 4.49984 2.00005C4.49984 2.22096 4.64908 2.40005 4.83317 2.40005ZM5.83317 2.80005C5.83317 3.02096 5.68393 3.20005 5.49984 3.20005C5.31574 3.20005 5.1665 3.02096 5.1665 2.80005C5.1665 2.57914 5.31574 2.40005 5.49984 2.40005C5.68393 2.40005 5.83317 2.57914 5.83317 2.80005ZM4.1665 3.20005C4.3506 3.20005 4.49984 3.02096 4.49984 2.80005C4.49984 2.57914 4.3506 2.40005 4.1665 2.40005C3.98241 2.40005 3.83317 2.57914 3.83317 2.80005C3.83317 3.02096 3.98241 3.20005 4.1665 3.20005ZM3.1665 2.80005C3.1665 3.02096 3.01727 3.20005 2.83317 3.20005C2.64908 3.20005 2.49984 3.02096 2.49984 2.80005C2.49984 2.57914 2.64908 2.40005 2.83317 2.40005C3.01727 2.40005 3.1665 2.57914 3.1665 2.80005ZM1.49984 3.20005C1.68393 3.20005 1.83317 3.02096 1.83317 2.80005C1.83317 2.57914 1.68393 2.40005 1.49984 2.40005C1.31574 2.40005 1.1665 2.57914 1.1665 2.80005C1.1665 3.02096 1.31574 3.20005 1.49984 3.20005ZM2.49984 3.60005C2.49984 3.82096 2.3506 4.00005 2.1665 4.00005C1.98241 4.00005 1.83317 3.82096 1.83317 3.60005C1.83317 3.37913 1.98241 3.20005 2.1665 3.20005C2.3506 3.20005 2.49984 3.37913 2.49984 3.60005ZM3.49984 4.00005C3.68393 4.00005 3.83317 3.82096 3.83317 3.60005C3.83317 3.37913 3.68393 3.20005 3.49984 3.20005C3.31574 3.20005 3.1665 3.37913 3.1665 3.60005C3.1665 3.82096 3.31574 4.00005 3.49984 4.00005ZM5.1665 3.60005C5.1665 3.82096 5.01726 4.00005 4.83317 4.00005C4.64908 4.00005 4.49984 3.82096 4.49984 3.60005C4.49984 3.37913 4.64908 3.20005 4.83317 3.20005C5.01726 3.20005 5.1665 3.37913 5.1665 3.60005ZM5.49984 4.80005C5.68393 4.80005 5.83317 4.62096 5.83317 4.40005C5.83317 4.17913 5.68393 4.00005 5.49984 4.00005C5.31574 4.00005 5.1665 4.17913 5.1665 4.40005C5.1665 4.62096 5.31574 4.80005 5.49984 4.80005ZM4.49984 4.40005C4.49984 4.62096 4.3506 4.80005 4.1665 4.80005C3.98241 4.80005 3.83317 4.62096 3.83317 4.40005C3.83317 4.17913 3.98241 4.00005 4.1665 4.00005C4.3506 4.00005 4.49984 4.17913 4.49984 4.40005ZM2.83317 4.80005C3.01727 4.80005 3.1665 4.62096 3.1665 4.40005C3.1665 4.17913 3.01727 4.00005 2.83317 4.00005C2.64908 4.00005 2.49984 4.17913 2.49984 4.40005C2.49984 4.62096 2.64908 4.80005 2.83317 4.80005ZM1.83317 4.40005C1.83317 4.62096 1.68393 4.80005 1.49984 4.80005C1.31574 4.80005 1.1665 4.62096 1.1665 4.40005C1.1665 4.17913 1.31574 4.00005 1.49984 4.00005C1.68393 4.00005 1.83317 4.17913 1.83317 4.40005Z" fill="url(#paint0_linear_12694_49953)"/></g></g><defs><filter id="filter0_d_12694_49953" x="1.1665" y="0.800049" width="4.6665" height="5" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset dy="1"/><feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.06 0"/><feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_12694_49953"/><feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_12694_49953" result="shape"/></filter><linearGradient id="paint0_linear_12694_49953" x1="1.1665" y1="0.800049" x2="1.1665" y2="4.80005" gradientUnits="userSpaceOnUse"><stop stop-color="white"/><stop offset="1" stop-color="#F0F0F0"/></linearGradient></defs></svg>
-          USA <svg class="w-2.5 h-2.5 ms-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
-      <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
-    </svg>
-      </button>
-      <div id="dropdown-states" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-44 dark:bg-gray-700">
-          <ul class="py-2 text-sm text-gray-700 dark:text-gray-200" aria-labelledby="states-button">
-              <li>
-                  <button type="button" class="inline-flex w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-white">
-                      <div class="inline-flex items-center">
-                          <svg aria-hidden="true" class="h-3.5 w-3.5 rounded-full me-2" xmlns="http://www.w3.org/2000/svg" id="flag-icon-css-us" viewBox="0 0 512 512"><g fill-rule="evenodd"><g stroke-width="1pt"><path fill="#bd3d44" d="M0 0h247v10H0zm0 20h247v10H0zm0 20h247v10H0zm0 20h247v10H0zm0 20h247v10H0zm0 20h247v10H0zm0 20h247v10H0z" transform="scale(3.9385)"/><path fill="#fff" d="M0 10h247v10H0zm0 20h247v10H0zm0 20h247v10H0zm0 20h247v10H0zm0 20h247v10H0zm0 20h247v10H0z" transform="scale(3.9385)"/></g><path fill="#192f5d" d="M0 0h98.8v70H0z" transform="scale(3.9385)"/><path fill="#fff" d="M8.2 3l1 2.8H12L9.7 7.5l.9 2.7-2.4-1.7L6 10.2l.9-2.7-2.4-1.7h3zm16.5 0l.9 2.8h2.9l-2.4 1.7 1 2.7-2.4-1.7-2.4 1.7 1-2.7-2.4-1.7h2.9zm16.5 0l.9 2.8H45l-2.4 1.7 1 2.7-2.4-1.7-2.4 1.7 1-2.7-2.4-1.7h2.9zm16.4 0l1 2.8h2.8l-2.3 1.7.9 2.7-2.4-1.7-2.3 1.7.9-2.7-2.4-1.7h3zm16.5 0l.9 2.8h2.9l-2.4 1.7 1 2.7L74 8.5l-2.3 1.7.9-2.7-2.4-1.7h2.9zm16.5 0l.9 2.8h2.9L92 7.5l1 2.7-2.4-1.7-2.4 1.7 1-2.7-2.4-1.7h2.9zm-74.1 7l.9 2.8h2.9l-2.4 1.7 1 2.7-2.4-1.7-2.4 1.7 1-2.7-2.4-1.7h2.9zm16.4 0l1 2.8h2.8l-2.3 1.7.9 2.7-2.4-1.7-2.3 1.7.9-2.7-2.4-1.7h3zm16.5 0l.9 2.8h2.9l-2.4 1.7 1 2.7-2.4-1.7-2.4 1.7 1-2.7-2.4-1.7h2.9zm16.5 0l.9 2.8h2.9l-2.4 1.7 1 2.7-2.4-1.7-2.4 1.7 1-2.7-2.4-1.7H65zm16.4 0l1 2.8H86l-2.3 1.7.9 2.7-2.4-1.7-2.3 1.7.9-2.7-2.4-1.7h3zm-74 7l.8 2.8h3l-2.4 1.7.9 2.7-2.4-1.7L6 24.2l.9-2.7-2.4-1.7h3zm16.4 0l.9 2.8h2.9l-2.3 1.7.9 2.7-2.4-1.7-2.3 1.7.9-2.7-2.4-1.7h2.9zm16.5 0l.9 2.8H45l-2.4 1.7 1 2.7-2.4-1.7-2.4 1.7 1-2.7-2.4-1.7h2.9zm16.4 0l1 2.8h2.8l-2.3 1.7.9 2.7-2.4-1.7-2.3 1.7.9-2.7-2.4-1.7h3zm16.5 0l.9 2.8h2.9l-2.3 1.7.9 2.7-2.4-1.7-2.3 1.7.9-2.7-2.4-1.7h2.9zm16.5 0l.9 2.8h2.9L92 21.5l1 2.7-2.4-1.7-2.4 1.7 1-2.7-2.4-1.7h2.9zm-74.1 7l.9 2.8h2.9l-2.4 1.7 1 2.7-2.4-1.7-2.4 1.7 1-2.7-2.4-1.7h2.9zm16.4 0l1 2.8h2.8l-2.3 1.7.9 2.7-2.4-1.7-2.3 1.7.9-2.7-2.4-1.7h3zm16.5 0l.9 2.8h2.9l-2.3 1.7.9 2.7-2.4-1.7-2.3 1.7.9-2.7-2.4-1.7h2.9zm16.5 0l.9 2.8h2.9l-2.4 1.7 1 2.7-2.4-1.7-2.4 1.7 1-2.7-2.4-1.7H65zm16.4 0l1 2.8H86l-2.3 1.7.9 2.7-2.4-1.7-2.3 1.7.9-2.7-2.4-1.7h3zm-74 7l.8 2.8h3l-2.4 1.7.9 2.7-2.4-1.7L6 38.2l.9-2.7-2.4-1.7h3zm16.4 0l.9 2.8h2.9l-2.3 1.7.9 2.7-2.4-1.7-2.3 1.7.9-2.7-2.4-1.7h2.9zm16.5 0l.9 2.8H45l-2.4 1.7 1 2.7-2.4-1.7-2.4 1.7 1-2.7-2.4-1.7h2.9zm16.4 0l1 2.8h2.8l-2.3 1.7.9 2.7-2.4-1.7-2.3 1.7.9-2.7-2.4-1.7h3zm16.5 0l.9 2.8h2.9l-2.3 1.7.9 2.7-2.4-1.7-2.3 1.7.9-2.7-2.4-1.7h2.9zm16.5 0l.9 2.8h2.9L92 35.5l1 2.7-2.4-1.7-2.4 1.7 1-2.7-2.4-1.7h2.9zm-74.1 7l.9 2.8h2.9l-2.4 1.7 1 2.7-2.4-1.7-2.4 1.7 1-2.7-2.4-1.7h2.9zm16.4 0l1 2.8h2.8l-2.3 1.7.9 2.7-2.4-1.7-2.3 1.7.9-2.7-2.4-1.7h3zm16.5 0l.9 2.8h2.9l-2.3 1.7.9 2.7-2.4-1.7-2.3 1.7.9-2.7-2.4-1.7h2.9zm16.5 0l.9 2.8h2.9l-2.4 1.7 1 2.7-2.4-1.7-2.4 1.7 1-2.7-2.4-1.7H65zm16.4 0l1 2.8H86l-2.3 1.7.9 2.7-2.4-1.7-2.3 1.7.9-2.7-2.4-1.7h3zm-74 7l.8 2.8h3l-2.4 1.7.9 2.7-2.4-1.7L6 52.2l.9-2.7-2.4-1.7h3zm16.4 0l.9 2.8h2.9l-2.3 1.7.9 2.7-2.4-1.7-2.3 1.7.9-2.7-2.4-1.7h2.9zm16.5 0l.9 2.8H45l-2.4 1.7 1 2.7-2.4-1.7-2.4 1.7 1-2.7-2.4-1.7h2.9zm16.4 0l1 2.8h2.8l-2.3 1.7.9 2.7-2.4-1.7-2.3 1.7.9-2.7-2.4-1.7h3zm16.5 0l.9 2.8h2.9l-2.3 1.7.9 2.7-2.4-1.7-2.3 1.7.9-2.7-2.4-1.7h2.9zm16.5 0l.9 2.8h2.9L92 49.5l1 2.7-2.4-1.7-2.4 1.7 1-2.7-2.4-1.7h2.9zm-74.1 7l.9 2.8h2.9l-2.4 1.7 1 2.7-2.4-1.7-2.4 1.7 1-2.7-2.4-1.7h2.9zm16.4 0l1 2.8h2.8l-2.3 1.7.9 2.7-2.4-1.7-2.3 1.7.9-2.7-2.4-1.7h3zm16.5 0l.9 2.8h2.9l-2.3 1.7.9 2.7-2.4-1.7-2.3 1.7.9-2.7-2.4-1.7h2.9zm16.5 0l.9 2.8h2.9l-2.4 1.7 1 2.7-2.4-1.7-2.4 1.7 1-2.7-2.4-1.7H65zm16.4 0l1 2.8H86l-2.3 1.7.9 2.7-2.4-1.7-2.3 1.7.9-2.7-2.4-1.7h3zm-74 7l.8 2.8h3l-2.4 1.7.9 2.7-2.4-1.7L6 66.2l.9-2.7-2.4-1.7h3zm16.4 0l.9 2.8h2.9l-2.3 1.7.9 2.7-2.4-1.7-2.3 1.7.9-2.7-2.4-1.7h2.9zm16.5 0l.9 2.8H45l-2.4 1.7 1 2.7-2.4-1.7-2.4 1.7 1-2.7-2.4-1.7h2.9zm16.4 0l1 2.8h2.8l-2.3 1.7.9 2.7-2.4-1.7-2.3 1.7.9-2.7-2.4-1.7h3zm16.5 0l.9 2.8h2.9l-2.3 1.7.9 2.7-2.4-1.7-2.3 1.7.9-2.7-2.4-1.7h2.9zm16.5 0l.9 2.8h2.9L92 63.5l1 2.7-2.4-1.7-2.4 1.7 1-2.7-2.4-1.7h2.9z" transform="scale(3.9385)"/></g></svg>              
-                          United States
-                      </div>
-                  </button>
-              </li>
-              <li>
-                  <button type="button" class="inline-flex w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-white">
-                      <div class="inline-flex items-center">
-                          <svg aria-hidden="true" class="h-3.5 w-3.5 rounded-full me-2" xmlns="http://www.w3.org/2000/svg" id="flag-icon-css-de" viewBox="0 0 512 512"><path fill="#ffce00" d="M0 341.3h512V512H0z"/><path d="M0 0h512v170.7H0z"/><path fill="#d00" d="M0 170.7h512v170.6H0z"/></svg>
-                          Germany
-                      </div>
-                  </button>
-              </li>             
-          </ul>
-      </div>
-      <label for="states" class="sr-only">Choose a state</label>
-      <select id="states" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-e-lg border-s-gray-100 dark:border-s-gray-700 border-s-2 focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
-          <option selected>Choose a state</option>
-          <option value="CA">California</option>
-          <option value="TX">Texas</option>
-          <option value="WH">Washinghton</option>
-          <option value="FL">Florida</option>
-          <option value="VG">Virginia</option>
-          <option value="GE">Georgia</option>
-          <option value="MI">Michigan</option>
-      </select>
-  </div>
-</form> -->
-
-
-
-
-    <!-- </section> -->
+    </section>
 </template>

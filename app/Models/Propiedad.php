@@ -48,4 +48,12 @@ class Propiedad extends Model
     {
         return $this->belongsTo(Contacto::class, 'id_contacto');
     }
+
+    protected static function booted()
+    {
+        // ✅ Escucha el evento 'creating' para asignar la fecha
+        static::creating(function (Propiedad $propiedad) {
+            $propiedad->fecha_aceptacion = now();
+        });
+    }
 }

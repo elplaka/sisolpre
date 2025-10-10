@@ -18,6 +18,7 @@ use App\Models\Propiedad;
 use App\Models\SolicitudTramite;
 use App\Models\SolicitudReferencia;
 use App\Models\SolicitudRazonSocial;
+use App\Models\SolicitudAceptada;
 use App\Models\Periodo;
 use App\Models\CroquisAux;
 use App\Models\ConfiguracionUsuario;
@@ -36,6 +37,7 @@ use App\Mail\SolicitudMail;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 use App\Helpers\SettingsHelper;
+use Throwable;
 
 class SolicitudController extends Controller
 {
@@ -108,6 +110,8 @@ class SolicitudController extends Controller
             'propiedad.localidad',
             'sectorTramite',
             'referencia',
+            'referencia.tipo_propiedad',
+            'referencia.localidad',
             'croquis_aux',
             'razon_social'
         ])->findOrFail($id);
@@ -354,45 +358,56 @@ class SolicitudController extends Controller
         return [$fechaInicioCarbon->toDateString(), $fechaFinCarbon->toDateString()];
     }
 
-
-    public function obtenerSolicitudes($fechaInicioQuery, $fechaFinQuery, $nombreQuery, 
-    $tiposTramitesQuery, $tramitesQuery, $estatusQuery, $sortColumn, $sortDirection)
+    public function obtenerSolicitudes($fechaIngresoInicioQuery, $fechaIngresoFinQuery, $fechaAceptacionInicioQuery, $fechaAceptacionFinQuery, $numQuery, $folioQuery, $nombreQuery, $claveCatastralQuery,
+    $tiposTramitesQuery, $tramitesQuery, $localidadesQueryFiltradas, $estatusQuery, $sortColumn, $sortDirection)
     {
+
         $solicitudesQuery = Solicitud::
             join('estatus_solicitudes', 'solicitudes.id_estatus', '=', 'estatus_solicitudes.id')
             ->join('contactos as contactos_solicitantes', 'solicitudes.id_contacto', '=', 'contactos_solicitantes.id')
             ->join('personas as personas_solicitantes', 'contactos_solicitantes.id_persona', '=', 'personas_solicitantes.id')
-            // Cambiado a LEFT JOIN para incluir solicitudes sin propiedad
             ->leftJoin('propiedades', 'solicitudes.id_propiedad', '=', 'propiedades.id')
-            // Los joins de propiedades también deben ser LEFT JOINs para no filtrar si propiedad es NULL
             ->leftJoin('contactos as contactos_propietarios', 'propiedades.id_contacto', '=', 'contactos_propietarios.id')
             ->leftJoin('personas as personas_propietarios', 'contactos_propietarios.id_persona', '=', 'personas_propietarios.id')
             ->leftJoin('solicitudes_tramites', 'solicitudes.id', '=', 'solicitudes_tramites.id_solicitud')
             ->leftJoin('catalogo_tramites', 'solicitudes_tramites.id_tramite', '=', 'catalogo_tramites.id')
             ->leftJoin('solicitudes_razones_sociales', 'solicitudes.id', '=', 'solicitudes_razones_sociales.id_solicitud')
+            ->leftJoin('solicitud_referencias', 'solicitudes.id', '=', 'solicitud_referencias.id_solicitud')
+
+            ->leftJoin('localidades AS localidades_propiedades', 'propiedades.id_localidad', '=', 'localidades_propiedades.id')
+            ->leftJoin('localidades AS localidades_referencias', 'solicitud_referencias.id_localidad', '=', 'localidades_referencias.id')
+            
             ->with([
-                'estatus',
-                'contacto',
-                'contacto.persona',
-                'propiedad',
-                'propiedad.contacto',
-                'propiedad.contacto.persona',
-                'propiedad.colonia',
-                'propiedad.localidad',
-                'propiedad.tipo',
-                'destino_obra',
-                'tramites',
-                'tramites.tramite',
-                'razon_social'
+                'estatus', 'contacto', 'contacto.persona', 'propiedad', 'propiedad.contacto', 
+                'propiedad.contacto.persona', 'propiedad.colonia', 'propiedad.localidad', 
+                'propiedad.tipo', 'destino_obra', 'tramites', 'tramites.tramite', 'razon_social', 'referencia',
+                'referencia.localidad', 'tramites.tramite.tipoTramite'
             ])
-            ->whereBetween('solicitudes.fecha_ingreso', [$fechaInicioQuery, $fechaFinQuery])
             ->selectRaw('solicitudes.id, solicitudes.fecha_ingreso, solicitudes.id_contacto,
-                            solicitudes.folio_digital, solicitudes.id_propiedad,
-                            solicitudes.id_destino_obra, solicitudes.id_estatus,
-                            GROUP_CONCAT(catalogo_tramites.nombre ORDER BY catalogo_tramites.nombre ASC) as tramites_nombres')
+                             solicitudes.folio_digital, solicitudes.id_propiedad,
+                             solicitudes.id_destino_obra, solicitudes.id_estatus, solicitudes.folio,
+                             solicitudes.fecha_aceptacion,
+                             COALESCE(CONCAT(personas_propietarios.nombre, personas_propietarios.apellidos), (CONCAT(personas_solicitantes.nombre, personas_solicitantes.apellidos))) AS nombre_solicitante_propietario,
+                             COALESCE(localidades_propiedades.nombre, localidades_referencias.nombre) AS nombre_localidad_prioritario,
+                             GROUP_CONCAT(catalogo_tramites.nombre ORDER BY catalogo_tramites.nombre ASC) as tramites_nombres')
             ->groupBy('solicitudes.id', 'solicitudes.fecha_ingreso', 'solicitudes.id_contacto',
-                        'solicitudes.folio_digital', 'solicitudes.id_propiedad',
-                        'solicitudes.id_destino_obra', 'solicitudes.id_estatus');
+                         'solicitudes.folio_digital', 'solicitudes.id_propiedad',
+                         'solicitudes.id_destino_obra', 'solicitudes.id_estatus', 'solicitudes.folio',
+                         'solicitudes.fecha_aceptacion', 'nombre_solicitante_propietario', 'nombre_localidad_prioritario');
+
+        // 2. Lógica Condicional para el Filtro de Fechas
+        // 💡 Aplicamos el filtro de fechas solo SI $numQuery está vacío (o no tiene valor significativo).
+        if ((empty($numQuery) || !is_numeric($numQuery)) && (empty($folioQuery) || !is_numeric($folioQuery))) 
+        {
+            if ((empty($fechaAceptacionInicioQuery) || is_null($fechaAceptacionInicioQuery)) && (empty($fechaAceptacionFinQuery) || is_null($fechaAceptacionFinQuery)))
+            {
+                $solicitudesQuery->whereBetween('solicitudes.fecha_ingreso', [$fechaIngresoInicioQuery, $fechaIngresoFinQuery]);
+            }
+            else
+            {
+                $solicitudesQuery->whereBetween('solicitudes.fecha_aceptacion', [$fechaAceptacionInicioQuery, $fechaAceptacionFinQuery]);
+            }
+        }
 
         if ($nombreQuery) {
             $solicitudesQuery->where(function ($query) use ($nombreQuery) {
@@ -411,6 +426,96 @@ class SolicitudController extends Controller
             });
         }
         
+        if ($numQuery) {
+            // 1. Limpiamos: '0010' -> '0010'
+            $cleanedNum = preg_replace('/[^0-9]/', '', $numQuery);
+            
+            if (!empty($cleanedNum)) {
+                
+                // 2. Normalizamos: '0010' -> '10'
+                // Utilizamos ltrim() para quitar los ceros a la izquierda.
+                $normalizedNum = ltrim($cleanedNum, '0');
+                
+                // Si la cadena queda vacía (ej: si el input era '000'), usamos '0' para prevenir fallos.
+                if ($normalizedNum === '') {
+                    $normalizedNum = '0';
+                }
+                
+                // 💡 Aplicar la lógica compleja SOLO si la entrada normalizada es corta (menos de 4 dígitos)
+                if (strlen($normalizedNum) < 4) {
+                    
+                    $solicitudesQuery->where(function ($query) use ($normalizedNum) {
+                        
+                        // Opción A: Es el ID exacto (e.g., ID = 10)
+                        // Buscamos la coincidencia exacta con el número normalizado '10'
+                        $query->where('solicitudes.id', $normalizedNum) 
+                            
+                            // Opción B: Es un ID largo que termina en el número (e.g., 1010, 2010)
+                            ->orWhere(function ($q) use ($normalizedNum) {
+                                // El patrón es %10
+                                $searchPattern = '%' . $normalizedNum;
+                                
+                                // Restricción 1: Debe tener 4 o más dígitos
+                                $q->whereRaw('LENGTH(solicitudes.id) >= 4')
+                                // Restricción 2: Debe terminar en el número normalizado ('%10')
+                                ->whereRaw('CAST(solicitudes.id AS CHAR) LIKE ?', [$searchPattern]);
+                            });
+                    });
+                }
+            }
+        }
+
+        if ($folioQuery) {
+            // 1. Limpiamos: '0010' -> '0010'
+            $cleanedFolio = preg_replace('/[^0-9Nn]/', '', $folioQuery);
+
+            if (!empty($cleanedFolio)) 
+            {
+                if ($cleanedFolio == 'N' || $cleanedFolio == 'n')
+                {
+                    $solicitudesQuery->whereNull('solicitudes.folio');
+                }
+                else 
+                {
+                    // 2. Normalizamos: '0010' -> '10'
+                    // Utilizamos ltrim() para quitar los ceros a la izquierda.
+                    $normalizedFolio = ltrim($cleanedFolio, '0');
+                    
+                    // Si la cadena queda vacía (ej: si el input era '000'), usamos '0' para prevenir fallos.
+                    if ($normalizedFolio === '') {
+                        $normalizedFolio = '0';
+                    }
+                    
+                    // 💡 Aplicar la lógica compleja SOLO si la entrada normalizada es corta (menos de 4 dígitos)
+                    if (strlen($normalizedFolio) < 4) {
+                        
+                        $solicitudesQuery->where(function ($query) use ($normalizedFolio) {
+                            
+                            // Opción A: Es el ID exacto (e.g., ID = 10)
+                            // Buscamos la coincidencia exacta con el número normalizado '10'
+                            $query->where('solicitudes.folio', $normalizedFolio) 
+                                
+                                // Opción B: Es un ID largo que termina en el número (e.g., 1010, 2010)
+                                ->orWhere(function ($q) use ($normalizedFolio) {
+                                    // El patrón es %10
+                                    $searchPattern = '%' . $normalizedFolio;
+                                    
+                                    // Restricción 1: Debe tener 4 o más dígitos
+                                    $q->whereRaw('LENGTH(solicitudes.folio) >= 4')
+                                    // Restricción 2: Debe terminar en el número normalizado ('%10')
+                                    ->whereRaw('CAST(solicitudes.folio AS CHAR) LIKE ?', [$searchPattern]);
+                                });
+                        });
+                    }
+                }
+            }
+        }
+
+       if ($claveCatastralQuery)
+       {
+            $solicitudesQuery->where('propiedades.clave_catastral', 'LIKE', $claveCatastralQuery . '%');
+       }
+
         if (!is_array($tiposTramitesQuery)) {
             $tiposTramitesQuery = [$tiposTramitesQuery];
         }
@@ -443,6 +548,73 @@ class SolicitudController extends Controller
             });
         }
 
+        // 1. Aseguramos que $localidadesQueryFiltradas sea un array.
+        if (!is_array($localidadesQueryFiltradas)) {
+            $localidadesQueryFiltradas = [$localidadesQueryFiltradas];
+        }
+
+        if (!empty($localidadesQueryFiltradas)) 
+        {
+            // 1. Aseguramos que $localidadesQueryFiltradas sea un array.
+            if (!is_array($localidadesQueryFiltradas)) {
+                $localidadesQueryFiltradas = [$localidadesQueryFiltradas];
+            }
+
+            if (!empty($localidadesQueryFiltradas)) 
+            {
+                // Normalización: 
+                // Separamos los IDs reales (incluye ID 0) de la opción "N/A" (la cadena 'null').
+                $localidadIds = [];
+                $incluirNulos = false;
+
+                foreach ($localidadesQueryFiltradas as $id) {
+                    // La cadena 'null' se convierte en el indicador para el filtro IS NULL.
+                    if ($id === 'null' || is_null($id)) {
+                        $incluirNulos = true;
+                    } elseif (is_numeric($id) || $id !== '') {
+                        // Incluye IDs numéricos (cadenas o enteros), como '1' o 0.
+                        $localidadIds[] = $id;
+                    }
+                }
+                
+                // Si no hay nada que filtrar, salimos.
+                if (empty($localidadIds) && !$incluirNulos) {
+                    return; 
+                }
+
+                $solicitudesQuery->where(function ($query) use ($localidadIds, $incluirNulos) {
+                    
+                    $hasExistingCondition = false;
+                    
+                    // A) FILTRAR POR IDs REALES (Priorización: Propiedad > Referencia)
+                    if (!empty($localidadIds)) {
+                        $query->where(function ($q) use ($localidadIds) {
+                            // 1. Coincidencia en la Propiedad (Prioridad)
+                            $q->whereIn('propiedades.id_localidad', $localidadIds) 
+                            // O (OR)
+                            // 2. Coincidencia en la Referencia, SÓLO si la Propiedad NO tiene ID de Localidad.
+                            ->orWhere(function($q_ref) use ($localidadIds) {
+                                $q_ref->whereNull('propiedades.id_localidad') 
+                                        ->whereIn('solicitud_referencias.id_localidad', $localidadIds);
+                            });
+                        });
+                        $hasExistingCondition = true;
+                    }
+                    
+                    // B) FILTRAR POR NULL ("N/A")
+                    if ($incluirNulos) {
+                        // Si solo se seleccionó 'null', usamos 'where'. Si se seleccionó con IDs, usamos 'orWhere'.
+                        $method = $hasExistingCondition ? 'orWhere' : 'where';
+
+                        $query->$method(function ($q_null) {
+                            // Una solicitud es N/A si NO tiene id_localidad en Propiedad Y NO tiene id_localidad en Referencia.
+                            $q_null->whereNull('propiedades.id_localidad')
+                                ->whereNull('solicitud_referencias.id_localidad');
+                        });
+                    }
+                });
+            }
+        }
 
         if ($estatusQuery && !is_array($estatusQuery)) {
             $estatusQuery = [$estatusQuery];
@@ -453,9 +625,10 @@ class SolicitudController extends Controller
             $solicitudesQuery->whereIn('id_estatus', $estatusQuery);
         }
 
-        if ($sortColumn == "id_solicitante")
+
+        if ($sortColumn == "id_propietario")
         {
-            $solicitudesQuery->orderBy('personas_solicitantes.nombre', $sortDirection);
+            $solicitudesQuery->orderBy('nombre_solicitante_propietario', $sortDirection);
         }
         else if ($sortColumn == 'id_tramite')
         {
@@ -472,10 +645,19 @@ class SolicitudController extends Controller
         else if ($sortColumn == 'clave_catastral') {
             $solicitudesQuery->orderBy('propiedades.clave_catastral', $sortDirection);
         } 
-        else 
+        else if ($sortColumn == 'id_localidad') 
+        {
+            $solicitudesQuery->orderBy('nombre_localidad_prioritario', $sortDirection);
+        } 
+        else if ($sortColumn == 'folio') 
+        {
+            $solicitudesQuery->orderByRaw('solicitudes.folio IS NULL');
+            $solicitudesQuery->orderBy('solicitudes.folio', $sortDirection);
+        } 
+        else
         {
             $solicitudesQuery->orderBy($sortColumn, $sortDirection);
-        }
+        } 
 
         return [
             'query' => $solicitudesQuery,
@@ -483,7 +665,7 @@ class SolicitudController extends Controller
         ];
     }
 
-    public function obtenerTramites ($filtrarPorTipo = false, $solicitudesFiltradasIds, $tiposTramitesQuery, $estatusQuery) 
+    public function obtenerTramites ($filtrarPorTipo = false, $solicitudesFiltradasIds, $tiposTramitesQuery, $estatusQuery, $localidadesQueryFiltradas) 
     {
         $query = CatalogoTramite::where('activo', 1)->orderBy('nombre');
 
@@ -548,6 +730,70 @@ class SolicitudController extends Controller
             });
     }
 
+    public function contarLocalidades($solicitudesFiltradasIds)
+    {
+        $idsAFiltrar = is_array($solicitudesFiltradasIds) 
+        ? $solicitudesFiltradasIds 
+        : $solicitudesFiltradasIds->toArray();
+        
+        if (empty($idsAFiltrar)) {
+            return collect([]);
+        }
+
+        // 1. Crear una subconsulta de Solicitudes Filtradas
+        $solicitudesFiltradas = DB::table('solicitudes')
+            ->whereIn('id', $idsAFiltrar)
+            ->select('id', 'id_propiedad');
+
+        // 2. Consulta Principal de Agregación
+        $conteoPorLocalidad = DB::table($solicitudesFiltradas, 's')
+            
+            // Uniones
+            ->leftJoin('propiedades AS p', 's.id_propiedad', '=', 'p.id')
+            ->leftJoin('solicitud_referencias AS sr', 's.id', '=', 'sr.id_solicitud')
+            
+            // 1. SELECT: Usar -1 para la agrupación 'N/A'
+            ->select(
+                // COALESCE(p.id_localidad, sr.id_localidad) obtendrá el ID real (incluyendo el 0).
+                // Si el resultado es NULL (sin localidad), usamos -1 para el grupo 'N/A'.
+                DB::raw("COALESCE(p.id_localidad, sr.id_localidad, -1) as localidad_id_unificado"),
+                DB::raw("COUNT(DISTINCT s.id) as count")
+            )
+            
+            // Agrupar por el ID unificado
+            ->groupBy('localidad_id_unificado')
+            ->get();
+
+        // 3. Obtener los nombres de las localidades reales (incluyendo id = 0)
+        $localidadIds = $conteoPorLocalidad->pluck('localidad_id_unificado')->filter(fn($id) => $id != -1)->unique()->toArray();
+        
+        $localidadesReales = DB::table('localidades')
+            ->whereIn('id', $localidadIds)
+            ->pluck('nombre', 'id');
+
+        // 4. Formatear la salida y manejar 'N/A'
+        return $conteoPorLocalidad->map(function ($item) use ($localidadesReales) {
+            $id = $item->localidad_id_unificado;
+            
+            // Si el ID es -1, es 'N/A'.
+            if ($id == -1) {
+                return [
+                    'id' => null,
+                    'nombre' => 'N/A',
+                    'count' => (int)$item->count,
+                ];
+            }
+            
+            // Si tiene un ID real (0 o positivo), usamos el nombre real.
+            return [
+                'id' => (int)$id,
+                'nombre' => $localidadesReales->get($id, 'Localidad Desconocida'),
+                'count' => (int)$item->count,
+            ];
+        })->filter(fn($item) => $item['count'] > 0);
+    }
+    
+
     public function obtenerEstatusPrev ($solicitudesFiltradasIdsPrev) 
     {
         return EstatusSolicitud::where('activo', true)
@@ -593,17 +839,23 @@ class SolicitudController extends Controller
 
         $tramites = collect();
         $estatusSolicitud = collect();
+        $localidadesCount = collect();
         $solicitudesSinTramitesCount = 0;
 
         $usarFiltro = !empty($tiposTramitesQuery);
+        $usarNum = !empty($numQuery);
+        $usarFolio = !empty($folioQuery);
         $usarNombre = !empty($nombreQuery);
+        $usarClaveCatastral = !empty($claveCatastralQuery);
+        $usarLocalidad = !empty($localidadesQueryFiltradas);
         $usarAmbosFiltros = !empty($tramitesQuery) && !empty($estatusQuery);
-        $usarFechas = !is_null($fechaInicioQuery) && !is_null($fechaFinQuery);
+        $usarFechas = !is_null($fechaIngresoInicioQuery) && !is_null($fechaIngresoFinQuery);
+        $usarFechasAceptacion = !is_null($fechaAceptacionInicioQuery) && !is_null($fechaAceptacionFinQuery);
 
         $getTramites = fn($prev = false, $filtrar = false) =>
             $prev
-                ? $this->obtenerTramites(false, $solicitudesFiltradasIdsPrev, $tiposTramitesQuery, $filtrar)
-                : $this->obtenerTramites(false, $solicitudesFiltradasIds, $tiposTramitesQuery, $filtrar);
+                ? $this->obtenerTramites(false, $solicitudesFiltradasIdsPrev, $tiposTramitesQuery, $filtrar, $localidadesQueryFiltradas)
+                : $this->obtenerTramites(false, $solicitudesFiltradasIds, $tiposTramitesQuery, $filtrar, $localidadesQueryFiltradas); 
 
         $getEstatus = fn($prev = false) =>
             $prev
@@ -615,14 +867,39 @@ class SolicitudController extends Controller
                 ? $this->contarSinTramites($solicitudesFiltradasIdsPrev)
                 : $this->contarSinTramites($solicitudesFiltradasIds);
 
+        $getLocalidades = fn($prev = false) =>
+            $prev
+                ? $this->contarLocalidades($solicitudesFiltradasIdsPrev)
+                : $this->contarLocalidades($solicitudesFiltradasIds);
+
         switch ($filtroChkSolicitudes) {
             case 0:
-                if ($usarNombre || $usarFiltro || $usarFechas) 
+                if ($usarNum || $usarNombre || $usarFiltro || $usarFechas || $usarFolio || $usarClaveCatastral || $usarFechasAceptacion) 
                 {
-                    $tramites = $getTramites(true, $usarFiltro);
-                    $estatusSolicitud = $getEstatus(true);
+                    if ($usarLocalidad)
+                    {
+                        $tramites = $getTramites(false, $usarFiltro);
+                        $estatusSolicitud = $getEstatus(false);
+                        $solicitudesSinTramitesCount = $getSinTramites(false);
+                        $localidadesQuery = $getLocalidades(true);
+                    }
+                    else 
+                    {
+                        $tramites = $getTramites(true, $usarFiltro);
+                        $estatusSolicitud = $getEstatus(true);
+                        $solicitudesSinTramitesCount = $getSinTramites(true);
+                        $localidadesQuery = $getLocalidades(false);
+                    }
+                  
+                }
+                else if ($usarLocalidad)
+                {
+                    $tramites = $getTramites(false, $usarFiltro);
+                    $estatusSolicitud = $getEstatus(false);
                     $solicitudesSinTramitesCount = $getSinTramites(true);
-                } else 
+                    $localidadesQuery = $getLocalidades(true);
+                }
+                else 
                 {
                     $tramites = CatalogoTramite::where('activo', 1)
                         ->orderBy('nombre')
@@ -647,6 +924,8 @@ class SolicitudController extends Controller
                         : $getEstatus(false);
 
                     $solicitudesSinTramitesCount = $getSinTramites(false);
+
+                    $localidadesQuery = $getLocalidades(false);
                 }
                 break;
 
@@ -654,6 +933,7 @@ class SolicitudController extends Controller
                 $tramites = $getTramites(true, $usarFiltro);
                 $estatusSolicitud = $getEstatus(false);
                 $solicitudesSinTramitesCount = $getSinTramites(true);
+                $localidadesQuery = $getLocalidades(false);
 
                 if ($usarAmbosFiltros) {
                     $tramites = $getTramites(true, $usarFiltro);
@@ -665,6 +945,7 @@ class SolicitudController extends Controller
                 $estatusSolicitud = $getEstatus(true);
                 $tramites = $getTramites(false, $usarFiltro);
                 $solicitudesSinTramitesCount = $getSinTramites(false);
+                $localidadesQuery = $getLocalidades(false);
 
                 if ($usarAmbosFiltros) {
                     $estatusSolicitud = $getEstatus(true);
@@ -681,7 +962,7 @@ class SolicitudController extends Controller
             ]);
         }
 
-        return compact('tramites', 'estatusSolicitud', 'solicitudesSinTramitesCount');
+        return compact('tramites', 'estatusSolicitud', 'solicitudesSinTramitesCount', 'localidadesQuery');
     }
 
     public function index(Request $request)  
@@ -689,56 +970,115 @@ class SolicitudController extends Controller
         $idUsuario = Auth::id();
         $config = ConfiguracionUsuario::where('id_user', $idUsuario)->first();
 
+        $fechaIngresoInicioQuery =  $request->input('fechaIngresoInicioQuery');
+        $fechaIngresoFinQuery =  $request->input('fechaIngresoFinQuery');
+        $fechaAceptacionInicioQuery = $request->input('fechaAceptacionInicioQuery');
+        $fechaAceptacionFinQuery =  $request->input('fechaAceptacionFinQuery');
+
         if ($config)
         {
-            $rangoFechasManual = filter_var($request->input('rangoFechasManual'), FILTER_VALIDATE_BOOLEAN);
+            $rangoFechasIngresoManual = filter_var($request->input('rangoFechasIngresoManual'), FILTER_VALIDATE_BOOLEAN);
 
-            if ($rangoFechasManual)
+            if ($rangoFechasIngresoManual)
             {
-                $fechaInicioQuery =  $request->input('fechaInicioQuery');
-                $fechaFinQuery =  $request->input('fechaFinQuery');
+                if (empty($fechaAceptacionInicioQuery) || is_null($fechaAceptacionInicioQuery))
+                {
+                    $idRangoFechasIngresoQuery = 99;
 
-                $idRangoFechasQuery = 99;
-
-                $config->id_rango_fecha_busqueda = $idRangoFechasQuery;
-                $config->save();
+                    $config->id_rango_fecha_busqueda = $idRangoFechasIngresoQuery;
+                    $config->save();
+                }
+                else
+                {
+                    $fechaIngresoInicioQuery =  null;
+                    $fechaIngresoFinQuery =  null;
+                }
             }
             else
             { 
-                $idRangoFechasQuery = $request->input('idRangoFechasQuery') ? 
-                                    $request->input('idRangoFechasQuery') :
-                                    $config->id_rango_fecha_busqueda;
+                if (empty($fechaAceptacionInicioQuery) || is_null($fechaAceptacionInicioQuery))
+                {
+                    $idRangoFechasIngresoQuery = $request->input('idRangoFechasIngresoQuery') ? 
+                                        $request->input('idRangoFechasIngresoQuery') :
+                                        $config->id_rango_fecha_busqueda;
 
-                
-                $rangoFecha = $this->regresaRangoFecha($idRangoFechasQuery);
+                    $rangoFechaIngreso = $this->regresaRangoFecha($idRangoFechasIngresoQuery);
 
-                $fechaInicioQuery = $rangoFecha[0];
-                $fechaFinQuery = $rangoFecha[1];
+                    $fechaIngresoInicioQuery = $rangoFechaIngreso[0];
+                    $fechaIngresoFinQuery = $rangoFechaIngreso[1];
 
-                $config->id_rango_fecha_busqueda = $idRangoFechasQuery;
-                $config->save();
+                    $config->id_rango_fecha_busqueda = $idRangoFechasIngresoQuery;
+                    $config->save();
+                }
+                else
+                {
+                    $fechaIngresoInicioQuery =  null;
+                    $fechaIngresoFinQuery =  null;
+                }
+            }
+
+            if (empty($fechaIngresoInicioQuery) || is_null($fechaIngresoInicioQuery))
+            {
+                $rangoFechasAceptacionManual = filter_var($request->input('rangoFechasAceptacionManual'), FILTER_VALIDATE_BOOLEAN);
+
+                if ($rangoFechasAceptacionManual)
+                {
+                    $fechaAceptacionInicioQuery =  $request->input('fechaAceptacionInicioQuery');
+                    $fechaAceptacionFinQuery =  $request->input('fechaAceptacionFinQuery');
+
+                    $idRangoFechasAceptacionQuery = 99;
+
+                    $config->id_rango_fecha_busqueda = $idRangoFechasAceptacionQuery;
+                    $config->save();
+                }
+                else
+                { 
+                    $idRangoFechasAceptacionQuery = $request->input('idRangoFechasAceptacionQuery') ? 
+                                        $request->input('idRangoFechasAceptacionQuery') :
+                                        $config->id_rango_fecha_busqueda;
+
+                    $rangoFechaAceptacion = $this->regresaRangoFecha($idRangoFechasAceptacionQuery);
+
+                    $fechaAceptacionInicioQuery = $rangoFechaAceptacion[0];
+                    $fechaAceptacionFinQuery = $rangoFechaAceptacion[1];
+
+                    $config->id_rango_fecha_busqueda = $idRangoFechasAceptacionQuery;
+                    $config->save();
+                }
             }
         }
         else
         {
-            $fechaInicioQuery = Carbon::today()->toDateString();
-            $fechaFinQuery = Carbon::today()->toDateString();
+            $fechaIngresoInicioQuery = Carbon::today()->toDateString();
+            $fechaIngresoFinQuery = Carbon::today()->toDateString();
+
+            $idRangoFechasIngresoQuery = 1;
+
+            $fechaAceptacionInicioQuery = Carbon::today()->toDateString();
+            $fechaAceptacionFinQuery = Carbon::today()->toDateString();
+
+            $idRangoFechasAceptacionQuery = 1;
 
             ConfiguracionUsuario::create([
                 'id_user' => $idUsuario,
                 'id_rango_fecha_busqueda' => 1,
             ]);
-
-            $idRangoFechasQuery = 1;
         }
 
         $sortColumn = $request->input('sortColumn', 'fecha_ingreso'); // Columna de ordenación
         $sortDirection = $request->input('sortDirection', 'asc'); // Dirección de ordenación
         $paraNuevaSolicitud = $request->input('paraNuevaSolicitud', false); // Dirección de ordenación
+        $numQuery = $request->input('numQuery', null); // O '' si prefieres cadena vacía
+        $folioQuery = $request->input('folioQuery', null); // O '' si prefieres cadena vacía
         $nombreQuery = $request->input('nombreQuery', null); // O '' si prefieres cadena vacía
+        $claveCatastralQuery = $request->input('claveCatastralQuery', null); // O '' si prefieres cadena vacía
         $tiposTramitesQuery = $request->input('tiposTramitesQuery', []); // Array vacío para selecciones múltiples
         $tramitesQuery = $request->input('tramitesQuery', []); // Array vacío para selecciones múltiples
+        $localidadesQueryFiltradas = $request->input('localidadesQueryFiltradas', []); // Array vacío para selecciones múltiples
         $estatusQuery = $request->input('estatusQuery', null); // O [] si esperas un array de estatus
+        $filtroChkSolicitudes = $request->input('filtroChkSolicitudes', null); // O [] si esperas un array de estatus
+        $rangoFechasIngresoManual = $request->input('rangoFechasIngresoManual', null); // O [] si esperas un array de estatus
+        $rangoFechasAceptacionManual = $request->input('rangoFechasAceptacionManual', null); // O [] si esperas un array de estatus
         $page = $request->input('page', 1);
 
         // Obtener el ID del periodo actual
@@ -747,29 +1087,37 @@ class SolicitudController extends Controller
         // Usar el ID para buscar el objeto completo
         $periodoActual = Periodo::find($periodoId);
 
-        if (empty($tramitesQuery) && empty($estatusQuery))
+        if (empty($tramitesQuery) && empty($estatusQuery))  //Si no hay TRÁMITES ni ESTATUS en + FILTROS
         {
             $filtroChkSolicitudes = 0;
         }
         
-        if ($tramitesQuery && empty($estatusQuery))
+        if ($tramitesQuery && empty($estatusQuery))  //Si está seleccionado solo ESTATUS en + FILTROS
         {
             $filtroChkSolicitudes = 1;
         }
 
-        if (empty($tramitesQuery) && $estatusQuery)
+        if (empty($tramitesQuery) && $estatusQuery)  //Si están seleccionados TRÁMITES en + FILTROS
         {
             $filtroChkSolicitudes = 2;
         }
 
         $filtros = [
-            'fechaInicioQuery' => $fechaInicioQuery,
-            'fechaFinQuery' => $fechaFinQuery,
+            'fechaIngresoInicioQuery' => $fechaIngresoInicioQuery,
+            'fechaIngresoFinQuery' => $fechaIngresoFinQuery,
+            'fechaAceptacionInicioQuery' => $fechaAceptacionInicioQuery,
+            'fechaAceptacionFinQuery' => $fechaAceptacionFinQuery,
+            'numQuery' => $numQuery,
+            'folioQuery' => $folioQuery,
             'nombreQuery' => $nombreQuery,
+            'claveCatastralQuery' => $claveCatastralQuery,
             'tiposTramitesQuery' => $tiposTramitesQuery,
             'tramitesQuery' => $tramitesQuery,
+            'localidadesQueryFiltradas' => $localidadesQueryFiltradas,
             'estatusQuery' => $estatusQuery,
             'filtroChkSolicitudes' => $filtroChkSolicitudes,
+            'rangoFechasIngresoManual' => $rangoFechasIngresoManual,
+            'rangoFechasAceptacionManual' => $rangoFechasAceptacionManual,
             'sortColumn' => $sortColumn,
             'sortDirection' => $sortDirection,
             'periodoActual' => $periodoActual,
@@ -778,6 +1126,8 @@ class SolicitudController extends Controller
         ];
 
         $props = $this->prepararVistaSolicitudes($filtros);
+
+        $props['filters'] = $filtros;
 
         return Inertia::render('Solicitudes/Index', $props);
     }
@@ -984,25 +1334,37 @@ class SolicitudController extends Controller
             $sortColumn = $request->input('sortColumn', 'id'); // Columna de ordenación
             $sortDirection = $request->input('sortDirection', 'asc'); // Dirección de ordenación
 
+            $numQuery = $request->input('numQuery', null); // O '' si prefieres cadena vacía
+            $folioQuery = $request->input('folioQuery', null); // O '' si prefieres cadena vacía
             $nombreQuery = $request->input('nombreQuery', null); // O '' si prefieres cadena vacía
+            $claveCatastralQuery = $request->input('claveCatastralQuery', null); // O '' si prefieres cadena vacía
             $tiposTramitesQuery = $request->input('tiposTramitesQuery', []); // Array vacío para selecciones múltiples
             $tramitesQuery = $request->input('tramitesQuery', []); // Array vacío para selecciones múltiples
             $estatusQuery = $request->input('estatusQuery', null); // O [] si esperas un array de estatus
-            $fechaInicioQuery =  $request->input('fechaInicioQuery');
-            $fechaFinQuery =  $request->input('fechaFinQuery');
-            $rangoFechasManual = $request->input('rangoFechasManual');
+            $fechaIngresoInicioQuery =  $request->input('fechaIngresoInicioQuery');
+            $fechaIngresoFinQuery =  $request->input('fechaIngresoFinQuery');
+            $rangoFechasIngresoManual = $request->input('rangoFechasIngresoManual');
+            $fechaAceptacionInicioQuery =  $request->input('fechaAceptacionInicioQuery');
+            $fechaAceptacionFinQuery =  $request->input('fechaAceptacionFinQuery');
+            $rangoFechasAceptacionManual = $request->input('rangoFechasAceptacionManual');
             $page = $request->input('page', 1);
 
             $filtros = [
-                'fechaInicioQuery' => $fechaInicioQuery,
-                'fechaFinQuery' => $fechaFinQuery,
+                'fechaIngresoInicioQuery' => $fechaIngresoInicioQuery,
+                'fechaIngresoFinQuery' => $fechaIngresoFinQuery,
+                'fechaAceptacionInicioQuery' => $fechaAceptacionInicioQuery,
+                'fechaAceptacionFinQuery' => $fechaAceptacionFinQuery,
+                'numQuery' => $numQuery,
+                'folioQuery' => $folioQuery,
                 'nombreQuery' => $nombreQuery,
+                'claveCatastralQuery' => $claveCatastralQuery,
                 'tiposTramitesQuery' => $tiposTramitesQuery,
                 'tramitesQuery' => $tramitesQuery,
                 'estatusQuery' => $estatusQuery,
                 'sortColumn' => $sortColumn,
                 'sortDirection' => $sortDirection,
-                'rangoFechasManual' => $rangoFechasManual,
+                'rangoFechasIngresoManual' => $rangoFechasIngresoManual,
+                'rangoFechasAceptacionManual' => $rangoFechasAceptacionManual,
                 'page' => $page,
             ];
 
@@ -1012,19 +1374,29 @@ class SolicitudController extends Controller
             return redirect()->route('solicitudes')->with('error', 'Ocurrió un error al eliminar el croquis: ' . $e->getMessage());
         }
 
-        $fechaInicioQuery =  $request->input('fechaInicioQuery');
-        $fechaFinQuery =  $request->input('fechaFinQuery');
+        $fechaIngresoInicioQuery =  $request->input('fechaIngresoInicioQuery');
+        $fechaIngresoFinQuery =  $request->input('fechaIngresoFinQuery');
+        $fechaAceptacionInicioQuery =  $request->input('fechaAceptacionInicioQuery');
+        $fechaAceptacionFinQuery =  $request->input('fechaAceptacionFinQuery');
         $sortColumn = $request->input('sortColumn', 'id'); // Columna de ordenación
         $sortDirection = $request->input('sortDirection', 'asc'); // Dirección de ordenación
+        $numQuery = $request->input('numQuery', null); // O '' si prefieres cadena vacía
+        $folioQuery = $request->input('folioQuery', null); // O '' si prefieres cadena vacía
         $nombreQuery = $request->input('nombreQuery', null); // O '' si prefieres cadena vacía
+        $claveCatastralQuery = $request->input('claveCatastralQuery', null); // O '' si prefieres cadena vacía
         $tiposTramitesQuery = $request->input('tiposTramitesQuery', []); // Array vacío para selecciones múltiples
         $tramitesQuery = $request->input('tramitesQuery', []); // Array vacío para selecciones múltiples
         $estatusQuery = $request->input('estatusQuery', null); // O [] si esperas un array de estatus
 
         $filtros = [
-            'fechaInicioQuery' => $fechaInicioQuery,
-            'fechaFinQuery' => $fechaFinQuery,
+            'fechaIngresoInicioQuery' => $fechaIngresoInicioQuery,
+            'fechaIngresoFinQuery' => $fechaIngresoFinQuery,
+            'fechaAceptacionInicioQuery' => $fechaAceptacionInicioQuery,
+            'fechaAceptacionFinQuery' => $fechaAceptacionFinQuery,
+            'numQuery' => $numQuery,
+            'folioQuery' => $folioQuery,
             'nombreQuery' => $nombreQuery,
+            'claveCatastralQuery' => $claveCatastralQuery,
             'tiposTramitesQuery' => $tiposTramitesQuery,
             'tramitesQuery' => $tramitesQuery,
             'estatusQuery' => $estatusQuery,
@@ -1180,26 +1552,38 @@ class SolicitudController extends Controller
                 $sortColumn = $request->input('sortColumn', 'id'); // Columna de ordenación
                 $sortDirection = $request->input('sortDirection', 'asc'); // Dirección de ordenación
 
+                $numQuery = $request->input('numQuery', null); // O '' si prefieres cadena vacía
+                $folioQuery = $request->input('folioQuery', null); // O '' si prefieres cadena vacía
                 $nombreQuery = $request->input('nombreQuery', null); // O '' si prefieres cadena vacía
+                $claveCatastralQuery = $request->input('claveCatastralQuery', null); // O '' si prefieres cadena vacía
                 $tiposTramitesQuery = $request->input('tiposTramitesQuery', []); // Array vacío para selecciones múltiples
                 $tramitesQuery = $request->input('tramitesQuery', []); // Array vacío para selecciones múltiples
                 $estatusQuery = $request->input('estatusQuery', null); // O [] si esperas un array de estatus
-                $fechaInicioQuery =  $request->input('fechaInicioQuery');
-                $fechaFinQuery =  $request->input('fechaFinQuery');
-                $rangoFechasManual = $request->input('rangoFechasManual');
+                $fechaIngresoInicioQuery =  $request->input('fechaIngresoInicioQuery');
+                $fechaIngresoFinQuery =  $request->input('fechaIngresoFinQuery');
+                $rangoFechasIngresoManual = $request->input('rangoFechasIngresoManual');
+                $fechaAceptacionInicioQuery =  $request->input('fechaAceptacionInicioQuery');
+                $fechaAceptacionFinQuery =  $request->input('fechaAceptacionFinQuery');
+                $rangoFechasAceptacionManual = $request->input('rangoFechasAceptacionManual');
 
                 $page = $request->input('page', 1);
 
                 $filtros = [
-                    'fechaInicioQuery' => $fechaInicioQuery,
-                    'fechaFinQuery' => $fechaFinQuery,
+                    'fechaIngresoInicioQuery' => $fechaIngresoInicioQuery,
+                    'fechaIngresoFinQuery' => $fechaIngresoFinQuery,
+                    'fechaAceptacionInicioQuery' => $fechaAceptacionInicioQuery,
+                    'fechaAceptacionFinQuery' => $fechaAceptacionFinQuery,
+                    'numQuery' => $numQuery,
+                    'folioQuery' => $folioQuery,
                     'nombreQuery' => $nombreQuery,
+                    'claveCatastralQuery' => $claveCatastralQuery,
                     'tiposTramitesQuery' => $tiposTramitesQuery,
                     'tramitesQuery' => $tramitesQuery,
                     'estatusQuery' => $estatusQuery,
                     'sortColumn' => $sortColumn,
                     'sortDirection' => $sortDirection,
-                    'rangoFechasManual' => $rangoFechasManual,
+                    'rangoFechasIngresoManual' => $rangoFechasIngresoManual,
+                    'rangoFechasAceptacionManual' => $rangoFechasAceptacionManual,
                     'page' => $page
                 ];
 
@@ -1295,12 +1679,59 @@ class SolicitudController extends Controller
             $request->merge(['idDestinoObra' => null]);
         }
 
+        if ($request->tipoPropiedadReferencia === 'null') {
+            $request->merge(['tipoPropiedadReferencia' => null]);
+        }
+
+        if ($request->idLocalidadReferencia === 'null') {
+            $request->merge(['idLocalidadReferencia' => null]);
+        }
+
+        if ($request->fechaIngresoInicioQuery === 'null') {
+            $request->merge(['fechaIngresoInicioQuery' => null]);
+        }
+
+        if ($request->fechaIngresoFinQuery === 'null') {
+            $request->merge(['fechaIngresoFinQuery' => null]);
+        }
+
+        if ($request->fechaAceptacionInicioQuery === 'null') {
+            $request->merge(['fechaAceptacionInicioQuery' => null]);
+        }
+
+        if ($request->fechaAceptacionFinQuery === 'null') {
+            $request->merge(['fechaAceptacionFinQuery' => null]);
+        }
+
         $validaPropiedad = true;
 
         $tramitesSeleccionados = (array) $request->input('tramitesSeleccionados', []);
 
         if (in_array($this->ID_CONSTANCIA_UBICACION, $tramitesSeleccionados)) {
             $validaPropiedad = false;
+        }
+
+        if (empty($request->tramitesSeleccionados))
+        {
+            $errors = new MessageBag(['tramitesSeleccionados' => ['Selecciona al menos un TRÁMITE para poder continuar.']]);
+            
+            $this->activeTab = 'tramite';
+            
+            return $errors;
+        }
+        else
+        {
+            if (in_array($this->ID_CONSTANCIA_UBICACION, $request->tramitesSeleccionados)) 
+            {
+                if (trim($request->referencia) == '')
+                {
+                    $errors = new MessageBag(['referencia' => ['La INFORMACIÓN DE REFERENCIA es obligatoria.']]);
+                    
+                    $this->activeTab = 'referencia';
+                    
+                    return $errors;
+                }
+            } 
         }
 
         if ($validaPropiedad)
@@ -1404,6 +1835,35 @@ class SolicitudController extends Controller
                     return $validator; // Envía los errores a la vista
                 }
             }            
+        }
+
+        if ($validaPropiedad)
+        {
+            $validator = Validator::make($request->all(),[
+                'superficiePropiedad' => 'nullable|numeric',    
+                'callePropiedad' => 'nullable|string|max:35',
+                'numeroPropiedad' => 'nullable|string|max:8',
+            ], [
+                'superficiePropiedad.numeric' => '<li>La SUPERFICIE de la PROPIEDAD debe ser un número.</li>',
+                
+                'callePropiedad.string' => '<li>La CALLE de la PROPIEDAD debe ser texto.</li>',
+                'callePropiedad.max' => '<li>La CALLE de la PROPIEDAD no debe exceder los 35 caracteres.</li>',
+                'numeroPropiedad.string' => '<li>El NÚMERO de la PROPIEDAD debe ser texto.</li>',
+                'numeroPropiedad.max' => '<li>El NÚMERO de la PROPIEDAD no debe exceder los 8 caracteres.</li>',
+            ]);
+
+            if ($validator->fails()) {
+                $this->activeTab = 'propiedad';
+                return $validator; // Envía los errores a la vista
+            }
+
+            if ($request->callePropiedad === null) {
+                $request->merge(['callePropiedad' => '']);
+            }
+
+            if ($request->numeroPropiedad === null) {
+                $request->merge(['numeroPropiedad' => '']);
+            }
         }
 
         if ($request->idEstatusSolicitud == 99) 
@@ -1522,30 +1982,7 @@ class SolicitudController extends Controller
 
                     return $validator; // Envía los errores a la vista
                 }
-            }
-
-            if (empty($request->tramitesSeleccionados))
-            {
-                $errors = new MessageBag(['tramitesSeleccionados' => ['Selecciona al menos un TRÁMITE para poder continuar.']]);
-                
-                $this->activeTab = 'tramite';
-                
-                return $errors;
-            }
-            else
-            {
-                if (in_array($this->ID_CONSTANCIA_UBICACION, $request->tramitesSeleccionados)) 
-                {
-                    if (trim($request->referencia) == '')
-                    {
-                        $errors = new MessageBag(['referencia' => ['La INFORMACIÓN DE REFERENCIA es obligatoria.']]);
-                        
-                        $this->activeTab = 'referencia';
-                        
-                        return $errors;
-                    }
-                } 
-            }
+            }           
 
             if ($request->idDestinoObra === null)
             {
@@ -1557,36 +1994,6 @@ class SolicitudController extends Controller
             }
         }
     }
-
-    // public function regresaPersonaPropietario(Request $request)
-    // {
-    //     $personaPropietario = $request->idPersonaPropietario ? Persona::find($request->idPersonaPropietario) : null;
-    //     if ($personaPropietario)  //Si ya existe
-    //     {
-    //         if ($personaPropietario->editable)  //Si se puede editar
-    //         {   //Si hay cambios entonces actualiza el campo correspondiente
-    //             if ($personaPropietario->nombre != trim(mb_strtoupper($request->nomPropietario)))
-    //             {
-    //                 $personaPropietario->nombre = trim(mb_strtoupper($request->nomPropietario));
-    //             }
-    //             if ($personaPropietario->apellidos != trim(mb_strtoupper($request->apePropietario)))
-    //             {
-    //                 $personaPropietario->apellidos = trim(mb_strtoupper($request->apePropietario));
-    //             }
-    //             $personaPropietario->save();
-    //         }
-    //         else
-    //         {
-    //             $personaPropietario = $this->regresaPersonaPropietarioActiva($request);
-    //         }
-    //     }
-    //     else  //Si no existe la persona busca o agrega la persona activa
-    //     {
-    //         $personaPropietario = $this->regresaPersonaPropietarioActiva($request);
-    //     }
-
-    //     return $personaPropietario;
-    // }
 
     public function regresaPersonaPropietario(Request $request)
     {
@@ -1659,6 +2066,7 @@ class SolicitudController extends Controller
 
         if ($contactoPropietario) //Si ya existe
         {
+
             if ($contactoPropietario->editable) //Si se pueden editar los datos del propietario
             {   //Si hay cambios entonces actualiza el campo correspondiente
                 if ($contactoPropietario->telefono != trim($request->telefonoPropietario))
@@ -1900,8 +2308,6 @@ class SolicitudController extends Controller
         return $contactoSolicitante;
     }
 
-    //CHECKPOINT: Falta agregar lo de la RAZÓN SOCIAL al STORE
-
     public function regresaPropiedad(Request $request, $contactoPropietario)
     {
         if ($request->idPropiedadSolicitud) 
@@ -1981,7 +2387,7 @@ class SolicitudController extends Controller
 
         $propiedad = $propiedad->first();
 
-        if ($propiedad)  //Si existe entonces la pone como no editable
+        if ($propiedad)  //Si existe entonces la pone como no activa
         {
             if (!$propiedad->activa)  //Si no está activa es porque alguna vez estuvo activa
             {
@@ -2031,9 +2437,12 @@ class SolicitudController extends Controller
         $tramitesIds = $request->tramitesSeleccionados ?? []; // array de IDs
         $idContactoPropiedad = $request->idContactoPropiedad;
 
+        $fechaLimite = Carbon::now()->subMonths(3);
+
         $solicitudDuplicada = Solicitud::where('id_propiedad', $idPropiedad)
-            // ->where('id_contacto', $idContactoSolicitante)
             ->where('id_destino_obra', $request->idDestinoObra)
+            // Nuevo filtro: la fecha_ingreso debe ser posterior a la fecha límite
+            ->where('fecha_ingreso', '>', $fechaLimite)
             ->whereHas('propiedad', function ($query) use ($idContactoPropiedad) {
                 $query->where('id_contacto', $idContactoPropiedad);
             })
@@ -2095,7 +2504,6 @@ class SolicitudController extends Controller
                 $contactoSolicitante = $this->regresaContactoSolicitante($request, $personaSolicitante, null, $esPersonaNueva);            
             }    
            
-
             $solicitud = Solicitud::create([
                 'id_contacto' => $contactoSolicitante->id,
                 // 'id_propiedad' => $propiedad->id,
@@ -2141,11 +2549,14 @@ class SolicitudController extends Controller
             $idSolicitud = $solicitud->id;
             $solicitud->save();
 
+
             if ($guardaReferencia && trim($request->referencia) !== '')
             {
                 SolicitudReferencia::create([
                     'id_solicitud' => $solicitud->id,
                     'contenido' => trim(mb_strtoupper($request->referencia)),
+                    'id_localidad' => (int) $request->idLocalidadReferencia,
+                    'id_tipo_propiedad' => $request->tipoPropiedadReferencia,
                 ]);
             }
 
@@ -2154,25 +2565,37 @@ class SolicitudController extends Controller
             $sortColumn = $request->input('sortColumn', 'fecha_ingreso'); // Columna de ordenación
             $sortDirection = $request->input('sortDirection', 'asc'); // Dirección de ordenación
 
+            $numQuery = $request->input('numQuery', null); // O '' si prefieres cadena vacía
+            $folioQuery = $request->input('folioQuery', null); // O '' si prefieres cadena vacía
             $nombreQuery = $request->input('nombreQuery', null); // O '' si prefieres cadena vacía
+            $claveCatastralQuery = $request->input('claveCatastralQuery', null); // O '' si prefieres cadena vacía
             $tiposTramitesQuery = $request->input('tiposTramitesQuery', []); // Array vacío para selecciones múltiples
             $tramitesQuery = $request->input('tramitesQuery', []); // Array vacío para selecciones múltiples
             $estatusQuery = $request->input('estatusQuery', null); // O [] si esperas un array de estatus
-            $fechaInicioQuery =  $request->input('fechaInicioQuery');
-            $fechaFinQuery =  $request->input('fechaFinQuery');
-            $rangoFechasManual = $request->input('rangoFechasManual'); // Valor booleano
+            $fechaIngresoInicioQuery =  $request->input('fechaIngresoInicioQuery');
+            $fechaIngresoFinQuery =  $request->input('fechaIngresoFinQuery');
+            $rangoFechasIngresoManual = $request->input('rangoFechasIngresoManual'); // Valor booleano
+            $fechaAceptacionInicioQuery =  $request->input('fechaAceptacionInicioQuery');
+            $fechaAceptacionFinQuery =  $request->input('fechaAceptacionFinQuery');
+            $rangoFechasAceptacionManual = $request->input('rangoFechasAceptacionManual'); // Valor booleano
             $page = $request->input('page', 1);
             
             $filtros = [
-                'fechaInicioQuery' => $fechaInicioQuery,
-                'fechaFinQuery' => $fechaFinQuery,
+                'fechaIngresoInicioQuery' => $fechaIngresoInicioQuery,
+                'fechaIngresoFinQuery' => $fechaIngresoFinQuery,
+                'fechaAceptacionInicioQuery' => $fechaAceptacionInicioQuery,
+                'fechaAceptacionFinQuery' => $fechaAceptacionFinQuery,
+                'numQuery' => $numQuery,
+                'folioQuery' => $folioQuery,
                 'nombreQuery' => $nombreQuery,
+                'claveCatastralQuery' => $claveCatastralQuery,
                 'tiposTramitesQuery' => $tiposTramitesQuery,
                 'tramitesQuery' => $tramitesQuery,
                 'estatusQuery' => $estatusQuery,
                 'sortColumn' => $sortColumn,
                 'sortDirection' => $sortDirection,
-                'rangoFechasManual' => $rangoFechasManual,
+                'rangoFechasIngresoManual' => $rangoFechasIngresoManual,
+                'rangoFechasAceptacionManual' => $rangoFechasAceptacionManual,
                 'page' => $page,
             ];
 
@@ -2196,34 +2619,46 @@ class SolicitudController extends Controller
     private function prepararVistaSolicitudes(array $filtros): array
     {
         $solicitudesQuery = $this->obtenerSolicitudes(
-            $filtros['fechaInicioQuery'],
-            $filtros['fechaFinQuery'],
+            $filtros['fechaIngresoInicioQuery'],
+            $filtros['fechaIngresoFinQuery'],
+            $filtros['fechaAceptacionInicioQuery'],
+            $filtros['fechaAceptacionFinQuery'],
+            $filtros['numQuery'],
+            $filtros['folioQuery'],
             $filtros['nombreQuery'],
+            $filtros['claveCatastralQuery'],
             $filtros['tiposTramitesQuery'],
             $filtros['tramitesQuery'],
+            $filtros['localidadesQueryFiltradas'],            
             $filtros['estatusQuery'],
             $filtros['sortColumn'] ?? 'fecha_ingreso',
             $filtros['sortDirection'] ?? 'asc'
         );
 
-        $solicitudes = $solicitudesQuery['query']->paginate(10);
+        $solicitudesFiltradasIds = (clone $solicitudesQuery['query'])->pluck('solicitudes.id');
+        $solicitudesFiltradasIdsPrev = $solicitudesQuery['ids_previos'];
+
+        $solicitudes = $solicitudesQuery['query']->paginate(8);
 
         $tiposPropiedades = TipoPropiedad::orderBy('nombre')->get();
         $destinosObras = DestinoObra::orderBy('nombre')->get();
         $sectores = SectorTramite::orderBy('nombre')->get();
         $tiposTramites = TipoTramite::with('tramites')->where('activo', true)->get();
-        $localidades = Localidad::get();
-
-        $solicitudesFiltradasIds = (clone $solicitudesQuery['query'])->pluck('solicitudes.id');
-        $solicitudesFiltradasIdsPrev = $solicitudesQuery['ids_previos'];
+        $localidades = Localidad::orderBy('nombre')->get();
 
         $resumen = $this->obtenerResumenSolicitudes([
             'filtroChkSolicitudes' => $filtros['filtroChkSolicitudes'],
-            'fechaInicioQuery' => $filtros['fechaInicioQuery'],
-            'fechaFinQuery' => $filtros['fechaFinQuery'],
+            'fechaIngresoInicioQuery' => $filtros['fechaIngresoInicioQuery'],
+            'fechaIngresoFinQuery' => $filtros['fechaIngresoFinQuery'],
+            'fechaAceptacionInicioQuery' => $filtros['fechaAceptacionInicioQuery'],
+            'fechaAceptacionFinQuery' => $filtros['fechaAceptacionFinQuery'],
+            'numQuery' => $filtros['numQuery'],
+            'folioQuery' => $filtros['folioQuery'],
             'nombreQuery' => $filtros['nombreQuery'],
+            'claveCatastralQuery' => $filtros['claveCatastralQuery'],
             'tiposTramitesQuery' => $filtros['tiposTramitesQuery'],
             'tramitesQuery' => $filtros['tramitesQuery'],
+            'localidadesQueryFiltradas' => $filtros['localidadesQueryFiltradas'],
             'estatusQuery' => $filtros['estatusQuery'],
             'solicitudesFiltradasIds' => $solicitudesFiltradasIds,
             'solicitudesFiltradasIdsPrev' => $solicitudesFiltradasIdsPrev,
@@ -2239,13 +2674,22 @@ class SolicitudController extends Controller
             'sectores' => $sectores,
             'localidades' => $localidades,
             'tramites' => $resumen['tramites'],
+            'localidadesQuery' => $resumen['localidadesQuery'],
+            'numQuery' => $filtros['numQuery'],
+            'folioQuery' => $filtros['folioQuery'],
             'nombreQuery' => $filtros['nombreQuery'],
-            'fechaInicioQuery' => $filtros['fechaInicioQuery'],
-            'fechaFinQuery' => $filtros['fechaFinQuery'],
+            'fechaIngresoInicioQuery' => $filtros['fechaIngresoInicioQuery'],
+            'fechaIngresoFinQuery' => $filtros['fechaIngresoFinQuery'],
+            'fechaAceptacionInicioQuery' => $filtros['fechaAceptacionInicioQuery'],
+            'fechaAceptacionFinQuery' => $filtros['fechaAceptacionFinQuery'],
+            'claveCatastralQuery' => $filtros['claveCatastralQuery'],
             'tiposTramitesQuery' => $filtros['tiposTramitesQuery'],
             'tramitesQuery' => $filtros['tramitesQuery'],
+            'localidadesQueryFiltradas' => $filtros['localidadesQueryFiltradas'],
             'estatusQuery' => $filtros['estatusQuery'],
             'filtroChkSolicitudes' => $filtros['filtroChkSolicitudes'],
+            'rangoFechasIngresoManual' => $filtros['rangoFechasIngresoManual'],
+            'rangoFechasAceptacionManual' => $filtros['rangoFechasAceptacionManual'],
             'sortColumn' => $filtros['sortColumn'] ?? 'fecha_ingreso',
             'sortDirection' => $filtros['sortDirection'] ?? 'asc',
             'paraNuevaSolicitud' => $filtros['paraNuevaSolicitud'] ?? false,
@@ -2311,20 +2755,22 @@ class SolicitudController extends Controller
         {
             $validaPropiedad = false;
         }
-        
+
         DB::beginTransaction();
         try 
         {
             if ($validaPropiedad)
             {
                 list($personaPropietario, $esPersonaNueva) = $this->regresaPersonaPropietario($request);
-                $contactoPropietario = $this->regresaContactoPropietario($request, $personaPropietario, $esPersonaNueva);
-                
+                $contactoPropietario = $this->regresaContactoPropietario($request, $personaPropietario, $esPersonaNueva);                
                 $propiedad = $this->regresaPropiedad($request, $contactoPropietario);
-            }            
+            }   
             
             $esSolicitante = filter_var($request->esSolicitante, FILTER_VALIDATE_BOOLEAN);
             $solicitaOrganizacion = filter_var($request->solicitaOrganizacion, FILTER_VALIDATE_BOOLEAN);
+
+            $solicitud = Solicitud::find($id);  
+
             if ($esSolicitante && $validaPropiedad) //Si el solicitante es el propietario
             {
                 list($personaSolicitante, $esPersonaNueva) = $this->regresaPersonaSolicitante($request, $personaPropietario);
@@ -2341,8 +2787,6 @@ class SolicitudController extends Controller
                 }
             }
 
-            $solicitud = Solicitud::find($id);  
-            
             $guardaReferencia = false;
 
             SolicitudTramite::where('id_solicitud', $id)->delete();
@@ -2369,18 +2813,24 @@ class SolicitudController extends Controller
                 $solicitud->id_propiedad = $propiedad->id;
             }
 
-            // $solicitud->id_contacto = $contactoSolicitante->id;
+            $solicitud->id_contacto = $contactoSolicitante->id;
             $solicitud->id_destino_obra = $request->idDestinoObra;
             $solicitud->id_estatus = $request->idEstatusSolicitud;
             $solicitud->fecha_ingreso = $request->fecha_ingreso;
 
-            if ($guardaReferencia && trim($request->referencia) !== '')
+            if ($guardaReferencia && 
+            (trim($request->referencia) !== ''
+            || $request->idLocalidadReferencia !== null
+            || $request->tipoPropiedadReferencia !== null)
+            )
             {
                 $referencia = SolicitudReferencia::where('id_solicitud', $id)->first();
 
                 if ($referencia)
                 {
                     $referencia->contenido = trim(mb_strtoupper($request->referencia));
+                    $referencia->id_localidad = $request->idLocalidadReferencia;
+                    $referencia->id_tipo_propiedad = $request->tipoPropiedadReferencia;
                     $referencia->save();
                 }
                 else
@@ -2388,10 +2838,12 @@ class SolicitudController extends Controller
                     SolicitudReferencia::create([
                         'id_solicitud' => $solicitud->id,
                         'contenido' => trim(mb_strtoupper($request->referencia)),
+                        'id_localidad' =>  $request->idLocalidadReferencia,
+                        'id_tipo_propiedad' => $request->tipoPropiedadReferencia,
                     ]);
                 }
             }
-            
+
             $archivo = null;
             if ($request->idEstatusSolicitud == 99)   //Cuando es un TRÁMITE CONCLUÍDO
             {
@@ -2410,6 +2862,14 @@ class SolicitudController extends Controller
                     $contactoPropietario->save();
 
                     $propiedad->editable = 0;
+                    $propiedad->fecha_aceptacion = now();
+
+                    $solicitudAceptada = SolicitudAceptada::create([
+                        'activa'       => true,
+                    ]);
+
+                    $solicitud->folio = $solicitudAceptada->id;
+                    $solicitud->fecha_aceptacion = now();
 
                     if ($solicitud->croquis_aux)
                     {
@@ -2454,13 +2914,21 @@ class SolicitudController extends Controller
             if ($validaPropiedad) $propiedad->save();  
             
             $solicitud->save();
-            if ($validaPropiedad)
-            {
+            // if ($validaPropiedad)
+            // {
                 //Actualiza el propietario en todas las solicitudes que tengan la misma propiedad y que no estén concluidas
-                Solicitud::where('id_propiedad', $propiedad->id)
-                ->where('id_estatus', '<', 6)
-                ->update(['id_contacto' => $contactoSolicitante->id]); 
-            }
+                // Solicitud::where('id_propiedad', $propiedad->id)
+                // ->where('id_estatus', '<', 6)
+                // ->update(['id_contacto' => $contactoSolicitante->id]); 
+
+                // $propiedadAActualizar = Propiedad::find($propiedad->id);
+
+                // // 2. Verifica si la propiedad existe
+                // if ($propiedadAActualizar) {
+                //     // 3. Actualiza el id_contacto de la propiedad
+                //     $propiedadAActualizar->update(['id_contacto' => $contactoSolicitante->id]);
+                // }
+            // }
 
             if ($request->idEstatusSolicitud == 99) 
             {
@@ -2474,38 +2942,110 @@ class SolicitudController extends Controller
             $sortColumn = $request->input('sortColumn', 'fecha_ingreso'); // Columna de ordenación
             $sortDirection = $request->input('sortDirection', 'asc'); // Dirección de ordenación
 
+            $numQuery = $request->input('numQuery', null); // O '' si prefieres cadena vacía
+            $folioQuery = $request->input('folioQuery', null); // O '' si prefieres cadena vacía
             $nombreQuery = $request->input('nombreQuery', null); // O '' si prefieres cadena vacía
+            $claveCatastralQuery = $request->input('claveCatastralQuery', null); // O '' si prefieres cadena vacía
             $tiposTramitesQuery = $request->input('tiposTramitesQuery', []); // Array vacío para selecciones múltiples
             $tramitesQuery = $request->input('tramitesQuery', []); // Array vacío para selecciones múltiples
             $estatusQuery = $request->input('estatusQuery', null); // O [] si esperas un array de estatus
-            $fechaInicioQuery =  $request->input('fechaInicioQuery');
-            $fechaFinQuery =  $request->input('fechaFinQuery');
-            $rangoFechasManual = $request->input('rangoFechasManual'); // Valor booleano
+            $fechaIngresoInicioQuery =  $request->input('fechaIngresoInicioQuery');
+            $fechaIngresoFinQuery =  $request->input('fechaIngresoFinQuery');
+            $rangoFechasIngresoManual = $request->input('rangoFechasIngresoManual'); // Valor booleano
+            $fechaAceptacionInicioQuery =  $request->input('fechaIngresAceptacionQuery');
+            $fechaAceptacionFinQuery =  $request->input('fechaAceptacionFinQuery');
+            $rangoFechasAceptacionManual = $request->input('rangoFechasAceptacionManual'); // Valor booleano
             $page = $request->input('page', 1); 
 
+            // Obtener el ID del periodo actual
+            $periodoId = SettingsHelper::get('periodo_actual');
+
+            // Usar el ID para buscar el objeto completo
+            $periodoActual = Periodo::find($periodoId);
+
+
+
+            // $filtros = [
+            //     'fechaIngresoInicioQuery' => $fechaIngresoInicioQuery,
+            //     'fechaIngresoFinQuery' => $fechaIngresoFinQuery,
+            //     'nombreQuery' => $nombreQuery,
+            //     'tiposTramitesQuery' => $tiposTramitesQuery,
+            //     'tramitesQuery' => $tramitesQuery,
+            //     'estatusQuery' => $estatusQuery,
+            //     'sortColumn' => $sortColumn,
+            //     'sortDirection' => $sortDirection,
+            //     'rangoFechasIngresoManual' => $rangoFechasIngresoManual,
+            //     'page' => $page,
+            // ];
+
+            if (empty($tramitesQuery) && empty($estatusQuery))
+            {
+                $filtroChkSolicitudes = 0;
+            }
+            
+            if ($tramitesQuery && empty($estatusQuery))
+            {
+                $filtroChkSolicitudes = 1;
+            }
+
+            if (empty($tramitesQuery) && $estatusQuery)
+            {
+                $filtroChkSolicitudes = 2;
+            }
+
             $filtros = [
-                'fechaInicioQuery' => $fechaInicioQuery,
-                'fechaFinQuery' => $fechaFinQuery,
+                'fechaIngresoInicioQuery' => $fechaIngresoInicioQuery,
+                'fechaIngresoFinQuery' => $fechaIngresoFinQuery,
+                'fechaAceptacionInicioQuery' => $fechaAceptacionInicioQuery,
+                'fechaAceptacionFinQuery' => $fechaAceptacionFinQuery,
+                'numQuery' => $numQuery,
+                'folioQuery' => $folioQuery,
                 'nombreQuery' => $nombreQuery,
+                'claveCatastralQuery' => $claveCatastralQuery,
                 'tiposTramitesQuery' => $tiposTramitesQuery,
                 'tramitesQuery' => $tramitesQuery,
                 'estatusQuery' => $estatusQuery,
+                'filtroChkSolicitudes' => $filtroChkSolicitudes,
                 'sortColumn' => $sortColumn,
                 'sortDirection' => $sortDirection,
-                'rangoFechasManual' => $rangoFechasManual,
+                'periodoActual' => $periodoActual,
+                'rangoFechasIngresoManual' => $rangoFechasIngresoManual,
+                'rangoFechasAceptacionManual' => $rangoFechasAceptacionManual,
+                'paraNuevaSolicitud' => false,
                 'page' => $page,
             ];
 
             return redirect()->route('solicitudes', $filtros)->with('success', 'Solicitud actualizada con éxito!');
-        } catch (\Throwable $e) {
+            // return back()->with([
+            //     'success' => 'Solicitud actualizada con éxito!',
+            //     'filtros' => $filtros,
+            //     'activeTab' => $this->activeTab, // Ejemplo de flash data
+            // ]);
+
+
+            // $props = $this->prepararVistaSolicitudes($filtros);
+
+            //     $props['flash'] = [
+            //         'success' => '¡Solicitud actualizada con éxito!',
+            //     ];
+
+            // return Inertia::render('Solicitudes/Index', $props);
+            
+       
+        } catch (Throwable $e) { // Usa Throwable para capturar cualquier tipo de error
             DB::rollBack();
 
-            // Opcional: Log del error o manejo personalizado
-            return response()->json([
-                'success' => false,
-                'message' => 'Ocurrió un error al actualizar la solicitud.',
-                'error' => $e->getMessage()
-            ], 500);
+            dd($e);
+
+            // // 🚩 CLAVE: Usa el log para guardar los detalles del error
+            // \Log::error('Error en SolicitudController@update: ' . $e->getMessage(), [
+            //     'file' => $e->getFile(),
+            //     'line' => $e->getLine(),
+            // ]);
+
+            // return Redirect::back()->with([
+            //     'error' => 'Hubo un error al actualizar la solicitud. ' . $e->getMessage()
+            // ]);
         }
     }
 

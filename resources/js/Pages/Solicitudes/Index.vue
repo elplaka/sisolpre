@@ -12,10 +12,14 @@
         :tiposTramites="tiposTramites"
         :tramites="tramites"
         :localidades="localidades"
+        :localidadesQuery="localidadesQuery"
+        :numQuery ="numQuery"
+        :folioQuery ="folioQuery"
         :nombreQuery ="nombreQuery"
-        :fechaInicioQuery="props.fechaInicioQuery"
-        :fechaFinQuery="props.fechaFinQuery"
-        :idRangoFechasQuery="props.idRangoFechasQuery"
+        :fechaIngresoInicioQuery="props.fechaIngresoInicioQuery"
+        :fechaIngresoFinQuery="props.fechaIngresoFinQuery"
+        :claveCatastralQuery="claveCatastralQuery"
+        :idRangoFechasIngresoQuery="props.idRangoFechasIngresoQuery"
         :tiposTramitesQuery="tiposTramitesQuery"
         :tramitesQuery="tramitesQuery"
         :sortColumn="sortColumn"
@@ -41,17 +45,30 @@ const props = defineProps({
   tiposTramites: Object,
   sectores: Object, // Datos relacionados de los sectores
   tramites: Object, // Datos relacionados de los trámites
+  localidadesQuery: Object,
   localidades: Object,
-  fechaInicioQuery: String,
-  fechaFinQuery: String,
-  idRangoFechasQuery: Number,
+  fechaIngresoInicioQuery: String,
+  fechaIngresoFinQuery: String,
+  idRangoFechasIngresoQuery: Number,
   tiposTramitesQuery: Object, // Datos relacionados de los tipos de trámites
   tramitesQuery: Object, // Datos relacionados de los trámites
+  numQuery: String, // Cadena de búsqueda
+  folioQuery: String, // Cadena de búsqueda
   nombreQuery: String, // Cadena de búsqueda
+  claveCatastralQuery: String, // Cadena de búsqueda
   filtroChkSolicitudes: Number, // Filtro de solicitudes
   sortColumn: String, // Columna por la que se ordena
   sortDirection: String, // Dirección del ordenamiento (asc/desc)
-  paraNuevaSolicitud: Boolean, // Indica si es para una nueva solicitud
+  paraNuevaSolicitud: {
+            type: [Boolean, String], // Acepta Boolean O String
+            validator: (value) => {
+                // El validador se encarga de convertir y validar.
+                if (typeof value === 'string') {
+                    return value === '1' || value === 'true' || value === '0' || value === 'false';
+                }
+                return typeof value === 'boolean';
+            }
+        },
   userAuth: { type: Object, required: true }, // Información de usuario autenticado
   periodoActual: { type: Object, required: true }
 });

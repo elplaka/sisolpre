@@ -749,7 +749,7 @@
         </el-dialog>
 
         <div class="mx-auto max-w-screen-xl lg:px-0 w-[100%] sm:w-[100%] md:w-[100%] lg:w-[95%]">
-            <h1 class="text-2xl font-bold">Usuarios</h1>
+            <h1 class="text-2xl font-bold mt-20">Usuarios</h1>
             <br />
             <div class="bg-white dark:bg-gray-800 relative shadow-md sm:rounded-lg overflow-visible">
                 <div class="relative flex flex-col md:flex-row items-center justify-between space-y-3 md:space-y-0 md:space-x-4 p-4">

@@ -19,5 +19,6 @@ class CatalogoTramite extends Model
     public function solicitudesTramites()
     {
         return $this->hasMany(SolicitudTramite::class, 'id_tramite');
-    }
+    }  
+    
 }

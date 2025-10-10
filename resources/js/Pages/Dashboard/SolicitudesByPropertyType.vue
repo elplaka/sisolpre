@@ -211,7 +211,7 @@ const renderPieChart = () => {
   const colors = [
     getTailwindColor('color1-700'), // Example color
     getTailwindColor('color2-600'), // Example color
-    getTailwindColor('green-500'), // Example color
+    getTailwindColor('gray-500'), // Example color
     getTailwindColor('yellow-500'), // Example color
     getTailwindColor('purple-500'), // Example color
     getTailwindColor('pink-500'), // Example color

@@ -20,4 +20,9 @@ class SolicitudTramite extends Model
     {
         return $this->belongsTo(CatalogoTramite::class, 'id_tramite');
     }
+
+    public function solicitud()
+    {
+        return $this->belongsTo(Solicitud::class, 'id_solicitud');
+    }
 }

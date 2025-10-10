@@ -52,7 +52,7 @@
 <template>
     <div>
          <nav v-if="data.total > 0" id="nav_pagination" class="flex flex-col md:flex-row justify-between items-start md:items-center space-y-3 md:space-y-0 p-4" aria-label="Table navigation">
-                <span class="text-sm font-normal text-gray-500 dark:text-gray-400">
+                <span v-if="data.from" class="text-sm font-normal text-gray-500 dark:text-gray-400">
                     Mostrando
                     <span class="font-semibold text-gray-900 dark:text-white">{{ data.from }}-{{ data.to }}</span>
                     de

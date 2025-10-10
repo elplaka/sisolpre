@@ -20,7 +20,9 @@ class Solicitud extends Model
         'id_sector',
         'id_estatus',
         'folio_digital',
-        'token_acceso'
+        'token_acceso',
+        'folio', 
+        'fecha_aceptacion'      
     ];
 
     public function estatus()
@@ -66,6 +68,11 @@ class Solicitud extends Model
     public function razon_social()
     {
         return $this->hasOne(SolicitudRazonSocial::class, 'id_solicitud');
+    }
+
+    public function aceptada()
+    {
+        return $this->hasOne(SolicitudAceptada::class, 'folio');
     }
 
     // --- ¡Este es el accesor clave! ---

@@ -50,7 +50,7 @@ class AdminController extends Controller
 
             switch ($config->panel_type) {
                 case 'latest_solicitudes':
-                   $panelData = Solicitud::with(['contacto', 'propiedad', 'estatus', 'contacto.persona', 'propiedad.contacto.persona', 'propiedad.colonia', 'propiedad.localidad'])
+                   $panelData = Solicitud::with(['contacto', 'propiedad', 'estatus', 'contacto.persona', 'propiedad.contacto.persona', 'propiedad.colonia', 'propiedad.localidad', 'referencia', 'referencia.localidad'])
                         ->orderByDesc('fecha_ingreso')  // 🔹 Primero por fecha más reciente
                         ->orderByDesc('id')             // 🔸 Luego por ID más alto
                         ->take($limit)
@@ -93,7 +93,7 @@ class AdminController extends Controller
                     $panelData = Solicitud::select(
                         'localidades.nombre as localidad_nombre',
                         DB::raw('count(*) as total')
-                    )
+                    )->whereYear('fecha_ingreso', now()->year)
                     ->join('propiedades', 'solicitudes.id_propiedad', '=', 'propiedades.id')
                     ->join('localidades', 'propiedades.id_localidad', '=', 'localidades.id')
                     ->groupBy('localidades.nombre')
@@ -111,15 +111,16 @@ class AdminController extends Controller
 
                 case 'solicitudes_by_property_type':
                     $panelData = Solicitud::select(
-                            'tipos_propiedades.nombre as tipo_propiedad_nombre', // Seleccionamos el nombre del tipo de propiedad
-                            DB::raw('count(*) as total')           // Contamos las solicitudes
-                        )
-                        ->join('propiedades', 'solicitudes.id_propiedad', '=', 'propiedades.id') // Unimos con la tabla propiedades
-                        ->join('tipos_propiedades', 'propiedades.id_tipo', '=', 'tipos_propiedades.id') // Unimos con la tabla localidades
-                        ->groupBy('tipos_propiedades.nombre') // Agrupamos por el nombre de la localidad
-                        ->orderByDesc('total')
-                        ->take(4) // Tomar las 4 localidades con más solicitudes
-                        ->get();
+                        DB::raw('COALESCE(T1.nombre, T2.nombre, "N/A") as tipo_propiedad_nombre'),
+                        DB::raw('count(*) as total')
+                    )->whereYear('fecha_ingreso', now()->year)
+                    ->leftJoin('propiedades', 'solicitudes.id_propiedad', '=', 'propiedades.id')
+                    ->leftJoin('tipos_propiedades as T1', 'propiedades.id_tipo', '=', 'T1.id') // Alias T1 para propiedades
+                    ->leftJoin('solicitud_referencias', 'solicitudes.id', '=', 'solicitud_referencias.id_solicitud')
+                    ->leftJoin('tipos_propiedades as T2', 'solicitud_referencias.id_tipo_propiedad', '=', 'T2.id') // Alias T2 para solicitud_referencias
+                    ->groupBy('tipo_propiedad_nombre')
+                    ->orderByDesc('total')
+                    ->get();
 
                     break;
 

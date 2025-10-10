@@ -3,33 +3,6 @@
 @tailwind utilities; 
 
 
-/* .btn-1 {
-    background-color: #7b003a; 
-    color: white;
-    transition: background-color 0.3s;
-  }
-  .btn-1:hover {
-    background-color: #660000; 
-  }
-
-  .btn-2 {
-    background-color: #005350; 
-    color: white; 
-    transition: background-color 0.3s;
-  }
-  .btn-2:hover {
-    background-color: #003300; 
-  }
-
-  .btn-3 {
-    background-color: #5f5e5e; 
-    color: white;
-    transition: background-color 0.3s;
-  }
-  .btn-3:hover {
-    background-color: #5a6268; 
-  } */
-
   :root {
     --color1: #7b003a;
     --color-1: #cc0042;
@@ -76,7 +49,7 @@
   .custom-input .el-input__inner::placeholder {
     color: rgb(110, 114, 118) !important; /* Color del placeholder en modo claro */
   }
-  
+
   .custom-input .el-input__wrapper.is-focus {
     background-color: rgb(249, 250, 251);
     outline: none !important; /* Eliminar outline */
@@ -86,6 +59,18 @@
     border-color: rgb(204 0 66 / var(--tw-border-opacity, 1)) !important;
     --tw-ring-opacity: 1;
     --tw-ring-color: rgb(204 0 66 / var(--tw-ring-opacity, 1)) !important;
+  }
+
+  /* Estilo para el input cuando contiene un valor (no muestra el placeholder) */
+  .custom-input:not(:placeholder-shown) {
+      /* CLAVE: Cambia el fondo a color rojo claro de tu tema */
+      background-color: rgb(243, 244, 246) !important; 
+  }
+
+  /* Opcional: Si necesitas que el input dentro del wrapper de Element Plus 
+    también cambie de color cuando tiene valor (aunque tu input es HTML puro): */
+  .custom-input:not(:placeholder-shown) .el-input__wrapper {
+      background-color: rgb(243, 244, 246) !important;
   }
 
   .custom-input.is-disabled .el-input__wrapper {
@@ -156,6 +141,17 @@
   font-size: 14px !important; /* Tamaño de fuente */
 }
 
+.el-select__input {
+    background-color: white(249, 250, 251);
+    outline: none !important; /* Eliminar outline */
+    box-shadow: none !important; /* Eliminar ring (sombra) */
+    --tw-border-opacity: 1;
+    border: 0.08em solid !important;
+    border-color: rgb(255 255 255 / var(--tw-border-opacity, 1)) !important;
+    --tw-ring-opacity: 1;
+    --tw-ring-color: rgb(255 255 255 / var(--tw-ring-opacity, 1)) !important;
+}
+
 /* Contenido interno del tag (tooltip interno) */
 .el-tag__content {
   background-color: transparent !important;
@@ -195,6 +191,17 @@
   border: 0.151em solid !important;
   border-color: var(--color-1) !important;
   transition: none !important;
+}
+
+.custom-select .el-select__input {
+    background-color: rgb(249, 250, 251);
+    outline: none !important; /* Eliminar outline */
+    box-shadow: none !important; /* Eliminar ring (sombra) */
+    --tw-border-opacity: 1;
+    border: 0.08em solid !important;
+    border-color: rgb(255 255 255 / var(--tw-border-opacity, 1)) !important;
+    --tw-ring-opacity: 1;
+    --tw-ring-color: rgb(255 255 255 / var(--tw-ring-opacity, 1)) !important;
 }
 
 /* Dropdown items - opciones del select */
@@ -244,31 +251,15 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-
-
-/*
- .el-popper.is-light {
-  border-radius: 10px !important;
-  border: 2px solid var(--color-1-2) !important;
+.dark-tooltip {
+  background-color: #000 !important; /* Makes background black */
+  color: #fff !important;             /* Makes text white */
 }
 
-.el-popper__arrow::after {
-  content: "";
-  background-color: white !important;
-  position: absolute;
-  top: 0;
-  left: 0;
-  border-style: solid;
-  border-width: 2px 0 0 2px; 
-  border-color: var(--color-1-2) transparent transparent var(--color-1-2) !important;
-  box-sizing: border-box;
-} */
-
-/* Estilos para el popper del select */
-/* .el-select__popper.is-light.is-pure {
-  border-radius: 10px !important;
-  border: 2px solid var(--color-1-2) !important;
-} */
+/* Optional: to make the arrow black as well */
+.dark-tooltip .el-popper__arrow {
+  border-color: #000 transparent transparent transparent !important;
+}
 
 
 /* Clases específicas para custom dropdown (si aplican) */
@@ -307,8 +298,18 @@
 }
 
 .custom-switch .el-switch__core {
-  background-color:  var(--color1) !important;
-  border-color: var(--color1) !important;
+  background-color:  rgb(200, 200, 200) !important;
+  border-color: rgb(200, 200, 200) !important; 
+}
+
+.custom-switch.el-switch .el-switch__label--left span {
+  font-size: 11.5pt;
+  vertical-align: middle;
+}
+
+.custom-switch.el-switch .el-switch__label--right span {
+  font-size: 11.5pt;
+  vertical-align: middle;
 }
 
 /* .custom-switch .el-switch__action {
@@ -388,13 +389,13 @@
   flex-wrap: nowrap; 
   min-width: 16px !important;
   width: 100% !important;     /* o un valor como 24em o 100em según lo que buscas */
-  max-width: 240px !important;
+  max-width: 260px !important;
   /* background-color: rgb(240, 240, 240)!important; */
 }  
 
 /* fecha-inicio y fecha-fin */
   .custom-date-picker .el-range-input {
-  border-radius: 15px;
+  border-radius: 10px;
   padding: 0 !important;
   margin: 0 !important;
   font-size: 18px;
@@ -403,6 +404,7 @@
   border: none !important;
   flex: 1 1 auto !important; /* permite que crezca, pero dentro de límites */
   min-width: 6em;            /* opcional: asegura un tamaño decente */
+  background-color: white !important; 
 }
 
 @media (max-width: 767px) {
@@ -423,7 +425,7 @@
 }
 
 .custom-date-picker.is-active .el-range-input {
-  background-color: #f2f2f2 !important; /* color al estar activo */
+  background-color: #f2f2f2 !important; 
   padding: 0px 0px !important; /* suficiente para que no se corte el texto */
   margin: 0px !important;
   border: none !important;  
@@ -457,8 +459,8 @@
 
 .custom-date-picker .el-input__icon {
   color: var(--color1) !important;
-  margin-right: 0.5em !important; /* Espacio entre el icono y el texto */ 
-  margin-left: 0em !important;
+  margin-right: 1.5em !important; /* Espacio entre el icono y el texto */ 
+  margin-left: 0.5em !important;
 }
 
 @media (max-width: 768px) {
@@ -500,10 +502,10 @@
   font-weight: bold;
 }
 
-.el-date-table td.start-date.today .el-date-table-cell__text,
+/* .el-date-table td.start-date.today .el-date-table-cell__text,
 .el-date-table td.end-date.today .el-date-table-cell__text {
   color: white !important;
-}
+} */
 
 /* Círculos de inicio y fin de fechas */
 .el-date-table td.start-date .el-date-table-cell__text,
@@ -515,18 +517,41 @@
   font-weight: bold;
 }
 
-.el-date-table td.start-date .el-date-table-cell,
-.el-date-table td.end-date .el-date-table-cell {
-  background-color: rgb(238, 239, 240)!important;
-}
 
 .el-picker-panel .el-date-table td.in-range:not(.start-date):not(.end-date) .el-date-table-cell {
-  background-color: rgb(238, 239, 240) !important;  /* fondo deseado */
+  /* background-color: rgb(238, 239, 240) !important;   */
   border-radius: 0 !important;
+  background-color: rgb(238, 239, 240) !important;
 }
 
 .el-picker-panel .el-date-table td.in-range:not(.start-date):not(.end-date) .el-date-table-cell__text {
   color: var(--color-1-1) !important;
+}
+
+.el-date-table td.start-date .el-date-table-cell {
+    /* Color de fondo del rango */
+    background-color: rgb(238, 239, 240) !important;
+    
+    /* 🔥 Redondeo: Solo el borde superior-izquierdo y el inferior-izquierdo */
+    border-top-left-radius: 15px !important;    
+    border-bottom-left-radius: 15px !important; 
+
+    /* Aseguramos que los demás lados no se redondeen */
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+}
+
+.el-date-table td.end-date .el-date-table-cell {
+    /* Color de fondo del rango */
+    background-color: rgb(238, 239, 240) !important;
+    
+    /* Aseguramos que los demás lados no se redondeen */
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    
+    /* 🔥 Redondeo: Solo el borde superior-derecho y el inferior-derecho */
+    border-top-right-radius: 15px !important;    
+    border-bottom-right-radius: 15px !important; 
 }
 
 .el-date-range-picker__header div {
@@ -588,7 +613,118 @@
   font-size: 9pt !important;
 }
 
-/* Estilos para el placeholder del input */
+.custom-date-picker .el-input__icon {
+    /* Aquí forzamos el color del icono a negro. */
+    color: rgb(75, 85, 99)!important; /* 👈 CAMBIO CLAVE AQUÍ */
+    
+    /* Mantenemos tus otros estilos para el contenedor */
+    margin-right: 0.5em !important; 
+    margin-left: 0.5em !important;
+}
+
+.custom-date-picker .el-input__icon svg {
+    /* ... tamaño del SVG es 18px ... */
+    width: 18px !important; 
+    height: 18px !important;
+    min-width: 18px !important; 
+    min-height: 18px !important;
+}
+
+.custom-date-picker .el-input__wrapper {
+    /* ... padding-left es 40px ... */
+    padding-left: 10px !important; 
+}
+
+.custom-date-picker.is-disabled.el-date-editor {
+    /* CAMBIO CLAVE: Forzamos el color de fondo a blanco */
+    background-color: white !important; 
+    
+    /* Mantenemos o ajustamos la opacidad y borde si es necesario */
+    opacity: 1 !important; 
+    
+    /* Si tienes un borde que no quieres que cambie, asegúrate de definirlo aquí */
+    /* border-color: rgb(209, 213, 219) !important; */
+}
+
+.custom-date-picker.is-disabled .el-input__icon {
+    /* * Usamos un color gris claro (similar a Tailwind gray-300 o #D1D5DB) 
+     * para indicar que el control no está activo.
+     */
+    color: rgb(175, 175, 175) !important; /* Color gris suave */
+}
+
+/*======================== el-date =================================*/
+/* ... [Todas tus reglas anteriores para anular focus/hover] ... */
+
+/* REGLA FINAL: Anular cualquier grosor o efecto visual añadido por ::before/::after */
+.custom-date-picker.is-disabled.el-date-editor::before,
+.custom-date-picker.is-disabled.el-date-editor::after,
+.custom-date-picker.is-disabled .el-input__wrapper::before,
+.custom-date-picker.is-disabled .el-input__wrapper::after {
+    /* 1. Resetear contenido (evita que se muestren) */
+    content: none !important; 
+    
+    /* 2. Resetear sombras y bordes */
+    box-shadow: none !important;
+    border: none !important;
+    
+    /* 3. Asegurar que no ocupen espacio */
+    width: 0 !important;
+    height: 0 !important;
+    
+    /* 4. Anular cualquier fondo que pudiera estar dibujando */
+    background: transparent !important;
+}
+
+/*======================== el-date =================================*/
+/* ... tus estilos anteriores ... */
+
+/* REGLA CLAVE: Define el borde del date-picker deshabilitado en su estado base */
+.custom-date-picker.is-disabled.el-date-editor {
+    /* Forzamos el grosor y color del borde a delgado (gray-300) */
+    border: 0.08em solid rgb(209, 213, 219) !important; 
+    
+    /* Aseguramos que el color se mantenga estático */
+    border-color: rgb(209, 213, 219) !important; 
+    
+    /* El resto de tus reglas deshabilitadas */
+    background-color: white !important; 
+    opacity: 1 !important; 
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+}
+
+/* También aplica la anulación de grosor al wrapper interno en el estado base */
+.custom-date-picker.is-disabled .el-input__wrapper {
+    border: 0.08em solid rgb(209, 213, 219) !important; 
+    border-color: rgb(209, 213, 219) !important; 
+    box-shadow: none !important;
+}
+
+/* 1. Forzar el fondo BLANCO en los inputs de rango (Fecha Inicial/Final) 
+      cuando el date-picker principal está deshabilitado */
+.custom-date-picker.is-disabled .el-range-input {
+    /* El input de rango interno */
+    background-color: white !important; 
+}
+
+/* 2. Forzar el fondo BLANCO en el input wrapper interno deshabilitado (Element Plus) */
+.custom-date-picker.is-disabled .el-input__wrapper {
+    /* El contenedor que envuelve los inputs de rango */
+    background-color: white !important;
+}
+
+/* 3. Asegurar el fondo blanco en el contenedor principal si no lo hemos hecho ya */
+.custom-date-picker.is-disabled.el-date-editor {
+    background-color: white !important;
+}
+
+/* 4. Anular el fondo de los inputs en el estado activo (aunque deshabilitado) */
+.custom-date-picker.is-active.is-disabled .el-range-input {
+    background-color: white !important; 
+}
+
+/*---------------------- Estilos para el placeholder del input------------------------ */
 .custom-input::placeholder {
     color: rgb(75, 85, 99) !important;; /* Color rojo para el placeholder */
     opacity: 1; /* Asegura que el color sea visible */
@@ -612,18 +748,119 @@
     opacity: 1;
 }
 
+/* Estilos para el input deshabilitado */
+.custom-input[disabled] {
+   
+    opacity: 1 !important; /* Sobrescribe cualquier opacidad por defecto */
+    
+    /* Muestra el cursor de "prohibido" (not-allowed) al pasar el mouse */
+    cursor: not-allowed !important;
+}
+
+/* Estilo para el placeholder del input deshabilitado */
+.custom-input[disabled]::placeholder {
+    color: rgb(156, 163, 175) !important; /* Tailwind gray-400 para un placeholder más sutil */
+}
+
 textarea {
   resize: none !important;
 }
 
+.custom-select-down .el-select__wrapper {
+  box-shadow: 0px 1.5px 0px 0px #c9c9c9 !important; 
+  border: none !important; 
+  border-radius: 0 !important;
+  padding-left: 0.5px !important;
+}
 
+/* Asegura que el input y el texto tengan el padding correcto y estén alineados */
+.custom-select-down .el-select__wrapper .el-input__inner,
+.custom-select-down .el-select__wrapper .el-select__placeholder {
+    padding-left: 0.15em !important;
+    padding-bottom: 0em!important;
+  color: #000000 !important; 
 
+}
 
+/* Opcional: Estilo para los bordes y sombras */
+.custom-select-down .el-select__wrapper {
+  box-shadow: 0px 1.5px 0px 0px #c9c9c9 !important;
+  border: none !important;
+  border-radius: 0 !important;
+    padding-bottom: 0em!important;
 
+}
 
+.custom-select-down .el-select__wrapper.is-focused {
+  box-shadow: 0px 1.5px 0px 0px var(--color1) !important;
+}
 
+.custom-select-down .el-select .el-select__caret.el-icon svg path {
+  fill: #000000 !important;
+}
 
+/* Alternative approach if the above doesn't work */
+/* You might need a more specific selector */
+.custom-select-down .el-select .el-input__inner + .el-select__caret.el-icon svg path {
+  fill: #000000 !important;
+}
 
+/* ***************************** EL-SELECT ******************* */
 
+.custom-select.is-disabled .el-select__wrapper .el-input__inner,
+.custom-select.is-disabled .el-select__wrapper .el-select__placeholder {
+    /* Usamos el color rojo de tu tema para la prueba (cambia a gray-500 después de confirmar que funciona) */
+    color: rgb(156, 163, 175) !important; 
+    
+    /* Asegúrate de que no haya atenuación visual por defecto */
+    -webkit-text-fill-color: rgb(156, 163, 175)!important; /* Para navegadores basados en WebKit */
+    opacity: 1 !important; 
+}
 
+.custom-select.is-disabled .el-select__wrapper {
+    /* Usamos var(--color-2) para un fondo verde oscuro (o el verde que desees) */
+    background-color: white !important; 
+    
+    /* Opcional: Para mantener la coherencia visual */
+    cursor: not-allowed !important;
+    opacity: 1 !important; 
+}
 
+.custom-select .el-select__caret.el-icon svg path {
+    /* Establece el color de relleno del SVG a gray-600 (rgb(75, 85, 99)) */
+    fill: rgb(75, 85, 99) !important;   
+}
+
+.custom-select.is-disabled .el-select__caret.el-icon svg path {
+    /* Establece el color de relleno del SVG a gray-600 (rgb(75, 85, 99)) */
+    fill: rgb(156, 163, 175) !important;   
+}
+
+/* ======================== ESTILOS DE BOTONES ======================== */
+
+/* Estilo para el botón cuando está deshabilitado por la lógica Vue */
+.filter-button.disabled-button,
+.filter-button[disabled] {
+    /* 1. CURSOR PROHIBIDO */
+    cursor: not-allowed !important;
+    
+    /* 2. COLOR DE FONDO Y BORDE (Simulando deshabilitado) */
+    background-color: white !important; /* gray-100 para fondo */
+    border-color: rgb(209, 213, 219) !important;      /* gray-300 para borde (o el que desees) */
+    
+    /* 3. COLOR DEL TEXTO (El contenido principal del botón) */
+    color: rgb(156, 163, 175) !important; /* gray-100 para el texto */
+    
+    /* Evita que el hover cambie el color cuando está deshabilitado */
+    /* pointer-events: none; */
+
+    opacity: 1 !important;
+}
+
+/* 4. COLOR DEL CONTENIDO (ÍCONOS SVG) */
+/* Apuntamos a todos los elementos SVG (íconos) dentro del botón deshabilitado */
+.filter-button.disabled-button svg,
+.filter-button[disabled] svg {
+    /* El color del trazo (stroke) y relleno (fill) se establece a gray-100 */
+    stroke: rgb(156, 163, 175) !important; /* gray-100 para contornos */
+}

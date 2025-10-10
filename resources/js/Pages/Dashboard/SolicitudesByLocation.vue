@@ -70,7 +70,7 @@
 
     // Ejecutamos la función cuando el componente está montado para asegurar que Tailwind CSS esté cargado
     onMounted(() => {
-        lineColor.value = getTailwindColor('color1-600'); // Un solo color para la línea
+        lineColor.value = getTailwindColor('gray-800'); // Un solo color para la línea
     });
 
     const chartData = computed(() => {
@@ -114,6 +114,8 @@
                     backgroundColor: 'rgba(2,132,199,0.2)', // Fondo para el área bajo la línea
                     fill: false, // <--- Aquí quitas el relleno
                     tension: 0, // Suaviza la línea
+                    pointBorderColor: 'transparent',
+                    pointHoverBorderColor: 'transparent'
                 },
             ],
         };

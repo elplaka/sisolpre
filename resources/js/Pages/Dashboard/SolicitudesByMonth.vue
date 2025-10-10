@@ -114,11 +114,11 @@
                     data: totals,
                     borderColor: lineColor.value, // Usamos el color de la línea
                     pointBackgroundColor: lineColor.value,
+                    backgroundColor: 'rgba(220,220,220,0.3)',
                     pointRadius: 6,
                     pointHoverRadius: 8,
-                    backgroundColor: 'rgba(2,132,199,0.2)', // Fondo para el área bajo la línea
                     tension: 0.1, // Curva de la línea
-                    fill: false // Rellenar el área bajo la línea
+                    fill: true // Rellenar el área bajo la línea
                 },
             ],
         };

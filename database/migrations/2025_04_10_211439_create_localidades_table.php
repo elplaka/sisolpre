@@ -25,7 +25,6 @@ return new class extends Migration
             ['id' => 3, 'nombre' => 'LA EMBOCADA', 'created_at' => now(), 'updated_at' => now()],
             ['id' => 4, 'nombre' => 'EL HUAJOTE', 'created_at' => now(), 'updated_at' => now()],
             ['id' => 7, 'nombre' => 'ZAVALA', 'created_at' => now(), 'updated_at' => now()],
-            ['id' => 8, 'nombre' => 'EL VERDE', 'created_at' => now(), 'updated_at' => now()],
             ['id' => 10, 'nombre' => 'AGUACALIENTE DE GÁRATE', 'created_at' => now(), 'updated_at' => now()],
             ['id' => 13, 'nombre' => 'CHUPADEROS', 'created_at' => now(), 'updated_at' => now()],
             ['id' => 30, 'nombre' => 'EL VERDE', 'created_at' => now(), 'updated_at' => now()],

@@ -32,7 +32,7 @@
 
 <template>
     <div class="p-0 mt-0">
-        <div v-if="isLoading" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50">
+        <!-- <div v-if="isLoading" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50">
             <div class="p-6 flex flex-col items-center">
                 <svg class="animate-spin h-10 w-10 text-color1-600 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-50" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -40,7 +40,7 @@
                 </svg>
                 <p class="text-white">Cargando...</p>
             </div>
-        </div>
+        </div> -->
         <div class="bg-white rounded-lg shadow-sm min-h-[160px] flex flex-col gap-4">
             <h3 class="text-lg font-semibold">Accesos Directos</h3>
             <button 

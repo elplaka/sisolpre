@@ -12,7 +12,8 @@ class Contacto extends Model
     protected $fillable = [
         'id_persona',
         'telefono',
-        'email'
+        'email',
+        'id_domicilio'
     ];
 
     public function persona()
@@ -23,5 +24,10 @@ class Contacto extends Model
     public function solicitudes()
     {
         return $this->hasMany(Solicitud::class, 'id_contacto');
+    }
+
+    public function domicilio_notificacion()
+    {
+        return $this->belongsTo(DomicilioNotificacion::class, 'id_domicilio');
     }
 }

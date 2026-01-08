@@ -102,9 +102,15 @@
                 </td>
                 @if ($solicitud->propiedad->contacto->email && strlen(trim($solicitud->propiedad->contacto->email)) > 0)
                 <td class="tdPrevFieldName" style="width: 13%;">E-mail:</td>
-                <td style="width: 57%;">{{ $solicitud->propiedad->contacto->email }}</td>
+                <td style="width: 57%;">{{ $solicitud->propiedad->contacto->email }}</td>                
                 @endif
             </tr>
+            @if (($solicitud->propiedad->contacto->domicilio_notificacion && strlen(trim($solicitud->propiedad->contacto->domicilio_notificacion->direccion)) > 0))
+            <tr style="line-height: 1em;">
+                <td class="tdPrevFieldName" style="width: 13%;">Domicilio:</td>
+                <td colspan="3" style="width: 87%; text-align: justify;">{{ $solicitud->propiedad->contacto->domicilio_notificacion->direccion }}</td>
+            </tr>
+            @endif
             <tr><span style="display: block; margin-top: 0.25cm"></span></tr>
         @endif
         <tr>
@@ -117,9 +123,11 @@
             </td>
         </tr>
         @if ($solicitud->razon_social)
-        <tr style="line-height: 1em;">
-            <td colspan="2" class="tdPrevFieldName" style="white-space: nowrap;">Organización / Razón Social:</td>
-            <td colspan="2">{{ $solicitud->razon_social->nombre }}</td>
+        <tr style="line-height: 1em; text-align: center;">
+            <td colspan="4" style="text-align: center;"> 
+                <span class="tdPrevFieldName" style="white-space: nowrap;">Organización / Razón Social:</span>
+                <span>{{ $solicitud->razon_social->nombre }}</span>
+            </td>
         </tr>
         @endif
         <tr style="line-height: 1em;">
@@ -141,9 +149,24 @@
                 <td class="tdPrevFieldName" style="width: 13%;">E-mail:</td>
                 <td style="width: 57%;">
                     {{ $solicitud->contacto->email }}
-                </td>
+                </td>            
             @endif
         </tr>
+        @if ($solicitud->propiedad && $solicitud->contacto->id == $solicitud->propiedad->contacto->id)
+        @if (($solicitud->propiedad->contacto->domicilio_notificacion && strlen(trim($solicitud->propiedad->contacto->domicilio_notificacion->direccion)) > 0))
+        <tr style="line-height: 1em;">
+            <td class="tdPrevFieldName" style="width: 13%;">Domicilio:</td>
+            <td colspan="3" style="width: 87%; text-align: justify;">{{ $solicitud->propiedad->contacto->domicilio_notificacion->direccion }}</td>
+        </tr>
+        @endif
+        @else
+        @if (($solicitud->contacto->domicilio_notificacion && strlen(trim($solicitud->contacto->domicilio_notificacion->direccion)) > 0))
+        <tr style="line-height: 1em;">
+            <td class="tdPrevFieldName" style="width: 13%;">Domicilio:</td>
+            <td colspan="3" style="width: 87%; text-align: justify;">{{ $solicitud->contacto->domicilio_notificacion->direccion }}</td>
+        </tr>
+        @endif
+        @endif
         <tr><span style="display: block; margin-top: 0.25cm"></span></tr> 
     </table>
     @if ($solicitud->propiedad)
@@ -225,7 +248,7 @@
                     @endphp
 
                     @if ($showColPrefix)
-                       &nbsp; COL. 
+                      COL. 
                     @endif
                     {{ $coloniaNombre }}
                 {{-- @else
@@ -327,6 +350,7 @@
             </tr>
         </table>
     @endif
+    <div>
     <table style="width: 100%; border-collapse: collapse;">
         <tr>
             <td class="titlePrevTd" colspan="{{ $numeroTiposTramite }}" style="text-align: center; ">
@@ -358,42 +382,70 @@
         </tr>
         <tr><span style="display: block; margin-top: 0.25cm"></span></tr>
     </table>
-    {{-- <table style="width: 100%; border-collapse: collapse;">
+    @php
+        $filasRequisitos = $requisitosConEstado->chunk(4);
+    @endphp
+    <table style="width: 100%; border-collapse: collapse;">
         <tr>
             <td class="titlePrevTd" style="text-align: center; ">
-                DOCUMENTACIÓN
+                DOCUMENTACIÓN SOLICITADA
             </td>
         </tr>
         <tr>
-            <td style="padding: 0; margin: 0;">
-                <table style="border-collapse: collapse;">
+            <td style="height: 0.2cm;"></td>
+        </tr>
+        <tr>
+            <td style="padding: 0; margin: 0; line-height: 0.75;">
+                <table style="width: 100%; border-collapse: collapse;">
                     <tr>
-                        <td style="vertical-align: middle; padding-right: 0.5cm; width: 2%">
-                            <div class="cuadro-checkbox"> ✓
-                            </div>
-                        </td>
-                        <td style="vertical-align: middle; padding-right: 1cm;">
-                            <span style="position: relative; top: -3px;">INE</span>
-                        </td>
-                        <td style="vertical-align: middle; padding-right: 0.5cm; width: 2%">
-                             <div class="cuadro-checkbox"> ✗
-                            </div>
-                        </td>
-                        <td style="vertical-align: middle; padding-right: 1cm;">
-                            <span style="position: relative; top: -3px;">Predial</span>
-                        </td>
-                              <td style="vertical-align: middle; padding-right: 0.5cm; width: 2%">
-                             <div class="cuadro-checkbox">
-                            </div>
-                        </td>
-                        <td style="vertical-align: middle; padding-right: 1cm;">
-                            <span style="position: relative; top: -3px; color: red">«Escrituras»</span>
+                        <td style="padding: 0; margin: 0;">
+                            <table style="border-collapse: collapse; width: 100%;">
+                                @forelse ($filasRequisitos as $fila) {{-- Usando el nombre actualizado o $fila si no lo cambiaste --}}
+                                    <tr> 
+                                        @foreach ($fila as $requisito) 
+                                            
+                                            {{-- Columna 1 de 4 (Checkbox: 3%) --}}
+                                            <td style="vertical-align: top; width: 3%; padding: 1px 4px;"> 
+                                                <div class="cuadro-checkbox">
+                                                    @if ($requisito->entregado)
+                                                        ✔
+                                                    @endif
+                                                </div> 
+                                            </td>
+                                            
+                                            {{-- Columna 2 de 4 (Nombre: 22%) --}}
+                                            <td style="vertical-align: top; font-size: 7pt; width: 22%; line-height: 1.0; padding: 1px 2px;">
+                                                {{ $requisito->nombre_corto }}
+                                            </td>
+                                        @endforeach
+                                        
+                                        {{-- Manejo de Impares --}}
+                                        @php
+                                            $columnasFaltantes = 4 - $fila->count(); // 🔑 AHORA ES EN BASE A 4
+                                        @endphp
+                                        
+                                        @if ($columnasFaltantes > 0)
+                                            {{-- 🔑 AJUSTE CLAVE: Colspan es 2 * $columnasFaltantes (cada requisito usa 2 celdas) --}}
+                                            <td colspan="{{ $columnasFaltantes * 2 }}" 
+                                                style="width: {{ $columnasFaltantes * 25 }}%;">
+                                            </td>
+                                        @endif
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        {{-- Colspan debe ser 4 * 2 = 8 --}}
+                                        <td colspan="8" style="text-align: center; padding: 10px;">
+                                            No se encontraron requisitos para los trámites de esta solicitud.
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </table>
                         </td>
                     </tr>
                 </table>
             </td>
         </tr>
-    </table> --}}
+    </table>    
     <div style="position: fixed; bottom: 0.5cm; left: 1cm; right: 0cm; font-size: 8pt; text-align: right;">
         Fecha y hora de impresión: {{ now()->format('d/m/Y g:i a') }}  
     </div>

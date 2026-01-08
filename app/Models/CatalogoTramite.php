@@ -20,5 +20,18 @@ class CatalogoTramite extends Model
     {
         return $this->hasMany(SolicitudTramite::class, 'id_tramite');
     }  
-    
+
+    public function requisitos()
+    {
+        return $this->belongsToMany(
+            RequisitoDocumentacion::class,
+            'catalogo_tramites_requisitos', // 👈 Nombre de la tabla pivote
+            'id_tramite_catalogo',          // Clave foránea local
+            'id_requisito'                  // Clave foránea remota
+        )->withPivot([
+            'obligatorio', 
+            'activo', 
+            'editable', 
+        ])->withTimestamps();
+    }
 }

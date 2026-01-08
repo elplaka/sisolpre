@@ -1,155 +1,142 @@
 @tailwind base;
 @tailwind components;
-@tailwind utilities; 
+@tailwind utilities;
 
 
-  :root {
-    --color1: #7b003a;
-    --color-1: #cc0042;
-    --color-1-1: #b3003b;
-    --color-1-2: #e8567c;
-    --color-1-50: #ffe4ec; 
-    --color-1-70: #fff5f8;
+:root {
+  --color1: rgb(123 0 58);
+  --color-1: #8f0030;
+  --color-1-1: #b3003b;
+  --color-1-2: #e8567c;
+  --color-1-50: #ffe4ec;
+  --color-1-70: #fff5f8;
 
-    --color-2: #00403e;
-    --color-2-1: #002724;
+  --color-2: #00403e;
+  --color-2-1: #002724;
 
-    --el-color-primary: #b3003b !important;
+  --color-gray-50: rgb(249 250 251);
+  --color-gray-100: rgb(243 244 246);
+  --color-gray-150: rgb(236 238 241);
+  --color-gray-200: rgb(229 231 235);
+  --color-gray-300: rgb(209 213 219);
+  --color-gray-400: rgb(156 163 175);
+  --color-gray-500: rgb(107 114 128);
+  --color-gray-600: rgb(75 85 99);
+  --color-gray-700: rgb(55 65 81);
+  --color-gray-800: rgb(31 41 55);
+  --color-gray-900: rgb(17 24 39);
+
+  --el-color-primary: #b3003b !important;
 }
 
-  .tab-header-1 { 
-      background-color: --color-1;  
-      color: white; 
-  }
+.tab-header-1 {
+  background-color: --color-1;
+  color: white;
+}
 
-  /* Cambiar a gris al pasar el mouse */ 
-  .table-stripped tbody tr:hover 
-  { 
-    background-color: #eeeeee; /* Color gris claro */ 
-  }
+/* Cambiar a gris al pasar el mouse */
+.table-stripped tbody tr:hover {
+  background-color: #eeeeee;
+  /* Color gris claro */
+}
 
 /* ***************************** EL-INPUT ******************* */
 
 .custom-input .el-input__wrapper {
-    border: 0.08em solid rgb(209, 213, 219) !important;  
-    background-color: rgb(249, 250, 251);
-    --tw-border-opacity: 1;
-    box-shadow: none !important; /* Eliminar ring (sombra) */
-    border-radius: 0.5em !important;
-    height: 2.65em;
-  }
-  
-  .custom-input .el-input__inner {
-    outline: none !important; /* Eliminar outline */
-    box-shadow: none !important; /* Eliminar ring (sombra) */
-    color: rgb(75, 85, 99);
-  
-  }
-  
-  .custom-input .el-input__inner::placeholder {
-    color: rgb(110, 114, 118) !important; /* Color del placeholder en modo claro */
-  }
-
-  .custom-input .el-input__wrapper.is-focus {
-    background-color: rgb(249, 250, 251);
-    outline: none !important; /* Eliminar outline */
-    box-shadow: none !important; /* Eliminar ring (sombra) */
-    --tw-border-opacity: 1;
-    border: 0.08em solid !important;
-    border-color: rgb(204 0 66 / var(--tw-border-opacity, 1)) !important;
-    --tw-ring-opacity: 1;
-    --tw-ring-color: rgb(204 0 66 / var(--tw-ring-opacity, 1)) !important;
-  }
-
-  /* Estilo para el input cuando contiene un valor (no muestra el placeholder) */
-  .custom-input:not(:placeholder-shown) {
-      /* CLAVE: Cambia el fondo a color rojo claro de tu tema */
-      background-color: rgb(243, 244, 246) !important; 
-  }
-
-  /* Opcional: Si necesitas que el input dentro del wrapper de Element Plus 
-    también cambie de color cuando tiene valor (aunque tu input es HTML puro): */
-  .custom-input:not(:placeholder-shown) .el-input__wrapper {
-      background-color: rgb(243, 244, 246) !important;
-  }
-
-  .custom-input.is-disabled .el-input__wrapper {
-  background-color: var(--color1-500) !important; /* Usar tu color1-500 */
-  border-color: var(--color1-500) !important; /* Opcional: para que el borde también coincida */
-}
-  
-  /* ***************************** EL-SELECT ******************* */
-  
-/* Contenedor principal del select */
-.custom-select .el-select__wrapper {
   border: 0.08em solid rgb(209, 213, 219) !important;
-  background-color: white;
+  background-color: rgb(249, 250, 251);
   --tw-border-opacity: 1;
-  box-shadow: none !important; /* Eliminar ring (sombra) */
-  border-radius: 0.7em !important;
-  min-height: 2.25em; /* Altura mínima */
-  padding-left: 0.5em; /* Espaciado interno */
-  padding-right: 0.5em; /* Espaciado interno */
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  height: 2.65em !important;
+  box-shadow: none !important;
+  /* Eliminar ring (sombra) */
+  border-radius: 0.5em !important;
+  height: 2.65em;
 }
 
-/* Tags dentro del select */
-.custom-select .el-select__tags .el-tag {
-  background-color: transparent !important;
-  color: #333 !important; /* Texto más oscuro */
-  padding: 0.3em 0.5em !important; /* Padding ajustado */
-  font-size: 12px !important;
-  border-radius: 4px !important;
-  border: none !important;
-  margin: 0.2em !important; /* Margen entre tags */
-  transition: all 0.2s ease;
-  font-weight: normal;
+.custom-input .el-input__inner {
+  outline: none !important;
+  /* Eliminar outline */
+  box-shadow: none !important;
+  /* Eliminar ring (sombra) */
+  color: rgb(75, 85, 99);
+
 }
+
+.custom-input .el-input__inner::placeholder {
+  color: rgb(110, 114, 118) !important;
+  /* Color del placeholder en modo claro */
+}
+
+.custom-input .el-input__wrapper.is-focus {
+  background-color: rgb(249, 250, 251);
+  outline: none !important;
+  /* Eliminar outline */
+  box-shadow: none !important;
+  /* Eliminar ring (sombra) */
+  --tw-border-opacity: 1;
+  border: 0.08em solid !important;
+  border-color: rgb(204 0 66 / var(--tw-border-opacity, 1)) !important;
+  --tw-ring-opacity: 1;
+  --tw-ring-color: rgb(204 0 66 / var(--tw-ring-opacity, 1)) !important;
+}
+
+/* Estilo para el input cuando contiene un valor (no muestra el placeholder) */
+.custom-input:not(:placeholder-shown) {
+  /* CLAVE: Cambia el fondo a color rojo claro de tu tema */
+  background-color: rgb(243, 244, 246) !important;
+}
+
+/* Opcional: Si necesitas que el input dentro del wrapper de Element Plus 
+    también cambie de color cuando tiene valor (aunque tu input es HTML puro): */
+.custom-input:not(:placeholder-shown) .el-input__wrapper {
+  background-color: rgb(243, 244, 246) !important;
+}
+
+.custom-input.is-disabled .el-input__wrapper {
+  background-color: var(--color1-500) !important;
+  /* Usar tu color1-500 */
+  border-color: var(--color1-500) !important;
+  /* Opcional: para que el borde también coincida */
+}
+
+/* ***************************** EL-SELECT ******************* */
 
 /* Hover sobre los tags o textos de tags */
 .el-select .el-tag:hover,
 .el-select__tags-text:hover {
-  background-color: #f0f0f0  !important; /* Gris muy claro */
-  color: rgb(75, 85, 99) !important;
-  transition: all 0.2s ease;
-}
-
-.custom-select .el-tag.el-tag--info:hover {
-  background-color: #f0f0f0  !important;
-  border-radius: 0.25em !important;   /* nuevo border-radius al hacer hover */
-  margin-left: 0.3em !important;      /* nuevo margin-left al hacer hover */
-  border-radius: 10px !important;
+  background-color: transparent !important;
+  /* Gris muy claro */
+  /* color: rgb(75, 85, 99) !important; */
+  /* transition: all 0.2s ease; */
 }
 
 .el-tag:hover {
-  background-color: #f0f0f0  !important; /* Gris muy claro */
+  background-color: transparent !important;
+  /* Gris muy claro */
   color: rgb(75, 85, 99) !important;
-  border-radius: 1.25em !important;   /* nuevo border-radius al hacer hover */
-  margin-left: 0.3em !important;      /* nuevo margin-left al hacer hover */
+  border-radius: 1.25em !important;
+  /* nuevo border-radius al hacer hover */
   transition: all 0.2s ease;
 }
 
 /* Texto dentro del tag */
 .el-select__tags-text {
   background-color: transparent !important;
-  padding: 2px 6px !important; /* Menor padding */
-  font-size: 12px;
   color: rgb(110, 114, 118);
-  font-size: 14px !important; /* Tamaño de fuente */
+  font-size: 14px !important;
+  /* Tamaño de fuente */
 }
 
 .el-select__input {
-    background-color: white(249, 250, 251);
-    outline: none !important; /* Eliminar outline */
-    box-shadow: none !important; /* Eliminar ring (sombra) */
-    --tw-border-opacity: 1;
-    border: 0.08em solid !important;
-    border-color: rgb(255 255 255 / var(--tw-border-opacity, 1)) !important;
-    --tw-ring-opacity: 1;
-    --tw-ring-color: rgb(255 255 255 / var(--tw-ring-opacity, 1)) !important;
+  background-color: white(249, 250, 251);
+  outline: none !important;
+  /* Eliminar outline */
+  box-shadow: none !important;
+  /* Eliminar ring (sombra) */
+  --tw-border-opacity: 1;
+  border: 0.08em solid !important;
+  border-color: rgb(255 255 255 / var(--tw-border-opacity, 1)) !important;
+  --tw-ring-opacity: 1;
+  --tw-ring-color: rgb(255 255 255 / var(--tw-ring-opacity, 1)) !important;
 }
 
 /* Contenido interno del tag (tooltip interno) */
@@ -160,49 +147,13 @@
 
 /* Tag con fondo especial */
 .el-tag {
-  background-color: transparent  !important; /* Fondo rosa claro */
-  color: #a00000 !important; /* Color texto */
+  background-color: transparent !important;
+  /* Fondo rosa claro */
+  color: #a00000 !important;
+  /* Color texto */
   border: none !important;
 }
 
-/* Tags con clase info */
-.custom-select .el-tag.el-tag--info {
-  background-color: transparent !important;
-}
-
-/* Icono cerrar tag */
-.custom-select .el-tag .el-tag__close {
-  color: rgb(75, 85, 99);
-}
-
-/* Texto en el select (placeholder y normal) */
-.custom-select .el-select__inner {
-  color: rgb(75, 85, 99);
-}
-
-.custom-select .el-select__placeholder {
-  color: rgb(75, 85, 99) !important;
-}
-
-/* Focus del select */
-.custom-select .el-select__wrapper.is-focused {
-  background-color: rgb(249, 250, 251);
-  --tw-border-opacity: 1;
-  border: 0.151em solid !important;
-  border-color: var(--color-1) !important;
-  transition: none !important;
-}
-
-.custom-select .el-select__input {
-    background-color: rgb(249, 250, 251);
-    outline: none !important; /* Eliminar outline */
-    box-shadow: none !important; /* Eliminar ring (sombra) */
-    --tw-border-opacity: 1;
-    border: 0.08em solid !important;
-    border-color: rgb(255 255 255 / var(--tw-border-opacity, 1)) !important;
-    --tw-ring-opacity: 1;
-    --tw-ring-color: rgb(255 255 255 / var(--tw-ring-opacity, 1)) !important;
-}
 
 /* Dropdown items - opciones del select */
 .el-select-dropdown__item.custom-option {
@@ -222,7 +173,7 @@
 
 /* Opciones seleccionadas */
 .el-select-dropdown__item.is-selected {
-  /* color: var(--color-1) !important; */
+  color: var(--color-1) !important;
   font-weight: bold;
   /* border: 0.151em solid !important;
   border-color: rgb(230,231,232) !important;
@@ -231,7 +182,8 @@
 
 /* Opciones seleccionadas con hover */
 .el-select-dropdown__item.is-selected:hover {
-  background-color: var(--color-1-70) !important; /* Rosa claro */
+  background-color: var(--color-1-70) !important;
+  /* Rosa claro */
 }
 
 /* Marca de selección en multiselección */
@@ -252,8 +204,10 @@
 }
 
 .dark-tooltip {
-  background-color: #000 !important; /* Makes background black */
-  color: #fff !important;             /* Makes text white */
+  background-color: #000 !important;
+  /* Makes background black */
+  color: #fff !important;
+  /* Makes text white */
 }
 
 /* Optional: to make the arrow black as well */
@@ -279,7 +233,58 @@
   background-color: var(--color-1-1) !important;
 }
 
+/* ======================== EL-SWITCH GLOBAL ======================== */
+
+/* 1. Sobrescribir variables de Element Plus a nivel de componente */
+.el-switch {
+  /* Color de fondo del "riel" cuando está encendido (Active) */
+  --el-switch-on-color: var(--color1) !important;
+
+  /* Aseguramos que el borde también tome el color */
+  --el-switch-on-border-color: var(--color1) !important;
+
+  /* Opcional: Mantener el gris estándar para el estado apagado */
+  --el-switch-off-color: rgb(200, 200, 200) !important;
+}
+
+/* 2. Estilo de las etiquetas de texto (Izquierda y Derecha) */
+
+/* Estado Normal (Inactivo / No seleccionado) */
+.el-switch .el-switch__label {
+  color: rgb(110, 114, 118) !important;
+  /* Gris suave */
+  font-weight: normal;
+  transition: color 0.3s ease;
+  /* Suavizar el cambio de color */
+}
+
+/* Estado ACTIVO (Seleccionado) - APLICA A AMBOS LADOS */
+/* Al usar este selector genérico, forzamos que cualquier lado activo sea color1 */
+.el-switch .el-switch__label.is-active {
+  color: var(--color1) !important;
+  font-weight: 500 !important;
+}
+
+/* Ajustes opcionales de alineación para que el texto se vea centrado con el switch */
+.el-switch .el-switch__label span {
+  font-size: 14px !important;
+  /* Tamaño que tenías definido */
+  vertical-align: middle;
+  /* Alineación vertical */
+}
+
 /* EL-SWITCH */
+
+.custom-switch {
+  /* Color de fondo cuando está ACTIVADO (ON) */
+  --el-switch-on-color: var(--color1) !important;
+
+  /* Color de fondo cuando está DESACTIVADO (OFF) */
+  --el-switch-off-color: rgb(200, 200, 200) !important;
+
+  /* Color del círculo ("mango") */
+  --el-switch-button-color: #fff !important;
+}
 
 .custom-switch .el-switch__label.el-switch__label--left {
   color: rgb(110, 114, 118) !important;
@@ -290,17 +295,17 @@
 }
 
 .custom-switch .el-switch__label.el-switch__label--left.is-active {
-  color: var(--color-1) !important;
+  color: var(--color2) !important;
 }
 
 .custom-switch .el-switch__label.el-switch__label--right.is-active {
-  color: var(--color-1) !important;
+  color: var(--color1) !important;
 }
 
-.custom-switch .el-switch__core {
+/* .custom-switch .el-switch__core {
   background-color:  rgb(200, 200, 200) !important;
   border-color: rgb(200, 200, 200) !important; 
-}
+} */
 
 .custom-switch.el-switch .el-switch__label--left span {
   font-size: 11.5pt;
@@ -319,19 +324,22 @@
 /* sweet alert */
 
 .swal2-styled.swal2-confirm {
-  background-color: var(--color-1-1) !important;
-  border-color: var(--color-1-1) !important;
+  background-color: var(--color1) !important;
+  border-color: var(--color1) !important;
+  border-radius: 6rem !important;
+
 }
 
 .swal2-styled.swal2-cancel {
   background-color: var(--color-2) !important;
   border-color: var(--color-2) !important;
+  border-radius: 6rem !important;
 }
 
 /* Cambiar color de los íconos de SWEET ALERT*/
 .swal2-icon.swal2-warning {
   color: var(--color-1-2) !important;
-  border-color: var(--color-1-2)  !important;
+  border-color: var(--color-1-2) !important;
 }
 
 .swal2-icon.swal2-error {
@@ -349,52 +357,63 @@
   border-color: #3fc3ee !important;
 }
 
-.drop-zone.bg-color1-50 { /* Mayor especificidad */
-  background-color: var(--color-1-50)  !important; /* ¡Evita !important si es posible! */
+.drop-zone.bg-color1-50 {
+  /* Mayor especificidad */
+  background-color: var(--color-1-50) !important;
+  /* ¡Evita !important si es posible! */
+}
+
+.drop-zone.border-color1-700 {
+  /* Mayor especificidad */
+  border-color: var(--color1) !important;
+  /* ¡Evita !important si es posible! */
+}
+
+select:disabled {
+  color: #111827 !important;
+  /* o el color que estás usando normalmente (por ejemplo text-gray-900) */
+  background-color: transparent !important;
+  -webkit-text-fill-color: #111827 !important;
+  /* Para Safari */
+  opacity: 1 !important;
+  /* Evita que el control se vea semi-transparente */
+}
+
+@keyframes pulse-bar {
+  0% {
+    opacity: 0.6;
   }
 
-  .drop-zone.border-color1-700 { /* Mayor especificidad */
-    border-color: var(--color1)  !important; /* ¡Evita !important si es posible! */
-    }
-
-    select:disabled {
-      color: #111827 !important; /* o el color que estás usando normalmente (por ejemplo text-gray-900) */
-      background-color: transparent !important;
-      -webkit-text-fill-color: #111827 !important; /* Para Safari */
-      opacity: 1 !important; /* Evita que el control se vea semi-transparente */
-    }
-
-    @keyframes pulse-bar {
-      0% {
-          opacity: 0.6;
-      }
-      50% {
-          opacity: 1;
-      }
-      100% {
-          opacity: 0.6;
-      }
-  }
-  
-  .animate-pulse-bar {
-      animation: pulse-bar 1.25s ease-in-out infinite;
+  50% {
+    opacity: 1;
   }
 
+  100% {
+    opacity: 0.6;
+  }
+}
 
-  /*======================== el-date =================================*/
-  .custom-date-picker.el-date-editor {
-  height: 2.35em !important; /* o el valor que necesites */
+.animate-pulse-bar {
+  animation: pulse-bar 1.25s ease-in-out infinite;
+}
+
+
+/*======================== el-date =================================*/
+.custom-date-picker.el-date-editor {
+  height: 2.35em !important;
+  /* o el valor que necesites */
   line-height: 48px;
   border-radius: 8px;
-  flex-wrap: nowrap; 
+  flex-wrap: nowrap;
   min-width: 16px !important;
-  width: 100% !important;     /* o un valor como 24em o 100em según lo que buscas */
+  width: 100% !important;
+  /* o un valor como 24em o 100em según lo que buscas */
   max-width: 260px !important;
   /* background-color: rgb(240, 240, 240)!important; */
-}  
+}
 
 /* fecha-inicio y fecha-fin */
-  .custom-date-picker .el-range-input {
+.custom-date-picker .el-range-input {
   border-radius: 10px;
   padding: 0 !important;
   margin: 0 !important;
@@ -402,21 +421,25 @@
   line-height: 1.2;
   height: auto;
   border: none !important;
-  flex: 1 1 auto !important; /* permite que crezca, pero dentro de límites */
-  min-width: 6em;            /* opcional: asegura un tamaño decente */
-  background-color: white !important; 
+  flex: 1 1 auto !important;
+  /* permite que crezca, pero dentro de límites */
+  min-width: 6em;
+  /* opcional: asegura un tamaño decente */
+  background-color: white !important;
 }
 
 @media (max-width: 767px) {
   .custom-date-picker .el-range-input {
-    font-size: 14px !important;  /* más pequeño para que quepa mejor */
+    font-size: 14px !important;
+    /* más pequeño para que quepa mejor */
     padding: 0 0.25em !important;
   }
 }
 
 .custom-date-picker .el-range-separator {
   flex: 0 0 auto !important;
-  padding: 0 0.2em !important;     /* Muy poco espacio a los lados */
+  padding: 0 0.2em !important;
+  /* Muy poco espacio a los lados */
   margin: 0 !important;
   font-size: 14px !important;
   width: auto !important;
@@ -425,48 +448,58 @@
 }
 
 .custom-date-picker.is-active .el-range-input {
-  background-color: #f2f2f2 !important; 
-  padding: 0px 0px !important; /* suficiente para que no se corte el texto */
+  background-color: #f2f2f2 !important;
+  padding: 0px 0px !important;
+  /* suficiente para que no se corte el texto */
   margin: 0px !important;
-  border: none !important;  
+  border: none !important;
 }
 
 .custom-date-picker .el-input__wrapper {
-  height: 3.5em !important; /* se ajusta a la altura del contenedor */
+  height: 3.5em !important;
+  /* se ajusta a la altura del contenedor */
   align-items: center;
   padding: 0px !important;
   align-items: center;
-  padding: 0px 0px !important; /* suficiente para que no se corte el texto */
+  padding: 0px 0px !important;
+  /* suficiente para que no se corte el texto */
   margin: 0px !important;
-  border: none !important;  
+  border: none !important;
 }
 
 @media (max-width: 768px) {
   .custom-date-picker.el-date-editor {
-    width: 100% !important;       /* Ocupa 90% del contenedor padre */
+    width: 100% !important;
+    /* Ocupa 90% del contenedor padre */
     max-width: 100% !important;
-    margin: 0 auto;              /* Centramos horizontalmente */
-    padding: 0.25rem 0.5rem;    /* Espacio interno opcional */
-    box-sizing: border-box;     /* Para que padding no aumente el ancho */
+    margin: 0 auto;
+    /* Centramos horizontalmente */
+    padding: 0.25rem 0.5rem;
+    /* Espacio interno opcional */
+    box-sizing: border-box;
+    /* Para que padding no aumente el ancho */
   }
 }
 
 .custom-date-picker input.el-range-input::placeholder {
   color: #605960 !important;
-  border: none !important;  
+  border: none !important;
   font-size: 15px;
 }
 
 .custom-date-picker .el-input__icon {
   color: var(--color1) !important;
-  margin-right: 1.5em !important; /* Espacio entre el icono y el texto */ 
+  margin-right: 1.5em !important;
+  /* Espacio entre el icono y el texto */
   margin-left: 0.5em !important;
 }
 
 @media (max-width: 768px) {
   .custom-date-picker .el-input__icon {
-    margin-left: 0.25em !important; /* espacio a la izquierda en móvil */
-    margin-right: 0.25em !important;    /* opcional: quitar margin-right si quieres */
+    margin-left: 0.25em !important;
+    /* espacio a la izquierda en móvil */
+    margin-right: 0.25em !important;
+    /* opcional: quitar margin-right si quieres */
   }
 }
 
@@ -481,19 +514,24 @@
 .custom-date-picker.el-date-editor:focus-within {
   border: 2.25px solid var(--color-1-1) !important;
   box-shadow: none !important;
-  border-radius: 8px !important; /* mantener el borde redondeado si lo tenías */  
+  border-radius: 8px !important;
+  /* mantener el borde redondeado si lo tenías */
 }
 
 .el-picker-panel .el-date-table td.available:not(.in-range):hover {
-  background-color: var(--color-1-50) !important;  /* Cambia a tu color deseado */
-  color: var(--color-1-1) !important;              /* Opcional: cambia también el color del texto */
-  border-radius: 6px;                     /* Opcional: redondear la celda */
+  background-color: var(--color-1-50) !important;
+  /* Cambia a tu color deseado */
+  color: var(--color-1-1) !important;
+  /* Opcional: cambia también el color del texto */
+  border-radius: 6px;
+  /* Opcional: redondear la celda */
   cursor: pointer;
 }
 
 .el-picker-panel .el-date-table td.in-range .el-date-table-cell__text:hover {
   font-weight: bold !important;
-  font-size: 15px !important; /* Aumenta el tamaño del texto al pasar el mouse */
+  font-size: 15px !important;
+  /* Aumenta el tamaño del texto al pasar el mouse */
 }
 
 /* Día actual (hoy) */
@@ -510,10 +548,13 @@
 /* Círculos de inicio y fin de fechas */
 .el-date-table td.start-date .el-date-table-cell__text,
 .el-date-table td.end-date .el-date-table-cell__text {
-  background-color: var(--color-1-1) !important; /* color rojo personalizado */
-  color: white !important;               /* para que el texto resalte */
+  background-color: var(--color-1-1) !important;
+  /* color rojo personalizado */
+  color: white !important;
+  /* para que el texto resalte */
   border-radius: 6px;
-  display: inline-block; /* para que el border-radius se aplique bien */
+  display: inline-block;
+  /* para que el border-radius se aplique bien */
   font-weight: bold;
 }
 
@@ -529,44 +570,48 @@
 }
 
 .el-date-table td.start-date .el-date-table-cell {
-    /* Color de fondo del rango */
-    background-color: rgb(238, 239, 240) !important;
-    
-    /* 🔥 Redondeo: Solo el borde superior-izquierdo y el inferior-izquierdo */
-    border-top-left-radius: 15px !important;    
-    border-bottom-left-radius: 15px !important; 
+  /* Color de fondo del rango */
+  background-color: rgb(238, 239, 240) !important;
 
-    /* Aseguramos que los demás lados no se redondeen */
-    border-top-right-radius: 0 !important;
-    border-bottom-right-radius: 0 !important;
+  /* 🔥 Redondeo: Solo el borde superior-izquierdo y el inferior-izquierdo */
+  border-top-left-radius: 15px !important;
+  border-bottom-left-radius: 15px !important;
+
+  /* Aseguramos que los demás lados no se redondeen */
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
 }
 
 .el-date-table td.end-date .el-date-table-cell {
-    /* Color de fondo del rango */
-    background-color: rgb(238, 239, 240) !important;
-    
-    /* Aseguramos que los demás lados no se redondeen */
-    border-top-left-radius: 0 !important;
-    border-bottom-left-radius: 0 !important;
-    
-    /* 🔥 Redondeo: Solo el borde superior-derecho y el inferior-derecho */
-    border-top-right-radius: 15px !important;    
-    border-bottom-right-radius: 15px !important; 
+  /* Color de fondo del rango */
+  background-color: rgb(238, 239, 240) !important;
+
+  /* Aseguramos que los demás lados no se redondeen */
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+
+  /* 🔥 Redondeo: Solo el borde superior-derecho y el inferior-derecho */
+  border-top-right-radius: 15px !important;
+  border-bottom-right-radius: 15px !important;
 }
 
 .el-date-range-picker__header div {
   font-size: 16px;
   font-weight: bold;
-  color: var(--color1) !important;     /* rojo personalizado */
-  margin-left: 50px;             /* opcional, si deseas centrar o mover */
+  color: var(--color1) !important;
+  /* rojo personalizado */
+  margin-left: 50px;
+  /* opcional, si deseas centrar o mover */
   margin-right: 50px;
-  text-align: center;            /* centra el texto */
+  text-align: center;
+  /* centra el texto */
 }
 
 .custom-date-picker {
   width: 90%;
   max-width: 300px;
-  margin: 0 auto; /* centra el componente horizontalmente */
+  margin: 0 auto;
+  /* centra el componente horizontalmente */
 }
 
 @media (min-width: 768px) {
@@ -576,36 +621,47 @@
 }
 
 .el-picker-panel {
-  max-width: 100vw !important;              /* No más ancho que la pantalla */
+  max-width: 100vw !important;
+  /* No más ancho que la pantalla */
   box-sizing: border-box;
-  overflow-x: auto;         /* Incluir padding/border en ancho */
+  overflow-x: auto;
+  /* Incluir padding/border en ancho */
 }
 
 @media (max-width: 768px) {
   .el-picker-panel {
-    width: 100vw !important;     /* Que ocupe todo el ancho */
-    left: 0 !important;          /* Alinea al borde izquierdo */
+    width: 100vw !important;
+    /* Que ocupe todo el ancho */
+    left: 0 !important;
+    /* Alinea al borde izquierdo */
     right: 0 !important;
-    margin: 0 auto;              /* Centra horizontalmente */
+    margin: 0 auto;
+    /* Centra horizontalmente */
   }
 }
 
 @media (max-width: 768px) {
   .block {
     display: flex;
-    justify-content: center; /* Centra horizontalmente */
+    justify-content: center;
+    /* Centra horizontalmente */
   }
 }
 
 .el-picker-panel__sidebar {
-  background-color: white !important; /* O el color que quieras para el fondo */
-  z-index: 10; /* Para que quede arriba de otros elementos si hace falta */
-  box-shadow: 2px 0 5px rgba(0,0,0,0.1); /* Opcional, para darle un pequeño sombreado */
+  background-color: white !important;
+  /* O el color que quieras para el fondo */
+  z-index: 10;
+  /* Para que quede arriba de otros elementos si hace falta */
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  /* Opcional, para darle un pequeño sombreado */
 }
 
 .el-picker-panel__sidebar .el-picker-panel__shortcut:hover {
-  background-color: rgb(238, 239, 240) !important; /* Color al pasar el mouse */
-  color: var(--color1) !important; /* Opcional, para que el texto contraste bien */
+  background-color: rgb(238, 239, 240) !important;
+  /* Color al pasar el mouse */
+  color: var(--color1) !important;
+  /* Opcional, para que el texto contraste bien */
   cursor: pointer;
 }
 
@@ -614,43 +670,45 @@
 }
 
 .custom-date-picker .el-input__icon {
-    /* Aquí forzamos el color del icono a negro. */
-    color: rgb(75, 85, 99)!important; /* 👈 CAMBIO CLAVE AQUÍ */
-    
-    /* Mantenemos tus otros estilos para el contenedor */
-    margin-right: 0.5em !important; 
-    margin-left: 0.5em !important;
+  /* Aquí forzamos el color del icono a negro. */
+  color: rgb(75, 85, 99) !important;
+  /* 👈 CAMBIO CLAVE AQUÍ */
+
+  /* Mantenemos tus otros estilos para el contenedor */
+  margin-right: 0.5em !important;
+  margin-left: 0.5em !important;
 }
 
 .custom-date-picker .el-input__icon svg {
-    /* ... tamaño del SVG es 18px ... */
-    width: 18px !important; 
-    height: 18px !important;
-    min-width: 18px !important; 
-    min-height: 18px !important;
+  /* ... tamaño del SVG es 18px ... */
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  min-height: 18px !important;
 }
 
 .custom-date-picker .el-input__wrapper {
-    /* ... padding-left es 40px ... */
-    padding-left: 10px !important; 
+  /* ... padding-left es 40px ... */
+  padding-left: 10px !important;
 }
 
 .custom-date-picker.is-disabled.el-date-editor {
-    /* CAMBIO CLAVE: Forzamos el color de fondo a blanco */
-    background-color: white !important; 
-    
-    /* Mantenemos o ajustamos la opacidad y borde si es necesario */
-    opacity: 1 !important; 
-    
-    /* Si tienes un borde que no quieres que cambie, asegúrate de definirlo aquí */
-    /* border-color: rgb(209, 213, 219) !important; */
+  /* CAMBIO CLAVE: Forzamos el color de fondo a blanco */
+  background-color: white !important;
+
+  /* Mantenemos o ajustamos la opacidad y borde si es necesario */
+  opacity: 1 !important;
+
+  /* Si tienes un borde que no quieres que cambie, asegúrate de definirlo aquí */
+  /* border-color: rgb(209, 213, 219) !important; */
 }
 
 .custom-date-picker.is-disabled .el-input__icon {
-    /* * Usamos un color gris claro (similar a Tailwind gray-300 o #D1D5DB) 
+  /* * Usamos un color gris claro (similar a Tailwind gray-300 o #D1D5DB) 
      * para indicar que el control no está activo.
      */
-    color: rgb(175, 175, 175) !important; /* Color gris suave */
+  color: rgb(175, 175, 175) !important;
+  /* Color gris suave */
 }
 
 /*======================== el-date =================================*/
@@ -661,19 +719,19 @@
 .custom-date-picker.is-disabled.el-date-editor::after,
 .custom-date-picker.is-disabled .el-input__wrapper::before,
 .custom-date-picker.is-disabled .el-input__wrapper::after {
-    /* 1. Resetear contenido (evita que se muestren) */
-    content: none !important; 
-    
-    /* 2. Resetear sombras y bordes */
-    box-shadow: none !important;
-    border: none !important;
-    
-    /* 3. Asegurar que no ocupen espacio */
-    width: 0 !important;
-    height: 0 !important;
-    
-    /* 4. Anular cualquier fondo que pudiera estar dibujando */
-    background: transparent !important;
+  /* 1. Resetear contenido (evita que se muestren) */
+  content: none !important;
+
+  /* 2. Resetear sombras y bordes */
+  box-shadow: none !important;
+  border: none !important;
+
+  /* 3. Asegurar que no ocupen espacio */
+  width: 0 !important;
+  height: 0 !important;
+
+  /* 4. Anular cualquier fondo que pudiera estar dibujando */
+  background: transparent !important;
 }
 
 /*======================== el-date =================================*/
@@ -681,104 +739,156 @@
 
 /* REGLA CLAVE: Define el borde del date-picker deshabilitado en su estado base */
 .custom-date-picker.is-disabled.el-date-editor {
-    /* Forzamos el grosor y color del borde a delgado (gray-300) */
-    border: 0.08em solid rgb(209, 213, 219) !important; 
-    
-    /* Aseguramos que el color se mantenga estático */
-    border-color: rgb(209, 213, 219) !important; 
-    
-    /* El resto de tus reglas deshabilitadas */
-    background-color: white !important; 
-    opacity: 1 !important; 
-    cursor: not-allowed !important;
-    box-shadow: none !important;
+  /* Forzamos el grosor y color del borde a delgado (gray-300) */
+  border: 0.08em solid rgb(209, 213, 219) !important;
+
+  /* Aseguramos que el color se mantenga estático */
+  border-color: rgb(209, 213, 219) !important;
+
+  /* El resto de tus reglas deshabilitadas */
+  background-color: white !important;
+  opacity: 1 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
 }
 
 /* También aplica la anulación de grosor al wrapper interno en el estado base */
 .custom-date-picker.is-disabled .el-input__wrapper {
-    border: 0.08em solid rgb(209, 213, 219) !important; 
-    border-color: rgb(209, 213, 219) !important; 
-    box-shadow: none !important;
+  border: 0.08em solid rgb(209, 213, 219) !important;
+  border-color: rgb(209, 213, 219) !important;
+  box-shadow: none !important;
 }
 
 /* 1. Forzar el fondo BLANCO en los inputs de rango (Fecha Inicial/Final) 
       cuando el date-picker principal está deshabilitado */
 .custom-date-picker.is-disabled .el-range-input {
-    /* El input de rango interno */
-    background-color: white !important; 
+  /* El input de rango interno */
+  background-color: white !important;
 }
 
 /* 2. Forzar el fondo BLANCO en el input wrapper interno deshabilitado (Element Plus) */
 .custom-date-picker.is-disabled .el-input__wrapper {
-    /* El contenedor que envuelve los inputs de rango */
-    background-color: white !important;
+  /* El contenedor que envuelve los inputs de rango */
+  background-color: white !important;
 }
 
 /* 3. Asegurar el fondo blanco en el contenedor principal si no lo hemos hecho ya */
 .custom-date-picker.is-disabled.el-date-editor {
-    background-color: white !important;
+  background-color: white !important;
 }
 
 /* 4. Anular el fondo de los inputs en el estado activo (aunque deshabilitado) */
 .custom-date-picker.is-active.is-disabled .el-range-input {
-    background-color: white !important; 
+  background-color: white !important;
 }
 
 /*---------------------- Estilos para el placeholder del input------------------------ */
 .custom-input::placeholder {
-    color: rgb(75, 85, 99) !important;; /* Color rojo para el placeholder */
-    opacity: 1; /* Asegura que el color sea visible */
+  color: rgb(75, 85, 99) !important;
+  ;
+  /* Color rojo para el placeholder */
+  opacity: 1;
+  /* Asegura que el color sea visible */
 }
 
 /* Para navegadores basados en WebKit (Chrome, Safari) */
 .custom-input::-webkit-input-placeholder {
-    color: rgb(75, 85, 99) !important;;
-    opacity: 1;
+  color: rgb(75, 85, 99) !important;
+  ;
+  opacity: 1;
 }
 
 /* Para Mozilla Firefox */
 .custom-input::-moz-placeholder {
-    color: rgb(75, 85, 99) !important;;
-    opacity: 1;
+  color: rgb(75, 85, 99) !important;
+  ;
+  opacity: 1;
 }
 
 /* Para Microsoft Edge */
 .custom-input::-ms-input-placeholder {
-    color: rgb(75, 85, 99) !important;;
-    opacity: 1;
+  color: rgb(75, 85, 99) !important;
+  ;
+  opacity: 1;
 }
 
 /* Estilos para el input deshabilitado */
 .custom-input[disabled] {
-   
-    opacity: 1 !important; /* Sobrescribe cualquier opacidad por defecto */
-    
-    /* Muestra el cursor de "prohibido" (not-allowed) al pasar el mouse */
-    cursor: not-allowed !important;
+
+  opacity: 1 !important;
+  /* Sobrescribe cualquier opacidad por defecto */
+
+  /* Muestra el cursor de "prohibido" (not-allowed) al pasar el mouse */
+  cursor: not-allowed !important;
 }
 
 /* Estilo para el placeholder del input deshabilitado */
 .custom-input[disabled]::placeholder {
-    color: rgb(156, 163, 175) !important; /* Tailwind gray-400 para un placeholder más sutil */
+  color: rgb(156, 163, 175) !important;
+  /* Tailwind gray-400 para un placeholder más sutil */
 }
 
 textarea {
   resize: none !important;
 }
 
+
+/* ***************************** EL-SELECT ******************* */
+
+/* Tags con clase info */
+.custom-select .el-tag.el-tag--info {
+  background-color: transparent !important;
+}
+
+/* Icono cerrar tag */
+.custom-select .el-tag .el-tag__close {
+  color: rgb(75, 85, 99) !important;
+}
+
+/* Texto en el select (placeholder y normal) */
+.custom-select .el-select__inner {
+  color: rgb(75, 85, 99);
+}
+
+.custom-select .el-select__placeholder {
+  color: rgb(75, 85, 99) !important;
+}
+
 .custom-select-down .el-select__wrapper {
-  box-shadow: 0px 1.5px 0px 0px #c9c9c9 !important; 
-  border: none !important; 
+  box-shadow: 0px 1.5px 0px 0px #c9c9c9 !important;
+  border: none !important;
   border-radius: 0 !important;
   padding-left: 0.5px !important;
+}
+
+/* Focus del select */
+.custom-select .el-select__wrapper.is-focused {
+  background-color: rgb(249, 250, 251);
+  --tw-border-opacity: 1;
+  border: 0.151em solid !important;
+  border-color: var(--color-1) !important;
+  transition: none !important;
+}
+
+.custom-select .el-select__input {
+  background-color: rgb(249, 250, 251);
+  outline: none !important;
+  /* Eliminar outline */
+  box-shadow: none !important;
+  /* Eliminar ring (sombra) */
+  --tw-border-opacity: 1;
+  border: 0.08em solid !important;
+  border-color: rgb(255 255 255 / var(--tw-border-opacity, 1)) !important;
+  --tw-ring-opacity: 1;
+  --tw-ring-color: rgb(255 255 255 / var(--tw-ring-opacity, 1)) !important;
 }
 
 /* Asegura que el input y el texto tengan el padding correcto y estén alineados */
 .custom-select-down .el-select__wrapper .el-input__inner,
 .custom-select-down .el-select__wrapper .el-select__placeholder {
-    padding-left: 0.15em !important;
-    padding-bottom: 0em!important;
-  color: #000000 !important; 
+  padding-left: 0.15em !important;
+  padding-bottom: 0em !important;
+  color: #000000 !important;
 
 }
 
@@ -787,8 +897,7 @@ textarea {
   box-shadow: 0px 1.5px 0px 0px #c9c9c9 !important;
   border: none !important;
   border-radius: 0 !important;
-    padding-bottom: 0em!important;
-
+  padding-bottom: 0em !important;
 }
 
 .custom-select-down .el-select__wrapper.is-focused {
@@ -801,39 +910,84 @@ textarea {
 
 /* Alternative approach if the above doesn't work */
 /* You might need a more specific selector */
-.custom-select-down .el-select .el-input__inner + .el-select__caret.el-icon svg path {
+.custom-select-down .el-select .el-input__inner+.el-select__caret.el-icon svg path {
   fill: #000000 !important;
 }
 
-/* ***************************** EL-SELECT ******************* */
 
 .custom-select.is-disabled .el-select__wrapper .el-input__inner,
 .custom-select.is-disabled .el-select__wrapper .el-select__placeholder {
-    /* Usamos el color rojo de tu tema para la prueba (cambia a gray-500 después de confirmar que funciona) */
-    color: rgb(156, 163, 175) !important; 
-    
-    /* Asegúrate de que no haya atenuación visual por defecto */
-    -webkit-text-fill-color: rgb(156, 163, 175)!important; /* Para navegadores basados en WebKit */
-    opacity: 1 !important; 
+  /* Usamos el color rojo de tu tema para la prueba (cambia a gray-500 después de confirmar que funciona) */
+  color: rgb(156, 163, 175) !important;
+
+  /* Asegúrate de que no haya atenuación visual por defecto */
+  -webkit-text-fill-color: rgb(156, 163, 175) !important;
+  /* Para navegadores basados en WebKit */
+  opacity: 1 !important;
 }
 
 .custom-select.is-disabled .el-select__wrapper {
-    /* Usamos var(--color-2) para un fondo verde oscuro (o el verde que desees) */
-    background-color: white !important; 
-    
-    /* Opcional: Para mantener la coherencia visual */
-    cursor: not-allowed !important;
-    opacity: 1 !important; 
+  /* Usamos var(--color-2) para un fondo verde oscuro (o el verde que desees) */
+  background-color: white !important;
+
+  /* Opcional: Para mantener la coherencia visual */
+  cursor: not-allowed !important;
+  opacity: 1 !important;
 }
 
 .custom-select .el-select__caret.el-icon svg path {
-    /* Establece el color de relleno del SVG a gray-600 (rgb(75, 85, 99)) */
-    fill: rgb(75, 85, 99) !important;   
+  /* Establece el color de relleno del SVG a gray-600 (rgb(75, 85, 99)) */
+  fill: rgb(75, 85, 99) !important;
 }
 
 .custom-select.is-disabled .el-select__caret.el-icon svg path {
-    /* Establece el color de relleno del SVG a gray-600 (rgb(75, 85, 99)) */
-    fill: rgb(156, 163, 175) !important;   
+  /* Establece el color de relleno del SVG a gray-600 (rgb(75, 85, 99)) */
+  fill: rgb(156, 163, 175) !important;
+}
+
+.custom-select .el-tag.el-tag--info:hover {
+  background-color: transparent !important;
+  border-radius: 0.25em !important;
+  /* nuevo border-radius al hacer hover */
+  margin-left: 0.3em !important;
+  /* nuevo margin-left al hacer hover */
+  border-radius: 10px !important;
+}
+
+/* Contenedor principal del select */
+.custom-select .el-select__wrapper {
+  border: 0.08em solid rgb(209, 213, 219) !important;
+  background-color: white;
+  --tw-border-opacity: 1;
+  box-shadow: none !important;
+  /* Eliminar ring (sombra) */
+  border-radius: 0.7em !important;
+  min-height: 2.25em;
+  /* Altura mínima */
+  padding-left: 0.5em;
+  /* Espaciado interno */
+  padding-right: 0.5em;
+  /* Espaciado interno */
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  height: 2.65em !important;
+}
+
+/* Tags dentro del select */
+.custom-select .el-select__tags .el-tag {
+  background-color: transparent !important;
+  color: #333 !important;
+  /* Texto más oscuro */
+  padding: 0.3em 0.5em !important;
+  /* Padding ajustado */
+  font-size: 12px !important;
+  border-radius: 4px !important;
+  border: none !important;
+  margin: 0.2em !important;
+  /* Margen entre tags */
+  transition: all 0.2s ease;
+  font-weight: normal;
 }
 
 /* ======================== ESTILOS DE BOTONES ======================== */
@@ -841,26 +995,394 @@ textarea {
 /* Estilo para el botón cuando está deshabilitado por la lógica Vue */
 .filter-button.disabled-button,
 .filter-button[disabled] {
-    /* 1. CURSOR PROHIBIDO */
-    cursor: not-allowed !important;
-    
-    /* 2. COLOR DE FONDO Y BORDE (Simulando deshabilitado) */
-    background-color: white !important; /* gray-100 para fondo */
-    border-color: rgb(209, 213, 219) !important;      /* gray-300 para borde (o el que desees) */
-    
-    /* 3. COLOR DEL TEXTO (El contenido principal del botón) */
-    color: rgb(156, 163, 175) !important; /* gray-100 para el texto */
-    
-    /* Evita que el hover cambie el color cuando está deshabilitado */
-    /* pointer-events: none; */
+  /* 1. CURSOR PROHIBIDO */
+  cursor: not-allowed !important;
 
-    opacity: 1 !important;
+  /* 2. COLOR DE FONDO Y BORDE (Simulando deshabilitado) */
+  background-color: white !important;
+  /* gray-100 para fondo */
+  border-color: rgb(209, 213, 219) !important;
+  /* gray-300 para borde (o el que desees) */
+
+  /* 3. COLOR DEL TEXTO (El contenido principal del botón) */
+  color: rgb(156, 163, 175) !important;
+  /* gray-100 para el texto */
+
+  /* Evita que el hover cambie el color cuando está deshabilitado */
+  /* pointer-events: none; */
+
+  opacity: 1 !important;
 }
 
 /* 4. COLOR DEL CONTENIDO (ÍCONOS SVG) */
 /* Apuntamos a todos los elementos SVG (íconos) dentro del botón deshabilitado */
 .filter-button.disabled-button svg,
 .filter-button[disabled] svg {
-    /* El color del trazo (stroke) y relleno (fill) se establece a gray-100 */
-    stroke: rgb(156, 163, 175) !important; /* gray-100 para contornos */
+  /* El color del trazo (stroke) y relleno (fill) se establece a gray-100 */
+  stroke: rgb(156, 163, 175) !important;
+  /* gray-100 para contornos */
+}
+
+
+/* ========================================================================= */
+/* ESTILOS CUSTOM SELECT GRAY (Nuevo estilo solicitado) */
+/* ========================================================================= */
+/* Tags con clase info */
+.custom-select-gray .el-tag.el-tag--info {
+  background-color: var(--color1) !important;
+  color: white !important;
+  border-radius: 100px !important;
+}
+
+/* Icono cerrar tag */
+.custom-select-gray .el-tag .el-tag__close {
+  color: white !important;
+  background-color: transparent !important;
+
+  transition:
+    transform 0.2s ease-in-out,
+    background-color 0.2s ease-in-out;
+
+  /* Asegurar que el elemento pueda rotar */
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.custom-select-gray .el-tag .el-tag__close:hover {
+  transform: rotate(90deg);
+  background-color: transparent !important;
+}
+
+.custom-select-gray .el-select__tags-text {
+  color: white !important;
+  font-size: 12px !important;
+
+  max-width: 300px !important;
+  /* Ajusta este valor (ej. 100px) según tu diseño */
+
+  /* 2. Propiedades estándar para truncar el texto (mostrar "...") */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* Evita que el texto se envuelva en varias líneas */
+}
+
+.custom-select-gray .el-select__inner {
+  color: rgb(15, 25, 29);
+}
+
+.custom-select-gray .el-select__placeholder {
+  color: rgb(15, 25, 29) !important;
+  font-size: 13px !important;
+}
+
+.custom-select-gray-down .el-select__wrapper {
+  box-shadow: 0px 1.5px 0px 0px #c9c9c9 !important;
+  border: none !important;
+  padding-left: 0.5px !important;
+}
+
+/* Focus del select */
+.custom-select-gray .el-select__wrapper.is-focused {
+  background-color: var(--color-gray-200) !important;
+}
+
+/* Opcional: Estilo para los bordes y sombras */
+.custom-select-gray-down .el-select__wrapper {
+  box-shadow: 0px 1.5px 0px 0px #c9c9c9 !important;
+  border: none !important;
+  padding-bottom: 0em !important;
+}
+
+.custom-select-gray .el-select__input {
+  outline: none !important;
+  /* Eliminar outline */
+  box-shadow: none !important;
+  /* Eliminar ring (sombra) */
+  --tw-border-opacity: 1;
+  border: none !important;
+  border-color: rgb(255 255 255 / var(--tw-border-opacity, 1)) !important;
+  --tw-ring-opacity: 1;
+  --tw-ring-color: rgb(255 255 255 / var(--tw-ring-opacity, 1)) !important;
+  color: var(--color-gray-800) !important;
+}
+
+.custom-select-gray .el-select__input:focus {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Asegura que el input y el texto tengan el padding correcto y estén alineados */
+.custom-select-gray-down .el-select__wrapper .el-input__inner,
+.custom-select-gray-down .el-select__wrapper .el-select__placeholder {
+  padding-left: 0.15em !important;
+  padding-bottom: 0em !important;
+  color: #000000 !important;
+}
+
+
+.custom-select-gray-down .el-select__wrapper.is-focused {
+  box-shadow: 0px 1.5px 0px 0px var(--color1) !important;
+}
+
+.custom-select-gray-down .el-select .el-select__caret.el-icon svg path {
+  fill: #000000 !important;
+}
+
+/* Alternative approach if the above doesn't work */
+/* You might need a more specific selector */
+.custom-select-gray-down .el-select .el-input__inner+.el-select__caret.el-icon svg path {
+  fill: #000000 !important;
+}
+
+
+.custom-select-gray.is-disabled .el-select__wrapper .el-input__inner,
+.custom-select-gray.is-disabled .el-select__wrapper .el-select__placeholder {
+  /* Usamos el color rojo de tu tema para la prueba (cambia a gray-500 después de confirmar que funciona) */
+  color: red !important;
+
+  /* Asegúrate de que no haya atenuación visual por defecto */
+  -webkit-text-fill-color: rgb(156, 163, 175) !important;
+  /* Para navegadores basados en WebKit */
+  opacity: 1 !important;
+}
+
+.custom-select-gray.is-disabled .el-select__wrapper {
+  /* Usamos var(--color-2) para un fondo verde oscuro (o el verde que desees) */
+  background-color: white !important;
+
+  /* Opcional: Para mantener la coherencia visual */
+  cursor: not-allowed !important;
+  opacity: 1 !important;
+}
+
+.custom-select-gray .el-select__caret {
+  margin-right: 0.75em !important;
+}
+
+.custom-select-gray .el-select__caret.el-icon svg path {
+  fill: var(--color-gray-800) !important;
+  filter: drop-shadow(0 0 1px var(--color-gray-800)) !important;
+}
+
+.custom-select-gray.is-disabled .el-select__caret.el-icon svg path {
+  fill: var(--color-gray-800) !important;
+  filter: drop-shadow(0 0 1px var(--color-gray-800)) !important;
+}
+
+.custom-select-gray .el-tag.el-tag--info:hover {
+  background-color: var(--color-1-1) !important;
+  /* border-radius: 0.25em !important;    */
+  /* margin-left: 0.3em !important;  */
+  /* border-radius: 10px !important; */
+  font-weight: bold;
+}
+
+/* Contenedor principal del select */
+.custom-select-gray .el-select__wrapper {
+  /* border: 0.08em solid rgb(209, 213, 219) !important; */
+  background-color: rgb(242, 243, 244);
+  --tw-border-opacity: 1;
+  box-shadow: none !important;
+  /* Eliminar ring (sombra) */
+  border-radius: 9999px !important;
+  min-height: 2.25em;
+  /* Altura mínima */
+  padding-left: 0.5em;
+  /* Espaciado interno */
+  padding-right: 0.5em;
+  /* Espaciado interno */
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  height: 2.65em !important;
+}
+
+/* Tags dentro del select */
+.custom-select-gray .el-select__tags .el-tag {
+  background-color: transparent !important;
+  color: var(--color-gray-800) !important;
+  padding: 0.3em 0.5em !important;
+  /* Padding ajustado */
+  font-size: 12px !important;
+  border-radius: 4px !important;
+  border: none !important;
+  margin: 0.2em !important;
+  /* Margen entre tags */
+  transition: all 0.2s ease;
+  font-weight: normal;
+}
+
+/* Neutralizar el margin de los tags para mejor control */
+.custom-select-gray .el-select__tags {
+  /* Centra verticalmente el contenedor de los tags */
+  align-items: center !important;
+
+  /* Elimina cualquier margin vertical no deseado en el contenedor de tags */
+  margin: 0 !important;
+}
+
+.custom-select-gray .el-select__wrapper:hover {
+  background-color: var(--color-gray-200) !important;
+}
+
+/* Cambia el color del texto de todos los ítems del menú desplegable */
+.el-select-dropdown__item {
+  color: var(--color-gray-800) !important;
+
+  display: flex !important;
+  align-items: center !important;
+
+  padding-left: 0px !important;
+
+  /* width: 96% !important; */
+}
+
+/* Opcional: Para asegurar que el texto se mantenga oscuro incluso en hover o activo */
+.el-select-dropdown__item.hover,
+.el-select-dropdown__item:hover,
+.el-select-dropdown__item.selected {
+  /* Si Element Plus aplica un color diferente en hover o selección, esta regla lo sobrescribe. */
+  color: var(--color-gray-800) !important;
+}
+
+.el-select-dropdown__list {
+  /* Esto es la clave: Eliminar el padding que Element Plus añade por defecto */
+  padding-right: 15px !important;
+}
+
+.el-select-dropdown__item:hover,
+.el-select-dropdown__item.hover {
+  /* 1. Fondo en Hover (Ejemplo: gray-100) */
+  background-color: var(--color-gray-200) !important;
+
+  /* 2. Color de Texto en Hover (Ejemplo: gray-900 para contraste) */
+  color: var(--color-gray-900) !important;
+}
+
+.el-select-dropdown__item.is-disabled:hover {
+  /* 1. Anular el color de fondo en hover */
+  background-color: transparent !important;
+
+  /* 2. Asegurar que el color del texto no cambie (mantener el color base) */
+  color: var(--color-gray-800) !important;
+  /* Usar tu color base para el texto */
+
+  /* 3. Asegurar que el cursor sea el predeterminado (flecha), no el de puntero */
+  cursor: default !important;
+}
+
+/* =======================================================
+   SOBRESCRITURA EL-SELECT DINAMYC (Reforzada)
+   ======================================================= */
+
+/* Apunta al wrapper del input donde Element Plus aplica el borde por defecto */
+.el-select-dinamyc .el-select__wrapper {
+  /* 1. ELIMINAR BORDES Y SOMBRAS DE ELEMENT PLUS */
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  border: none !important;
+  outline: none !important;
+
+  /* 2. APLICAR SÓLO BORDE INFERIOR (ESTADO NORMAL) */
+  border-bottom: 2px solid var(--color-gray-300) !important;
+
+  /* 3. FONDO Y ALTURA */
+  background-color: transparent !important;
+  padding: 10px 0 4px 0 !important;
+  height: auto !important;
+}
+
+/* 4. ESTADO DE FOCO (Focus state) */
+.el-select-dinamyc .el-select__wrapper.is-focused,
+.el-select-dinamyc .el-select__wrapper:focus {
+  /* Eliminar sombra de foco de Element Plus */
+  box-shadow: none !important;
+  border-color: var(--color1) !important;
+
+  /* Aplicar color de foco solo al borde inferior */
+  border-bottom: 2px solid var(--color1) !important;
+  background-color: transparent !important;
+}
+
+/* 5. Asegurar que el texto interno no tenga padding que lo empuje */
+.el-select-dinamyc .el-input__inner,
+.el-select-dinamyc .el-select__placeholder {
+  padding-left: 0.15em !important;
+  padding-bottom: 0em !important;
+  background-color: transparent !important;
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+  font-size: 13px !important;
+}
+
+.el-select-dropdown__item {
+  /* Usando tu variable CSS para gray-800 */
+  color: var(--color-gray-800) !important;
+}
+
+.el-select-dinamyc .el-select__selected-item span,
+.el-select-dinamyc .el-select__placeholder span {
+  /* Forzar el color a gray-800 usando tu variable */
+  color: var(--color-gray-800) !important;
+
+  /* Asegurar que el fondo del texto interno sea transparente o blanco
+       para que no interfiera con el fondo del wrapper. */
+  background-color: transparent !important;
+}
+
+/* Ocultar la línea inferior y el fondo gris cuando está deshabilitado */
+.el-select-dinamyc .el-select__wrapper.is-disabled {
+  /* Eliminar la línea inferior cuando está deshabilitado */
+  border-bottom: none !important;
+
+  /* Asegurar que el fondo sea transparente o lo que desees para el estado de "no editable" */
+  background-color: transparent !important;
+}
+
+/* Ocultar el ícono de la flecha del dropdown cuando está deshabilitado */
+.el-select-dinamyc .el-select__wrapper.is-disabled .el-input__suffix {
+  display: none !important;
+}
+
+.el-select-dinamyc .el-select__wrapper.is-disabled .el-select__icon {
+  display: none !important;
+}
+
+/* 6. ESTILO DE LOS ÍTEMS DEL DROPDOWN */
+.el-select-dropdown__item {
+  /* Usando tu variable CSS para gray-800 */
+  color: var(--color-gray-800) !important;
+
+  /* 🌟 NUEVO: TAMAÑO DE FUENTE DE LOS ÍTEMS 🌟 */
+  font-size: 13px !important;
+}
+
+.swal2-popup {
+  /* Un radio de 1rem (16px) o 0.75rem (12px) suele ser un buen valor. */
+  border-radius: 1rem !important;
+}
+
+/* Oculta el texto del placeholder por defecto */
+/* Usa !important solo si la clase de Tailwind lo está anulando fuertemente */
+.hide-placeholder-on-blur::placeholder {
+  color: #9ca3af !important;
+  /* La opacidad 0 funciona mejor que display: none */
+  opacity: 0 !important;
+}
+
+/* Muestra el texto del placeholder SOLAMENTE cuando el input tiene el foco */
+.hide-placeholder-on-blur:focus::placeholder {
+  /* Define el color del texto del placeholder que quieres ver al enfocar */
+  color: #9ca3af;
+  /* Tailwind gray-400 */
+  opacity: 1 !important;
+}
+
+/* Para el modo oscuro (Dark Mode) */
+.dark .hide-placeholder-on-blur:focus::placeholder {
+  color: #6b7280;
+  /* Tailwind gray-500 */
 }

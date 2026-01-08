@@ -72,7 +72,7 @@ class Solicitud extends Model
 
     public function aceptada()
     {
-        return $this->hasOne(SolicitudAceptada::class, 'folio');
+        return $this->hasOne(SolicitudAceptada::class, 'id', 'folio');
     }
 
     // --- ¡Este es el accesor clave! ---
@@ -103,6 +103,23 @@ class Solicitud extends Model
                     ->groupBy('tipo_tramite_nombre'); // Agrupa por el nombre del tipo de trámite
             }
         );
+    }
+
+    public function requisitos_docs()
+    {
+        // El método belongsToMany define la relación de Muchos a Muchos.
+        return $this->belongsToMany(
+            RequisitoDocumentacion::class, // El modelo con el que se relaciona
+            'solicitudes_documentacion',   // 1. Nombre explícito de la tabla pivote (importante)
+            'id_solicitud',                // 2. Nombre de la clave foránea local en la tabla pivote
+            'id_requisito_documentacion'   // 3. Nombre de la clave foránea relacionada en la tabla pivote
+        )
+        // Usamos withPivot() para incluir cualquier columna adicional que tengas en la tabla pivote.
+        // Por ejemplo, si añades 'entregado', debes incluirlo aquí:
+        // ->withPivot('entregado');
+        
+        // Si tienes timestamps en la tabla pivote, inclúyelos con withTimestamps
+        ->withTimestamps();
     }
 
 }

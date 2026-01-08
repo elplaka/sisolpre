@@ -115,6 +115,12 @@
             <td style="width: 57%;">{{ $solicitud->propiedad->contacto->email }}</td>
             @endif
         </tr>
+        @if (($solicitud->propiedad->contacto->domicilio_notificacion && strlen(trim($solicitud->propiedad->contacto->domicilio_notificacion->direccion)) > 0))
+        <tr style="line-height: 1em;">
+            <td class="tdPrevFieldName" style="width: 13%;">Domicilio:</td>
+            <td colspan="3" style="width: 87%; line-height: 1; text-align: justify;">{{ $solicitud->propiedad->contacto->domicilio_notificacion->direccion }}</td>
+        </tr>
+        @endif
         <tr><span style="display: block; margin-top: 0.25cm"></span></tr>
         @endif
         <tr>
@@ -127,9 +133,11 @@
             </td>
         </tr>
         @if ($solicitud->razon_social)
-        <tr style="line-height: 1em;">
-            <td colspan="2" class="tdPrevFieldName" style="white-space: nowrap;">Organización / Razón Social:</td>
-            <td colspan="2">{{ $solicitud->razon_social->nombre }}</td>
+        <tr style="line-height: 1em; text-align: center;">
+            <td colspan="4" style="text-align: center;"> 
+                <span class="tdPrevFieldName" style="white-space: nowrap;">Organización / Razón Social:</span>
+                <span>{{ $solicitud->razon_social->nombre }}</span>
+            </td>
         </tr>
         @endif
         <tr style="line-height: 1em;">
@@ -154,6 +162,21 @@
                 </td>
             @endif
         </tr>
+        @if ($solicitud->propiedad && $solicitud->contacto->id == $solicitud->propiedad->contacto->id)
+        @if (($solicitud->propiedad->contacto->domicilio_notificacion && strlen(trim($solicitud->propiedad->contacto->domicilio_notificacion->direccion)) > 0))
+        <tr style="line-height: 1em;">
+            <td class="tdPrevFieldName" style="width: 13%;">Domicilio:</td>
+            <td colspan="3" style="width: 87%; text-align: justify;">{{ $solicitud->propiedad->contacto->domicilio_notificacion->direccion }}</td>
+        </tr>
+        @endif
+        @else
+        @if (($solicitud->contacto->domicilio_notificacion && strlen(trim($solicitud->contacto->domicilio_notificacion->direccion)) > 0))
+        <tr style="line-height: 1em;">
+            <td class="tdPrevFieldName" style="width: 13%;">Domicilio:</td>
+            <td colspan="3" style="width: 87%; text-align: justify;">{{ $solicitud->contacto->domicilio_notificacion->direccion }}</td>
+        </tr>
+        @endif
+        @endif
         <tr><span style="display: block; margin-top: 0.25cm"></span></tr>        
     </table>
     @if ($solicitud->propiedad)
@@ -215,8 +238,7 @@
                 @else
                     <span style="color: red;">«NÚMERO SIN CAPTURAR»</span>
                 @endif 
-                @if ($solicitud->propiedad->colonia)
-                  ,@php
+                @if ($solicitud->propiedad->colonia),@php
                         $coloniaNombre = $solicitud->propiedad->colonia->nombre;
                         // Define los prefijos que no deben mostrarse
                         $prefixesToExclude = ['FRACC', 'INFONA', 'COL.', 'COLONIA', 'COL', 'COL,'];
@@ -234,7 +256,7 @@
                     @endphp
 
                     @if ($showColPrefix)
-                       &nbsp; COL. 
+                      COL. 
                     @endif
                     {{ $coloniaNombre }}
                 @endif
@@ -365,47 +387,68 @@
         </tr>
         <tr><span style="display: block; margin-top: 0.25cm"></span></tr>
     </table>
-    {{-- <table style="width: 100%; border-collapse: collapse;">
-        <tr class="titlePrevTr">
-            <td class="titlePrevTd" style="text-align: center; ">
-                DOCUMENTACIÓN
+    @php
+    // 1. Filtrar la colección: Quedarse solo con los requisitos donde 'entregado' sea true.
+    $requisitosEntregados = $requisitosConEstado->filter(function ($requisito) {
+        return $requisito->entregado === true;
+    });
+    
+    // 2. Agrupar la colección filtrada en bloques de 5 para las filas de la tabla.
+    // 🔑 CAMBIO CLAVE: chunk(5)
+    $gruposEntregados = $requisitosEntregados->chunk(5);
+@endphp
+
+    @if($gruposEntregados->isNotEmpty())
+    <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td class="titleTd" style="text-align: center;">
+                DOCUMENTACIÓN ENTREGADA
             </td>
         </tr>
         <tr>
-            <td style="padding: 0; margin: 0;">
-                <table style="border-collapse: collapse;">
-                    <tr>
-                        <td style="vertical-align: middle; padding-right: 0.5cm; width: 2%">
-                            <div class="cuadro-checkbox"> ✓
-                            </div>
-                        </td>
-                        <td style="vertical-align: middle; padding-right: 1cm;">
-                            <span style="position: relative; top: -3px;">INE</span>
-                        </td>
-                        <td style="vertical-align: middle; padding-right: 0.5cm; width: 2%">
-                             <div class="cuadro-checkbox"> ✗
-                            </div>
-                        </td>
-                        <td style="vertical-align: middle; padding-right: 1cm;">
-                            <span style="position: relative; top: -3px;">Predial</span>
-                        </td>
-                              <td style="vertical-align: middle; padding-right: 0.5cm; width: 2%">
-                             <div class="cuadro-checkbox">
-                            </div>
-                        </td>
-                        <td style="vertical-align: middle; padding-right: 1cm;">
-                            <span style="position: relative; top: -3px; color: red">«Escrituras»</span>
-                        </td>
-                    </tr>
+            <td style="height: 0.1cm;"></td>
+        </tr>
+        <tr>
+            <td style="padding: 0; margin: 0; line-height: 1.0;">
+                <table style="border-collapse: collapse; width: 100%;">
+                    @forelse ($gruposEntregados as $grupo)
+                        <tr> 
+                            @foreach ($grupo as $requisito) 
+                                <td style="vertical-align: top; font-size: 7pt; width: 20%; padding: 1px 2px; line-height: 1.0;">
+                                    • {{ 
+                                        strlen($requisito->nombre_corto) > 20 
+                                        ? \Illuminate\Support\Str::limit($requisito->nombre_corto, 20)
+                                        : $requisito->nombre_corto
+                                    }}
+                                </td>
+                            @endforeach
+                            @php
+                                $columnasFaltantes = 5 - $grupo->count(); 
+                            @endphp
+                            
+                            @if ($columnasFaltantes > 0)
+                                <td colspan="{{ $columnasFaltantes }}" 
+                                    style="width: {{ $columnasFaltantes * 20 }}%;">
+                                </td>
+                            @endif
+                        </tr>
+                    <!-- @empty
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 10px;">
+                                No se entregó ningún requisito.
+                            </td>
+                        </tr>
+                    @endforelse -->
                 </table>
             </td>
         </tr>
-    </table> --}}
+    </table>
+    @endif
     @php
         $url = route('solicitudes.view', ['folio_digital' => $solicitud->folio_digital]);
         $qr = base64_encode(QrCode::format('svg')->size(250)->generate($url));
     @endphp
-    <table style="position: fixed; bottom: 4cm; left: 0cm; right: 0cm; font-size: 8pt; text-align: right;">
+    <table style="position: fixed; bottom: 3.5cm; left: 0cm; right: 0cm; font-size: 8pt; text-align: right;">
         <tr>
             <table style="width:100%;">
                 <tr>
@@ -429,7 +472,7 @@
 
             <!-- Texto legal debajo de toda la tabla -->
             <span style="display:block; text-align:justify; font-size:8pt; line-height:0.75; margin-top:4px;">
-                Bajo protesta de decir la verdad, manifestando que los datos presentados en la solicitud son verdaderos y por lo tanto me hago sabedor(a) de las penas que incurra por falsedad en términos del Código Penal para el estado libre y soberano de Sinaloa. Asimismo, si presento documentación falsa esta solicitud deberá acompañarse por lo dispuesto en el Reglamento de Construcciones para el municipio de Concordia, Sinaloa, y/o la Ley de Ordenamiento Territorial y Desarrollo Urbano del Estado de Sinaloa.
+                Bajo protesta de decir la verdad, manifiesto que los datos presentados en la presente son verdaderos, que el proyecto cumple con lo estipulado en el Reglamento de Construcciones para el municipio, así mismo, acepto las obligaciones y responsabilidades estipulados en el mismo y de las sanciones a las que estoy sujeto en el caso de su incumplimiento
             </span>
         </tr>
     </table>

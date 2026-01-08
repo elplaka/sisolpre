@@ -31,7 +31,7 @@ class AdminAuthController extends Controller
 
             // Verificar si el usuario está activo
             if ($user->es_activo) {
-                return redirect()->route('admin.dashboard');
+                return redirect()->route('dashboard');
             } else {
                 Auth::logout(); // Cerrar sesión si no está activo
                 return redirect()->route('admin.login')->with('error', 'Tu cuenta está inactiva. Por favor, contacta al administrador del sistema.');

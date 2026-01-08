@@ -12,6 +12,7 @@ class SolicitudAceptada extends Model
      protected $table = 'solicitudes_aceptadas';
 
     protected $fillable = [
+        'id',
         'activa',
     ];
 

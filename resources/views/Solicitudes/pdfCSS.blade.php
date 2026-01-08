@@ -138,15 +138,22 @@ th
 }
 
 .cuadro-checkbox {
-    width: 14px;
-    height: 14px;
-    border: 1.5px solid #888;
+    width: 10px;
+    height: 10px;
+    border: 1.5px solid #555;
     border-radius: 4px;
     background-color: #fff;
-    font-size: 18pt;
-    line-height: 14px;
+    
+    font-size: 13pt; 
+    line-height: 12px; 
+    
     text-align: center;
     color: black;
-    font-family: DejaVu Sans, sans-serif; /* Para Dompdf */
+    font-family: DejaVu Sans, sans-serif; 
+    
+    /* 🎯 CAMBIO CLAVE: Usamos 'sub' o 'baseline' para forzar la posición en la línea base */
+    /* Intenta con 'sub' primero. Si no funciona, intenta con 'baseline'. */
+    vertical-align: baseline; 
+    
+    display: inline-block; 
 }
-

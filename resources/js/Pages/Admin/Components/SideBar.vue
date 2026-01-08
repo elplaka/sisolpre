@@ -31,12 +31,37 @@
                 <li v-if="$page.props.auth.user?.permissions.includes('ver_usuarios')">
                     <Link
                         :href="route('admin.usuarios')"
-                        class="flex items-center p-1 text-sm font-medium text-gray-900 rounded-lg dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-color1 group"
-                    >
+                        class="flex items-center p-1 text-sm font-medium text-gray-900 rounded-lg dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-color1 group">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" class="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-color1">
                             <path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5zm0 2c-3.866 0-7 3.134-7 7h14c0-3.866-3.134-7-7-7z" />
                         </svg>
                         <span class="ml-2 hidden sm:block text-sm">Usuarios</span>
+                    </Link>
+                </li>
+                <li v-if="$page.props.auth.user?.permissions.includes('ver_requisitos')">
+                    <Link
+                        :href="route('requisitos')"
+                        class="flex items-center p-1 text-sm font-medium text-gray-900 rounded-lg dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-color1 group">
+                    <svg
+                        class="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-color1"
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        stroke-width="1"
+                        stroke="currentColor"
+                        fill="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round">
+                        
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M14 3v4a1 1 0 0 0 1 1h4" />
+                        <path d="M5 12v-7a2 2 0 0 1 2 -2h7l5 5v4" />
+                        <path d="M5 21h14" />
+                        <path d="M5 18h14" />
+                        <path d="M5 15h14" />
+                    </svg>
+                        <span class="ml-2 hidden sm:block text-sm">Requisitos</span>
                     </Link>
                 </li>
             </ul>

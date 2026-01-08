@@ -120,6 +120,7 @@
     const tiposTramitesQuery = ref([])
     const tramitesQuery = ref([])
     const localidadesQueryFiltradas = ref([])
+    const localidadesSelectQuery = ref([])
     const estatusQuery = ref([])
     const filtroChkSolicitudes = ref(0)
     const rangoFechasIngresoManual = ref(false)
@@ -132,13 +133,13 @@
     const isDropZoneCroquisFocused = ref(false); // Nueva variable para el estado del foco
     const periodoActual = ref(props.periodoActual || {})
 
-    const resetFiltros = () => {
+    const resetFiltroDocObligatorias = () => {
         tramitesQuery.value = []
         estatusQuery.value = []
     }
 
-    const resetFiltrosLocalidades = () => {
-        localidadesQueryFiltradas.value = []
+    const resetFiltroDocObligatoriasLocalidades = () => {
+        localidadesSelectQuery.value = []
     }
 
     const selectedCountText = computed(() => {
@@ -182,12 +183,14 @@
     const floatingNomSolicitanteRef = ref(null)
     const floatingApeSolicitanteRef = ref(null)
     const floatingEmailSolicitanteRef = ref(null)
+    const floatingDomicilioNotificacionSolicitanteRef = ref(null)
     const floatingTelefonoSolicitanteRef = ref(null)
 
     const floatingCURPPropietarioRef = ref(null)
     const floatingNomPropietarioRef = ref(null)
     const floatingApePropietarioRef = ref(null)
     const floatingEmailPropietarioRef = ref(null)
+    const floatingDomicilioNotificacionPropietarioRef = ref(null)
     const floatingTelefonoPropietarioRef = ref(null)
     const floatingNombrePersonaRef = ref(null)
 
@@ -312,6 +315,8 @@
             apePropietario.value = propietario.persona?.apellidos
             telefonoPropietario.value = propietario.telefono
             emailPropietario.value = propietario.email
+            idDomicilioNotificacionPropietario.value = propietario.domicilio_notificacion?.id
+            domicilioNotificacionPropietario.value = propietario.domicilio_notificacion?.direccion
             curpPropietarioInvalida.value = false
         } 
         else 
@@ -329,6 +334,8 @@
             apePropietario.value = persona.apellidos
             telefonoPropietario.value = ''
             emailPropietario.value = ''
+            idDomicilioNotificacionPropietario.value = ''
+            domicilioNotificacionPropietario.value = ''       
         } 
     }
 
@@ -345,6 +352,8 @@
         nombreLocalidadSolicitante.value = solicitante.localidad?.nombre
         telefonoSolicitante.value = solicitante.telefono
         emailSolicitante.value = solicitante.email
+        idDomicilioNotificacionSolicitante.value = solicitante.domicilio_notificacion?.id
+        domicilioNotificacionSolicitante.value = solicitante.domicilio_notificacion?.direccion
     }
 
     const cargaDatosReferencia = (ref) => {
@@ -502,6 +511,7 @@
     const editablesPropietario = (valor) => {
         telefonoPropietarioEditable.value = valor
         emailPropietarioEditable.value = valor
+        domicilioNotificacionPropietarioEditable.value = valor
     }
 
     const editablesPersonaSolicitante = (valor) => {
@@ -512,6 +522,7 @@
     const editablesSolicitante = (valor) => {
         telefonoSolicitanteEditable.value = valor
         emailSolicitanteEditable.value = valor
+        domicilioNotificacionSolicitanteEditable.value = valor
     }
 
     const editablesReferencia = (valor) => {
@@ -548,12 +559,14 @@
     const bloqueadosPropietario = (valor) => {
         telefonoPropietarioBloqueado.value = valor
         emailPropietarioBloqueado.value = valor
+        domicilioNotificacionPropietarioBloqueado.value = valor        
     }
 
     const bloqueadosSolicitante = (valor) => {
         telefonoSolicitanteBloqueado.value = valor
         emailSolicitanteBloqueado.value = valor
         razonSocialSolicitanteBloqueado.value = valor
+        domicilioNotificacionSolicitanteBloqueado.value = valor
     }
 
     const bloqueadosReferencia = (valor) => {
@@ -639,32 +652,31 @@
         }
     }
 
-    // ASÍ FUNCIONA CUANDO NO QUIERO QUE APAREZCA EL ID EN EL URL
-    // const imprimirSolicitud = (solicitud) => {
-    //     const form = document.createElement('form');
-    //     form.method = 'POST';
-    //     form.action = '/solicitudes/print-pdf';
-    //     form.target = '_blank'; // Abre en nueva pestaña
+    const cargaDatosDocumentacion = (solicitud) => 
+    {
+        if (!solicitud || !solicitud.requisitos_docs) {
+            requisitosEntregados.value = []; // Inicializar como array vacío
+            return; 
+        }
 
-    //     // CSRF token
-    //     const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    //     const csrfInput = document.createElement('input');
-    //     csrfInput.type = 'hidden';
-    //     csrfInput.name = '_token';
-    //     csrfInput.value = token;
-    //     form.appendChild(csrfInput);
+        const docs = solicitud.requisitos_docs;
+        const idsEntregados = []; // Nuevo array para guardar solo los IDs
 
-    //     // ID de la solicitud
-    //     const inputId = document.createElement('input');
-    //     inputId.type = 'hidden';
-    //     inputId.name = 'id';
-    //     inputId.value = solicitud.id;
-    //     form.appendChild(inputId);
+        if (docs && docs.length > 0) 
+        {
+            docs.forEach(doc => {
+                idsEntregados.push(doc.id);
+            });
+        }
 
-    //     document.body.appendChild(form);
-    //     form.submit();
-    //     document.body.removeChild(form);
-    // };
+        // Actualiza la ref reactiva con el array de IDs entregados
+        requisitosEntregados.value = idsEntregados;
+
+        if (!todosObligatoriosCompletados)
+        {
+            estatusSolicitudSelect.value = props.estatusSolicitud.filter((item) => item.id > 1 && item.id !== 6 && item.id !== 99)
+        }
+    }
 
     const abreModalEditarSolicitud = async (solicitud) => {
         resetFormData()
@@ -687,6 +699,7 @@
 
         const data = await response.json()
         solicitud = data.solicitud // Aquí se almacenan los datos en la variable puestos
+        requisitos.value = data.requisitos
 
         dropdownVisible.value = null
 
@@ -721,6 +734,8 @@
         cargaDatosRazonSocial(solicitud.razon_social)
         cargaDatosReferencia(solicitud.referencia)
         cargaDatosCroquis(solicitud)
+        setFiltroDocObligatoria(true)
+        cargaDatosDocumentacion(solicitud)
 
         esSolicitante.value = '1'
         if (solicitud.contacto.id_persona != solicitud.propiedad?.contacto.id_persona || tramitesSeleccionados.value.includes(ID_CONSTANCIA_UBICACION)) 
@@ -803,7 +818,7 @@
     }
 
     const dialogWidth = computed(() => {
-        return window.innerWidth < 1024 ? '95%' : '55%'
+        return window.innerWidth < 1024 ? '95%' : '65%'
     })
 
     const dialogWidthBuscar = computed(() => {
@@ -815,6 +830,8 @@
         apeSolicitante.value = ''
         telefonoSolicitante.value = ''
         emailSolicitante.value = ''
+        idDomicilioNotificacionSolicitante.value = ''
+        domicilioNotificacionSolicitante.value = ''
         calleSolicitante.value = ''
         numeroSolicitante.value = ''
         idColoniaSolicitante.value = ''
@@ -829,6 +846,8 @@
         apePropietario.value = ''
         telefonoPropietario.value = ''
         emailPropietario.value = ''
+        idDomicilioNotificacionPropietario.value = ''
+        domicilioNotificacionPropietario.value = ''
         callePropietario.value = ''
         numeroPropietario.value = ''
         idColoniaPropietario.value = ''
@@ -899,6 +918,7 @@
         nombreLocalidadReferencia.value = ''
         nombreTipoPropiedadReferencia.value = ''
         imgCroquisAux.value = ''
+        filtroObligatorio.value = true;
 
         if (paraNuevaSolicitud.value) {
             editablesSolicitud(true)
@@ -943,6 +963,7 @@
         nombrePersonaBuscar.visible = ''
         modalBuscarPersonaVisible.value = true
         modalBuscarPersonaTipo.value = tipoPersona
+        nombrePersonaBuscar.value = ''
 
         setTimeout(() => {
             floatingNombrePersonaRef.value?.focus()
@@ -977,13 +998,16 @@
     const nombreLocalidadSolicitante = ref('')
     const telefonoSolicitante = ref('')
     const emailSolicitante = ref('')
+    const idDomicilioNotificacionSolicitante = ref('')
+    const domicilioNotificacionSolicitante = ref('')
     const razonSocialSolicitante = ref('')
     const curpSolicitanteEditable = ref(true)
     const nomSolicitanteEditable = ref(true)
     const apeSolicitanteEditable = ref(true)
     const telefonoSolicitanteEditable = ref(true)
-    const emailSolicitanteEditable = ref(true)
+    const emailSolicitanteEditable = ref(true)   
     const razonSocialSolicitanteEditable = ref(true)
+    const domicilioNotificacionSolicitanteEditable = ref(true)
 
     const curpSolicitanteBloqueado = ref(true)
     const nomSolicitanteBloqueado = ref(true)
@@ -991,6 +1015,7 @@
     const telefonoSolicitanteBloqueado = ref(true)
     const emailSolicitanteBloqueado = ref(true)
     const razonSocialSolicitanteBloqueado = ref(true)
+    const domicilioNotificacionSolicitanteBloqueado = ref(true)
     const solicitaOrganizacion = ref(false)
 
     const LONGITUD_CURP = ref(18)
@@ -1009,6 +1034,8 @@
     const nombreLocalidadPropietario = ref('')
     const telefonoPropietario = ref('')
     const emailPropietario = ref('')
+    const idDomicilioNotificacionPropietario = ref('')
+    const domicilioNotificacionPropietario = ref('')
     const esSolicitante = ref('1')
     const esSolicitanteEditable = ref(true)
     const curpPropietarioEditable = ref(true)
@@ -1016,12 +1043,14 @@
     const apePropietarioEditable = ref(true)
     const telefonoPropietarioEditable = ref(true)
     const emailPropietarioEditable = ref(true)
+    const domicilioNotificacionPropietarioEditable = ref(true)
 
     const curpPropietarioBloqueado = ref(true)
     const nomPropietarioBloqueado = ref(true)
     const apePropietarioBloqueado = ref(true)
     const telefonoPropietarioBloqueado = ref(true)
     const emailPropietarioBloqueado = ref(true)
+    const domicilioNotificacionPropietarioBloqueado = ref(true)
 
     const propiedad = ref([])
     const tipoPropiedad = ref('')
@@ -1473,7 +1502,8 @@
             nomSolicitante.value = persona.nombre
             apeSolicitante.value = persona.apellidos
             telefonoSolicitante.value = persona.solicitante?.telefono || null
-            emailSolicitante.value = persona.solicitante?.email || null                          
+            emailSolicitante.value = persona.solicitante?.email || null
+            domicilioNotificacionSolicitante.value = persona.solicitante?.domicilio_notificacion.direccion || null                        
             nuevoSolicitante.value = false
 
             if (!solicitudBloqueada.value) {
@@ -1485,12 +1515,14 @@
         } 
         else if (modalBuscarPersonaTipo.value == 'propietario') {
             idPersonaPropietario.value = persona.id
+            idContactoPropiedad.value = persona.propietario?.id 
             curpPropietario.value = persona.curp
             curpPropietarioCompleta.value = true
             nomPropietario.value = persona.nombre
             apePropietario.value = persona.apellidos
             telefonoPropietario.value = persona.propietario?.telefono || null
-            emailPropietario.value = persona.propietario?.email || null                          
+            emailPropietario.value = persona.propietario?.email || null
+            domicilioNotificacionPropietario.value = persona.propietario?.contacto?.domicilio_notificacion?.direccion || null                        
             nuevoPropietario.value = false
 
             if (!solicitudBloqueada.value) {
@@ -1932,6 +1964,7 @@
                     apePropietario.value = propiedad.value?.contacto.persona?.apellidos
                     telefonoPropietario.value = propiedad.value?.contacto.telefono
                     emailPropietario.value = propiedad.value?.contacto.email
+                    domicilioNotificacionPropietario.value = propiedad.value?.contacto.domicilio_notificacion.direccion
 
                     idContactoPropiedad.value = propiedad.value.id_contacto
 
@@ -2191,7 +2224,7 @@
         }
         if (claveCatastralSinEspacios.length <= 6) {
             claveCatastralSinEspacios.value = null
-        }
+        }       
 
         const currentPage = router.page.props.paginaActual || 1
 
@@ -2317,6 +2350,34 @@
         isUploading.value = true
         isProcessingFile.value = false
         previewDialogVisible.value = false
+         const LIMITE_MB = 15; 
+        const LIMITE_BYTES = LIMITE_MB * 1024 * 1024; // Convertimos a Bytes
+
+        // Consultamos el tamaño real del objeto 'file.value'
+        if (file.value.size > LIMITE_BYTES) {
+            const pesoActualMB = (file.value.size / (1024 * 1024)).toFixed(2); // Calculamos peso para mostrarlo
+            isUploading.value = false
+            Swal.fire({
+                icon: 'error',
+                title: '¡Archivo muy pesado!',
+                html: `
+                    El archivo pesa <b>${pesoActualMB} MB</b>.<br>
+                    El límite permitido es de <b>${LIMITE_MB} MB</b>.<br>
+                    <br>
+                    <small>Por favor comprímelo o sube uno más ligero.</small>
+                `,
+                confirmButtonText: 'Entendido',
+                 didOpen: () => {
+                            const swalContainer = document.querySelector('.swal2-container')
+                            if (swalContainer) {
+                                swalContainer.style.setProperty('z-index', '99999', 'important')
+                            }
+                        }
+            });
+
+            // IMPORTANTE: Detenemos la función aquí. No se sube nada.
+            return; 
+        }
         uploadFile()
         isFileLoaded.value = true
         const fileIconTemplate = {
@@ -2383,9 +2444,17 @@
         }
     } 
 
-    //CHECKPOINT: Al filtrar por NÚMERO DE SOLICITUD se traba
+    //CHECKPOINT: Imprimir en la solicitud (y preview) la documentación entregada/no entregada  OK
+    //CHECKPOINT: Agregar campo editable a los requisitos (checar cuales tablas) OK
+    //porque se va a hacer un CRUD de requisitos  OK
+
+    //CHECKPOINT: Habilitar la CANCELACIÓN de SOLICITUDES ACEPTADAS (Borrar de solicitudes_aceptadas)  OK
+    //CHECKPOINT: Agregar DIRECCIÓN DE NOTIFICACION a CONTACTOS  OK
+
+    //CHECKPOINT: Al filtrar por NÚMERO DE SOLICITUD se traba  OK
     //CHECKPOINT: En la localidad de referencia se encima el titulo con el select
-    //CHECKPOINT: Si hay filtro de localidad y se ACTUALIZA una solicitud se borran los filtros
+    //CHECKPOINT: Si hay filtro de localidad y se ACTUALIZA una solicitud se borran los filtros OK
+    //Ando batallando con las localidades N/A porque tienen valor NULL e ignora este filtro despues de actualizar la solicitud
   
     //CHECKPOINT: Validar que el número de la propiedad no exceda del límite de caracteres de la BD  OK
     //CHECKPOINT: Al imprimir la solicitud preliminar y la oficial en ocasiones no se abre la ventana modal
@@ -2736,6 +2805,8 @@
 
                     isSavingModal.value = false
 
+                    activeTab.value = router.page.props.flash.activeTab || 'croquis'
+
                     Swal.fire({
                         icon: hasValidationErrors ? 'warning' : 'error',
                         title: hasValidationErrors ? 'Revisa los campos' : 'Error',
@@ -2790,6 +2861,7 @@
         formData.append('apePropietario', apePropietario.value)
         formData.append('telefonoPropietario', telefonoPropietario.value)
         formData.append('emailPropietario', emailPropietario.value)
+        formData.append('domicilioNotificacionPropietario', domicilioNotificacionPropietario.value)
         formData.append('esSolicitante', esSolicitante.value)
 
         if (esSolicitante.value === '0' || tramitesSeleccionados.value.includes(ID_CONSTANCIA_UBICACION)) 
@@ -2801,6 +2873,7 @@
             formData.append('apeSolicitante', apeSolicitante.value)
             formData.append('telefonoSolicitante', telefonoSolicitante.value)
             formData.append('emailSolicitante', emailSolicitante.value)
+            formData.append('domicilioNotificacionSolicitante', domicilioNotificacionSolicitante.value)
             formData.append('solicitaOrganizacion', solicitaOrganizacion.value)
             formData.append('razonSocialSolicitante', razonSocialSolicitante.value)
         }
@@ -2998,27 +3071,6 @@
                     isSearching.value = true
                 }, 200)
             }
-        }
-
-
-        if (numQuery.value || folioQuery.value)
-        {
-            // 1. Aplica la lógica de exclusividad mutua
-            // if (numQuery.value) 
-            // {
-            //     folioQuery.value = '';
-            // } 
-            // else if (folioQuery.value) 
-            // {
-            //     numQuery.value = '';
-            // }
-
-            // nombreQuery.value = ''
-            // claveCatastralQuery.value = ''
-            // tiposTramitesQuery.value = []
-            // tramitesQuery.value = []
-            // localidadesQueryFiltradas.value = []
-            // estatusQuery.value = []
         }
 
         const filtros = {
@@ -3235,7 +3287,7 @@
         return `${day}/${month}/${year}`
     }
 
-    const actualizarTramitesSeleccionados = (tramiteId) => {
+    const actualizarTramitesSeleccionados = async (tramiteId) => { 
         if (tramiteId === ID_CONSTANCIA_UBICACION && tramitesSeleccionados.value.length > 0 && !tramitesSeleccionados.value.includes(ID_CONSTANCIA_UBICACION)) {
             Swal.fire({
                 icon: 'warning', // Puedes usar 'error', 'info', etc.
@@ -3317,16 +3369,44 @@
             claveCatastralCompleta.value = false
         }
 
-    }
+        const tramites = tramitesSeleccionados.value;
 
-    function toggleDropdown(solicitudId, event) {
-        if (dropdownVisible.value === solicitudId) {
-            dropdownVisible.value = null
-            return
+        if (!tramites || tramites.length === 0) 
+        {
+            requisitos.value = [];
         }
+        else
+        {
+            const url = `/solicitudes/get-requisitos?tramites=${encodeURIComponent(tramites)}`;
 
-        dropdownVisible.value = solicitudId
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json()
+            const todosRequisitos = data.requisitos 
+
+            requisitos.value = todosRequisitos.filter(item => Number(item.activo) === 1);
+
+            const idsValidos = new Set(
+                requisitos.value.map(r => r.id)
+            );
+
+            requisitosEntregados.value = requisitosEntregados.value.filter(idEntregado => {
+                return idsValidos.has(parseInt(idEntregado, 10));
+            });
+
+
+            if (!response.ok) {
+                throw new Error('Error en la respuesta del servidor')
+            }
+        }
     }
+
+    //CHECKPOINT: Checar cuando selecciono otro trámite que no estaba seleccionado se borran los REQUISITOS
 
     function closeDropdown() {
         dropdownVisible.value = null
@@ -3367,6 +3447,11 @@
             setTimeout(() => {
                 floatingEmailSolicitanteRef.value?.focus()
             }, 50)
+        } else if (control == 'domicilioNotificacionSolicitanteEditable') {
+            domicilioNotificacionSolicitanteEditable.value = !domicilioNotificacionSolicitanteEditable.value
+            setTimeout(() => {
+                floatingDomicilioNotificacionSolicitanteRef.value?.focus()
+            }, 50)
         } else if (control == 'nomPropietarioEditable') {
             nomPropietarioEditable.value = !nomPropietarioEditable.value
             setTimeout(() => {
@@ -3386,6 +3471,11 @@
             emailPropietarioEditable.value = !emailPropietarioEditable.value
             setTimeout(() => {
                 floatingEmailPropietarioRef.value?.focus()
+            }, 50)
+        } else if (control == 'domicilioNotificacionPropietarioEditable') {
+            domicilioNotificacionPropietarioEditable.value = !domicilioNotificacionPropietarioEditable.value
+            setTimeout(() => {
+                floatingDomicilioNotificacionPropietarioRef.value?.focus()
             }, 50)
         } else if (control == 'tipoPropiedadEditable') {
             tipoPropiedadEditable.value = !tipoPropiedadEditable.value
@@ -3599,8 +3689,16 @@
             formData.append('nuevoSolicitante', nuevoSolicitante.value)
             formData.append('solicitaOrganizacion', solicitaOrganizacion.value)
             formData.append('razonSocialSolicitante', razonSocialSolicitante.value)
+            formData.append('idDomicilioNotificacionSolicitante', idDomicilioNotificacionSolicitante.value)
+            if (domicilioNotificacionSolicitante.value !== null && domicilioNotificacionSolicitante.value !== undefined) 
+            {
+                formData.append('domicilioNotificacionSolicitante', domicilioNotificacionSolicitante.value.trim())
+            }
+            else
+            {
+                formData.append('domicilioNotificacionSolicitante', ''); 
+            }
         }
-
         formData.append('curpPropietario', curpPropietario.value)
         formData.append('curpPropietarioInvalida', curpPropietarioInvalida.value)
         formData.append('idPersonaPropietario', idPersonaPropietario.value)
@@ -3609,6 +3707,15 @@
         formData.append('apePropietario', apePropietario.value)
         formData.append('telefonoPropietario', telefonoPropietario.value)
         formData.append('emailPropietario', emailPropietario.value)
+        formData.append('idDomicilioNotificacionPropietario', idDomicilioNotificacionPropietario.value)
+        if (domicilioNotificacionPropietario.value !== null && domicilioNotificacionPropietario.value !== undefined) 
+        {
+            formData.append('domicilioNotificacionPropietario', domicilioNotificacionPropietario.value.trim())
+        }
+        else
+        {
+            formData.append('domicilioNotificacionPropietario', ''); 
+        }
         formData.append('esSolicitante', esSolicitante.value)
 
         formData.append('tipoPropiedad', tipoPropiedad.value)
@@ -3642,6 +3749,8 @@
         formData.append('tipoPropiedadReferencia', tipoPropiedadReferencia.value)
         formData.append('idLocalidadReferencia', idLocalidadReferencia.value)
 
+        formData.append('requisitosEntregados', requisitosEntregados.value)
+
         const currentPage = router.page.props.paginaActual || 1
 
         formData.append('numQuery', numQuery.value)
@@ -3655,6 +3764,7 @@
         formData.append('idRangoFechasIngresoQuery', idRangoFechasIngresoQuery.value)
         formData.append('idRangoFechasAceptacionQuery', idRangoFechasAceptacionQuery.value)
         formData.append('tiposTramitesQuery', tiposTramitesQuery.value)
+        formData.append('localidadesQueryFiltradas', localidadesQueryFiltradas.value)
         formData.append('tramitesQuery', tramitesQuery.value)
         formData.append('estatusQuery', estatusQuery.value)
         formData.append('filtroChkSolicitudes', filtroChkSolicitudes.value)
@@ -3666,8 +3776,6 @@
 
         cambiaTabError.value = false //Indica que NO cambia el tab por error
 
-        //await obtenerPropiedadSolicitud(idSolicitudEditar.value)
-        // if (!nuevaPropiedad.value && propiedad?.value?.id_contacto != undefined && propiedad?.value?.id_contacto != idContactoPropiedad.value) {
         if (!nuevaPropiedad.value && 
             idContactoPropiedadAlCargar.value != idContactoPropiedad.value && 
             !tramitesSeleccionados.value.includes(ID_CONSTANCIA_UBICACION)  &&
@@ -4080,15 +4188,18 @@
         fetchSolicitudes(false)
     })
 
-    watch(localidadesQueryFiltradas, () => {
+
+    watch(localidadesSelectQuery, () => {
+        localidadesQueryFiltradas.value = localidadesSelectQuery.value
+        ? localidadesSelectQuery.value.map(item => item === null ? -99 : item)
+        : [];
+
+        // localidadesQueryFiltradas.value = cleanedLocalidades;
         fetchSolicitudes(false)
     })
 
 
-
     function handlePageChange(page) {
-        // isLoading.value = true;
-
         router.post('/solicitudes', {
             fechaIngresoInicioQuery: fechaIngresoInicioQuery.value,
             fechaIngresoFinQuery: fechaIngresoFinQuery.value,
@@ -4157,7 +4268,7 @@
             busquedaIndexada.value = false;
         }
 
-        if (folioQuery.value == 'n' || folioQuery.value == 'N')
+        if (folioQuery.value == 'n' || folioQuery.value == 'N')  //Muestra las solicitudes sin folio
         {
             busquedaIndexada.value = false
         }
@@ -4229,7 +4340,7 @@
         claveCatastralQuery.value = '';
         tiposTramitesQuery.value = [];
         tramitesQuery.value = [];
-        localidadesQueryFiltradas.value = [];
+        localidadesSelectQuery.value = [];
         estatusQuery.value = [];     
     };
 
@@ -4254,34 +4365,315 @@
         // Llama a la función de búsqueda
         fetchSolicitudes(false);
     };
+
+    const preguntaAceptarCancelarSolicitud = async (idSolicitud, idEstatus) => {
+        const texto = ref('')
+        const operacionValida = ref(true)
+        let titulo = 'Cambio en el estatus de la solicitud';
+
+        if (idEstatus == 99)
+        {
+            texto.value = `<div style="text-align: center; font-size: 12pt">
+                ¿Deseas CANCELAR la solicitud? </div>`;
+            operacionValida.value = true;
+            titulo = 'Cancelar Solicitud';
+        }
+        else if (idEstatus == 6)
+        {
+            texto.value = `<div style="text-align: center; font-size: 12pt">
+                ¿Deseas ACTIVAR la solicitud? </div>`;
+            operacionValida.value = true;
+            titulo = 'Activar Solicitud';
+        }
+        else 
+        {
+            texto.value = `<div style="text-align: center; font-size: 12pt">
+                Operación INVÁLIDA para el estatus ${idEstatus}. </div>`;
+            operacionValida.value = false; // El botón Cancelar se ocultará
+            titulo = 'Error de Estatus';            
+        }
+
+        const result = await Swal.fire({
+            icon: 'warning',
+            title: titulo,
+            html: texto.value,
+            showCancelButton: operacionValida.value, 
+            confirmButtonText: operacionValida.value ? 'Aceptar' : 'Cerrar', // Adaptamos el texto
+            cancelButtonText: 'Cancelar',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            backdrop: false,
+            didOpen: () => {
+                const swalContainer = document.querySelector('.swal2-container')
+                if (swalContainer) {
+                    swalContainer.style.setProperty('z-index', '99999', 'important')
+                }
+            }
+        })
+
+        if (result.isConfirmed) 
+        {
+            if (idEstatus == 99)
+                cambiarEstatusSolicitud(idSolicitud, 6)
+            else if (idEstatus == 6)
+                cambiarEstatusSolicitud(idSolicitud, 99)
+        }
+    };
+
+    const cambiarEstatusSolicitud = async (idSolicitud, idEstatus) => {
+        const currentPage = router.page.props.paginaActual || 1
+        const formData = new FormData()
+
+        formData.append('numQuery', numQuery.value)
+        formData.append('folioQuery', folioQuery.value)
+        formData.append('nombreQuery', nombreQuery.value)
+        formData.append('fechaIngresoInicioQuery', fechaIngresoInicioQuery.value)
+        formData.append('fechaIngresoFinQuery', fechaIngresoFinQuery.value)
+        formData.append('fechaAceptacionInicioQuery', fechaAceptacionInicioQuery.value)
+        formData.append('fechaAceptacionFinQuery', fechaAceptacionFinQuery.value)
+        formData.append('claveCatastralQuery', claveCatastralQuery.value)
+        formData.append('idRangoFechasIngresoQuery', idRangoFechasIngresoQuery.value)
+        formData.append('idRangoFechasAceptacionQuery', idRangoFechasAceptacionQuery.value)
+        formData.append('tiposTramitesQuery', tiposTramitesQuery.value)
+        formData.append('localidadesQueryFiltradas', localidadesQueryFiltradas.value)
+        formData.append('tramitesQuery', tramitesQuery.value)
+        formData.append('estatusQuery', estatusQuery.value)
+        formData.append('filtroChkSolicitudes', filtroChkSolicitudes.value)
+        formData.append('sortColumn', sortColumn.value)
+        formData.append('sortDirection', sortDirection.value)
+        formData.append('rangoFechasIngresoManual', rangoFechasIngresoManual.value)
+        formData.append('rangoFechasAceptacionManual', rangoFechasAceptacionManual.value)
+        formData.append('page', currentPage)
+
+        cambiaTabError.value = false //Indica que NO cambia el tab por error
+
+        const url = `/solicitudes/update-estatus/${idSolicitud}/${idEstatus}`;
+
+        try {
+            await router.post(url, formData, {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+                onStart:() => {
+                    detenerIntervalo();
+                },
+                onSuccess: () => {
+                    Swal.fire({ 
+                        toast: true,
+                        icon: 'success',
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        title: router.page.props.flash.success,
+                        timer: 2000,
+                        timerProgressBar: true
+                    })
+                    isSavingModal.value = false
+                    dialogVisible.value = false
+                    resetFormData()
+                    iniciarIntervalo()
+                },
+                onFinish: () => {
+                    isSavingModal.value = false
+                    activeTab.value = router.page.props.flash.activeTab
+                    cambiaTabError.value = true //Cambia el tab por error
+                },
+  
+                onError: (errors) => {
+                    isSavingModal.value = false
+
+                    const hasValidationErrors = errors && Object.keys(errors).length > 0
+                    const errorMessage = hasValidationErrors ? Object.values(errors).join('<br>') : 'Hubo un error al guardar la información.'
+
+                    Swal.fire({
+                        icon: hasValidationErrors ? 'warning' : 'error',
+                        title: hasValidationErrors ? 'Revisa los campos' : 'Error',
+                        html: `<div style="text-align: justify; font-size: 12pt"><ul>${errorMessage}</ul></div>`,
+                        confirmButtonText: 'Aceptar',
+                        width: '400px',
+                        target: 'body', // Renderizar en el body
+                        didOpen: () => {
+                            const swalContainer = document.querySelector('.swal2-container')
+                            if (swalContainer) {
+                                swalContainer.style.setProperty('z-index', '99999', 'important')
+                            }
+                        }
+                    })
+                }
+            })
+        } catch (err) {
+            console.error('Error inesperado:', err)
+        }
+
+    }
+
+    const requisitos = ref([])
+
+    const requisitosEntregados = ref([]); // Estado de los checkboxes: { 1: true, 2: false, ... }
+
+    /**
+     * Función para alternar el estado del checkbox al hacer clic en cualquier parte de la tarjeta.
+     * @param {number} requisitoId - El ID del requisito.
+     */
+   const toggleRequisito = (idRequisito) => {
+        // 1. Convertir el ID a ENTERO (crucial para que indexOf funcione correctamente)
+        const id = parseInt(idRequisito);
+        
+        // 2. Verificar si el ID ya existe en el array
+        const index = requisitosEntregados.value.indexOf(id);
+
+        if (index === -1) {
+            // Si NO existe, lo agregamos (marcar como Entregado)
+            // Usamos .push() que garantiza la reactividad
+            requisitosEntregados.value.push(id);
+        } else {
+            // Si SÍ existe, lo eliminamos (marcar como Pendiente)
+            // Usamos .splice() que garantiza la reactividad
+            requisitosEntregados.value.splice(index, 1);
+        }
+    };
+
+    /**
+     * Función principal para manejar la persistencia del estado en la API.
+     * @param {Object} requisito - El objeto requisito completo.
+     */
+
+    const filtroObligatorio = ref(true); 
+
+    // 3. Propiedad Computada (Reemplazo de computed)
+    // Filtra la lista de requisitos cada vez que cambia el estado del filtro
+    const requisitosFiltrados = computed(() => {
+        // Si la lista de requisitos no existe, retorna un array vacío para evitar errores.
+        if (!requisitos.value || requisitos.value.length === 0) {
+            return [];
+        }
+
+        // Filtra basándose en el valor booleano de filtroObligatorio.value
+        return requisitos.value.filter(r => 
+            r.obligatorio === filtroObligatorio.value
+        );
+    });
+
+    // 4. Métodos (Reemplazo de methods)
+    /**
+    * Cambia el estado del filtro.
+    * @param {boolean} isObligatorio - true para Obligatorios, false para Opcionales.
+    */
+    const setFiltroDocObligatoria = (isObligatorio) => {
+        filtroObligatorio.value = isObligatorio;
+    };
+
+    const esRequisitoEntregado = computed(() => (requisitoId) => {
+        // Usamos includes() para verificar la presencia en el array de IDs
+        return requisitosEntregados.value.includes(requisitoId);
+    });
+
+    const todosObligatoriosCompletados = computed(() => {
+        if (requisitos.value.length === 0) {
+            // Si no hay requisitos en absoluto, retorna 0 (según tu solicitud)
+            return 0; 
+        }
+        
+        // 1. Filtrar los requisitos para obtener solo los obligatorios
+        const obligatorios = requisitos.value.filter(r => r.obligatorio === true);
+
+        // Si no hay requisitos obligatorios en la lista, el resultado es true (ya están "completados").
+        if (obligatorios.length === 0) {
+            return true;
+        }
+
+        // 2. Usar .every() para verificar que CADA requisito obligatorio esté en la lista de entregados.
+        // Usamos parseInt() en el ID del requisito por si acaso, para asegurar la comparación con los IDs en el array requisitosEntregados.value.
+        return obligatorios.every(requisito => {
+            const idNumerico = parseInt(requisito.id);
+            return requisitosEntregados.value.includes(idNumerico);
+        });
+    });
+
+    const estatusSolicitudSelectFiltrados = computed(() => {
+        // Si TODOS los requisitos obligatorios están completados:
+        if (!todosObligatoriosCompletados.value) {
+            // Filtra el array original para EXCLUIR el estatus con ID 99.
+            return estatusSolicitudSelect.value.filter(item => item.id !== 99);
+        }
+        
+        // Si NO están completados O si la lista original ya está filtrada, devuelve el array original completo.
+        return estatusSolicitudSelect.value;
+    });
+
+    // ... (Tus otras propiedades computadas y funciones)
+
+    const requisitosSoloEntregados = computed(() => {
+        // 1. Verificar si la lista base de requisitos existe para evitar 'Cannot read properties of undefined'.
+        if (!requisitos.value || requisitos.value.length === 0) {
+            return [];
+        }
+
+
+        // 2. Verificar que la función de chequeo de entrega esté disponible.
+        if (!esRequisitoEntregado.value) {
+            return [];
+        }
+
+        // 3. Retorna una lista filtrada.
+        // ** IMPORTANTE: Usamos 'requisitos.value' para obtener el ARRAY COMPLETO de requisitos
+        //             y no 'requisitosFiltrados' que puede estar mostrando solo obligatorios/opcionales. **
+        return requisitos.value.filter(requisito => {
+            // Chequeo de seguridad: convertimos a número antes de llamar a la función,
+            // asumiendo que esRequisitoEntregado espera un ID numérico, como en 'todosObligatoriosCompletados'.
+            const idNumerico = parseInt(requisito.id);
+
+            // Ejecutamos la función obtenida de la propiedad computada (por eso el .value(id))
+            return esRequisitoEntregado.value(idNumerico);
+        });
+    });
+
+    const selectedEstatus = computed(() => {
+        return estatusSolicitudSelectFiltrados.value.find(t => t.id === idEstatusSolicitud.value) || null
+    })
 </script>
 
 <template>
-    <el-dialog v-model="dialogVisible" :width="dialogWidth" :before-close="handleClose" :close-on-click-modal="false" :close-on-press-escape="false" top="6vh">
+    <el-dialog v-model="dialogVisible" :width="dialogWidth" :before-close="handleClose" :close-on-click-modal="false" :close-on-press-escape="false" top="6vh" style="border-radius: 12px !important; ">
         <template #header>
-            <div class="flex items-center justify-between">
-                <div v-if="paraEditarSolicitud" class="inline-flex items-center justify-center text-base font-medium whitespace-nowrap">
-                    <span v-if="solicitudBloqueada" class="pl-0 pr-2 py-0 flex items-center justify-center">Solicitud</span>
-                    <span v-if="solicitudBloqueada" class="bg-color3-500 text-white px-3 py-0 rounded-r-md flex items-center justify-center">
-                        Folio
-                        {{ (folioSolicitud % 100000).toString().padStart(5, '0') }}
-                    </span>
-                    <span v-if="!solicitudBloqueada" class="pl-0 pr-2 py-0 flex items-center justify-center">Editar solicitud</span>
-                    <span v-if="!solicitudBloqueada" class="bg-color1 text-white px-3 py-0 rounded-r-md flex items-center justify-center">
-                        N°
-                        {{ (idSolicitudEditar % 100000).toString().padStart(5, '0') }}
-                    </span>
+            <div class="flex justify-between w-full items-start"> 
+                <div class="flex items-start flex-shrink-0">
+                    <div v-if="paraEditarSolicitud" class="inline-flex items-center justify-center text-base font-medium whitespace-nowrap">
+                        
+                        <span v-if="solicitudBloqueada" class="pl-0 pr-2 py-0 flex items-center justify-center">
+                            <h3 class="text-xl font-bold">Solicitud</h3>
+                        </span>
+                        <span v-if="solicitudBloqueada" class="bg-color3-500 text-white px-3 py-0 rounded-r-md flex items-center justify-center">
+                            Folio
+                            {{ (folioSolicitud % 100000).toString().padStart(5, '0') }}
+                        </span>
+                        
+                        <span v-if="!solicitudBloqueada" class="pl-0 pr-2 py-0 flex items-center justify-center"> 
+                            <h3 class="text-xl font-bold">Editar Solicitud</h3>
+                        </span>
+                        <span v-if="!solicitudBloqueada" class="bg-color1-700 text-white px-3 py-0 rounded-r-md flex items-center justify-center">
+                            N°
+                            {{ (idSolicitudEditar % 100000).toString().padStart(5, '0') }}
+                        </span>
+                    </div>
+                    <span v-else class="whitespace-nowrap"><h3 class="text-xl font-bold">Nueva Solicitud</h3></span>
                 </div>
-                <span v-else class="whitespace-nowrap">Nueva solicitud</span>
-                
-                <div v-if="tramitesSeleccionados.length" class="flex flex-wrap gap-2 w-full md:flex-wrap ml-4">
-                    <div
-                        v-for="tramiteId in tramitesSeleccionados"
-                        :key="tramiteId"
-                        class="bg-color3-50 text-color3-800 text-md px-2 py-1 rounded-full flex items-center justify-center gap-1 shadow-sm w-[calc(50%-theme('gap.2')/2)] md:w-auto">
-                        <span class="text-[11px] flex-grow text-center">
-                            {{ tiposTramites.flatMap((t) => t.tramites).find((t) => t.id === tramiteId)?.nombre }}
-                        </span>     
+                <div v-if="tramitesSeleccionados.length && activeTab != 'tramite'" 
+                    class="grid grid-cols-[auto_1fr] items-start gap-x-3 text-sm ml-4">
+                    <span v-if="tramitesSeleccionados.length > 1" class="font-semibold text-gray-700 dark:text-gray-300 flex-shrink-0 text-right pt-0.5">
+                        Trámites:
+                    </span>
+                    <span v-else class="font-semibold text-gray-700 dark:text-gray-300 flex-shrink-0 text-right pt-0.5">
+                        Trámite:
+                    </span>
+                    <div class="flex flex-wrap gap-2 items-start">
+                        <div
+                            v-for="tramiteId in tramitesSeleccionados"
+                            :key="tramiteId"
+                            class="flex items-center bg-color1-700 rounded-xl transition duration-100 mt-0">
+                            <span class="text-[12px] text-white font-medium py-0.5 px-3">
+                                {{ tiposTramites.flatMap((t) => t.tramites).find((t) => t.id === tramiteId)?.nombre }}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -4321,8 +4713,7 @@
                 height: 100%;">
             <svg class="animate-bounce" style="width: 2rem; height: 2rem; color: gray" xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="24px" fill="currentColor">
                 <path
-                    d="M840-680v480q0 33-23.5 56.5T760-120H200q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h480l160 160Zm-80 34L646-760H200v560h560v-446ZM480-240q50 0 85-35t35-85q0-50-35-85t-85-35q-50 0-85 35t-35 85q0 50 35 85t85 35ZM240-560h360v-160H240v160Zm-40-86v446-560 114Z"
-                />
+                    d="M840-680v480q0 33-23.5 56.5T760-120H200q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h480l160 160Zm-80 34L646-760H200v560h560v-446ZM480-240q50 0 85-35t35-85q0-50-35-85t-85-35q-50 0-85 35t-35 85q0 50 35 85t85 35ZM240-560h360v-160H240v160Zm-40-86v446-560 114Z"/>
             </svg>
             <span style="margin-left: 0.5rem; color: gray">Guardando...</span>
         </div>
@@ -4409,17 +4800,17 @@
             <div class="flex flex-col w-full md:w-60 lg:w-[18rem] p-0 m-0">
                 <div :class="['flex items-center text-sm text-gray-500 dark:text-gray-400', solicitudBloqueada ? 'justify-center p-2 mb-1' : 'justify-start m-0 p-0']" style="margin: 0; padding: 0">
                     <span class="ml-0 pl-1 mb-2 mr-2 leading-none">Estatus</span>
-                    <span
-                        v-if="idEstatusSolicitudEditable && idEstatusSolicitud"
-                        class="w-2 h-2 rounded-sm inline-block mb-2"
-                        :style="{
-                            backgroundColor: getColorById(idEstatusSolicitud)
-                        }"
-                    ></span>
                 </div>
                 <el-select v-if="idEstatusSolicitudEditable" v-model="idEstatusSolicitud" placeholder="Selecciona un ESTATUS" class="custom-select">
-                    <el-option class="custom-option" v-for="item in estatusSolicitudSelect" :key="item.id" :label="item.nombre" :value="item.id" :style="{ color: item.color }">
-                        <span class="w-3 h-3 rounded-sm inline-block mr-2" :style="{ backgroundColor: item.color }"></span>
+                    <template #prefix>
+                        <span 
+                            v-if="selectedEstatus"
+                            :style="{ backgroundColor: getColorById(idEstatusSolicitud) }" 
+                            class="w-2.5 h-2.5 rounded-sm inline-block shrink-0 ml-2 mr-1">
+                        </span>
+                    </template>
+                    <el-option class="custom-option" v-for="item in estatusSolicitudSelectFiltrados" :key="item.id" :label="item.nombre" :value="item.id" :style="{ color: item.color }">
+                        <span class="w-2.5 h-2.5 rounded-sm inline-block mr-2" :style="{ backgroundColor: item.color }"></span>
                         {{ item.nombre }}
                     </el-option>
                 </el-select>
@@ -4428,23 +4819,6 @@
                     {{ nombreEstatusSolicitud }}
                 </div>
             </div>
-
-            <!-- <div class="flex flex-col items-end w-full md:w-auto" v-if="!paraEditarSolicitud">
-                    <el-switch
-                    v-model="esFolioManual"
-                    class="custom-switch w-full md:w-auto"
-                    size="large"
-                    inactive-text="Folio automático"
-                    active-text="Folio manual"/>
-                    <div v-if="esFolioManual" class="mt-0 w-90">
-                        <input
-                        id="folioManual"
-                        v-model="folioManual"
-                        type="text"
-                        class="block w-full py-0.5 pb-1 px-0 text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-color1 focus:outline-none focus:ring-0 focus:border-color1 peer text-right"
-                        placeholder="Ingresa el folio"/>
-                    </div>
-                </div> -->
         </div>
         <div class="border-b-2 mb-4 border-gray-200 dark:border-gray-700">
             <ul class="flex overflow-x-auto whitespace-nowrap md:flex-wrap -mb-px text-sm font-medium text-center text-gray-500 dark:text-gray-400">
@@ -4561,6 +4935,35 @@
                             />
                         </svg>
                         <span class="hidden md:inline">Croquis</span>
+                    </a>
+                </li>
+                <li v-if="!tramitesSeleccionados?.includes(ID_CONSTANCIA_UBICACION) && tramitesSeleccionados.length > 0" class="inline-block md:me-2">
+                    <a
+                        href="#"
+                        @click.prevent="handleTabClick('documentacion')"
+                        :class="activeTab === 'documentacion' ? 'text-color1 border-color1' : 'hover:text-gray-700 hover:border-gray-400 dark:hover:text-gray-400'"
+                        class="inline-flex items-center justify-center py-2 px-2 md:p-4 border-b-2 border-transparent rounded-t-lg group">
+                       <svg
+                            :class="activeTab === 'documentacion' ? 'text-color1' : 'text-gray-500 group-hover:text-gray-600 dark:text-gray-600 dark:group-hover:text-gray-400'"
+                            class="w-4 h-4 me-2"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            stroke-width="2"
+                            stroke="currentColor"
+                            fill="none"
+                            stroke-linecap="round"
+                            stroke-linejoin="round">
+                            
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                            <path d="M14 3v4a1 1 0 0 0 1 1h4" />
+                            <path d="M5 12v-7a2 2 0 0 1 2 -2h7l5 5v4" />
+                            <path d="M5 21h14" />
+                            <path d="M5 18h14" />
+                            <path d="M5 15h14" />
+                        </svg>
+                        <span class="hidden md:inline">Documentación</span>
                     </a>
                 </li>
             </ul>
@@ -5089,7 +5492,7 @@
                 </div>
             </div>
             <div v-if="curpSolicitanteCompleta" class="md:flex-1 flex md:items-center w-full md:w-auto md:gap-x-3 flex-wrap" style="margin-bottom: -1rem">
-                <div class="relative z-0 mb-5 group peer w-full md:w-[25%]">
+                <div class="relative z-0 mb-10 group peer w-full md:w-[25%]">
                     <input
                         v-model="telefonoSolicitante"
                         ref="floatingTelefonoSolicitanteRef"
@@ -5123,7 +5526,7 @@
                         </button>
                     </label>
                 </div>
-                <div class="relative z-0 mb-5 group peer w-full md:w-[40%]">
+                <div class="relative z-0 mb-10 group peer w-full md:w-[73%]">
                     <input
                         v-model="emailSolicitante"
                         ref="floatingEmailSolicitanteRef"
@@ -5151,6 +5554,37 @@
                                 <path
                                     d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"
                                 />
+                            </svg>
+                        </button>
+                    </label>
+                </div>
+                <div class="relative z-0 mb-5 group peer w-full md:w-[78%]">
+                    <input
+                        v-model="domicilioNotificacionSolicitante"
+                        ref="floatingDomicilioNotificacionSolicitanteRef"
+                        type="text"
+                        class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
+                        :class="[
+                            {
+                                'pb-1 py-2.5 px-0': domicilioNotificacionSolicitanteEditable,
+                                'bg-color3-50 p-0 m-0 mt-2': !domicilioNotificacionSolicitanteEditable,
+                                'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': domicilioNotificacionSolicitanteEditable
+                            }
+                        ]"
+                        placeholder=""
+                        :disabled="!domicilioNotificacionSolicitanteEditable"/>
+                    <label
+                        style="letter-spacing: -0.12em; z-index: 10"
+                        class="flex peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                        <span class="block">D  o  m  i  c  i  l  i  o &nbsp; d  e  &nbsp;  n  o  t  i  f  i  c  a  c  i  ó  n</span>
+                        <button
+                            v-if="!domicilioNotificacionSolicitanteEditable && !domicilioNotificacionSolicitanteBloqueado"
+                            class="ml-2 bg-transparent text-gray-500 hover:text-color1"
+                            @click="habilitarCaptura('domicilioNotificacionSolicitanteEditable')">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1">
+                                <!-- Uso de `group-hover` para cambiar el color -->
+                                <path
+                                    d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
                             </svg>
                         </button>
                     </label>
@@ -5267,7 +5701,7 @@
                 </div>
             </div>
             <div v-if="curpPropietarioCompleta" class="md:flex-1 flex md:items-center w-full md:w-auto md:gap-x-3 flex-wrap">
-                <div class="relative z-0 mb-5 group peer w-full md:w-[25%]">
+                <div class="relative z-0 mb-10 group peer w-full md:w-[25%]">
                     <input
                         v-model="telefonoPropietario"
                         ref="floatingTelefonoPropietarioRef"
@@ -5301,7 +5735,7 @@
                         </button>
                     </label>
                 </div>
-                <div class="relative z-0 mb-5 group peer w-full md:w-[40%]">
+                <div class="relative z-0 mb-10 group peer w-full md:w-[73%]">
                     <input
                         v-model="emailPropietario"
                         ref="floatingEmailPropietarioRef"
@@ -5331,8 +5765,39 @@
                             </svg>
                         </button>
                     </label>
+                </div>                
+                <div class="relative z-0 mb-5 group peer w-full md:w-[78%]">
+                    <input
+                        v-model="domicilioNotificacionPropietario"
+                        ref="floatingDomicilioNotificacionPropietarioRef"
+                        type="text"
+                        class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
+                        :class="[
+                            {
+                                'pb-1 py-2.5 px-0': domicilioNotificacionPropietarioEditable,
+                                'bg-color3-50 p-0 m-0 mt-2': !domicilioNotificacionPropietarioEditable,
+                                'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': domicilioNotificacionPropietarioEditable
+                            }
+                        ]"
+                        placeholder=""
+                        :disabled="!domicilioNotificacionPropietarioEditable"/>
+                    <label
+                        style="letter-spacing: -0.12em; z-index: 10"
+                        class="flex peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                        <span class="block">D  o  m  i  c  i  l  i  o &nbsp; d  e  &nbsp;  n  o  t  i  f  i  c  a  c  i  ó  n</span>
+                        <button
+                            v-if="!domicilioNotificacionPropietarioEditable && !domicilioNotificacionPropietarioBloqueado"
+                            class="ml-2 bg-transparent text-gray-500 hover:text-color1"
+                            @click="habilitarCaptura('domicilioNotificacionPropietarioEditable')">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1">
+                                <!-- Uso de `group-hover` para cambiar el color -->
+                                <path
+                                    d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"/>
+                            </svg>
+                        </button>
+                    </label>
                 </div>
-                <div v-if="esSolicitanteEditable" class="relative z-0 mb-5 group peer w-full md:w-[32%]">
+                <div v-if="esSolicitanteEditable" class="relative z-0 mb-5 group peer w-full md:w-[20%]">
                     <select
                         v-model="esSolicitante"
                         class="pt-3 pl-0 pb-1 bg-transparent border-0 border-b-2 appearance-none text-gray-900 border-gray-300 w-full text-sm focus:outline-none focus:ring-0 focus:border-color1 block dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500 peer bg-gray-50 p-2.5"
@@ -5361,6 +5826,135 @@
                 </div>
             </div>
         </div>
+        <div v-if="activeTab === 'documentacion'" class="space-y-4">
+            <div v-if="!solicitudBloqueada" class="flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200">
+                    Marcar Documentación Entregada
+                </h3>
+                <div class="flex items-center space-x-3 bg-white transition duration-300">
+                    <div class="flex space-x-2">
+                        <span
+                            @click="setFiltroDocObligatoria(true)"
+                            :class="{
+                                'bg-color1-700 text-white hover:bg-color1-600': filtroObligatorio === true,
+                                'text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 hover:text-gray-800 dark:hover:text-color1-400': filtroObligatorio !== true
+                            }"
+                            class="px-4 py-2 text-sm font-medium rounded-full cursor-pointer transition-all duration-200 ease-in-out text-center focus:outline-none"
+                            role="button"
+                            tabindex="0">
+                            Doc. Obligatoria
+                        </span>
+
+                        <span
+                            @click="setFiltroDocObligatoria(false)"
+                            :class="{
+                                'bg-color1-700 text-white hover:bg-color1-600': filtroObligatorio === false,
+                                'text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 hover:text-gray-900 dark:hover:text-color1-400': filtroObligatorio !== false
+                            }"
+                            class="px-4 py-2 text-sm font-medium rounded-full cursor-pointer transition-all duration-200 ease-in-out text-center focus:outline-none"
+                            role="button"
+                            tabindex="0">
+                            Doc. Opcional
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div v-if="!solicitudBloqueada" class="grid grid-cols-1 sm:grid-cols-3 gap-4 max-h-[220px] overflow-y-auto overflow-x-hidden pr-2 pb-2">
+                <template v-if="requisitosFiltrados && requisitosFiltrados.length">
+                    <div
+                        v-for="requisito in requisitosFiltrados"
+                        :key="requisito.id"
+                        class="flex items-center p-3 border rounded-xl transition duration-200 cursor-pointer"
+                        :class="{
+                            // Estilos para requisito entregado
+                            'border-color2-400 bg-green-50 dark:bg-color2-900/30 shadow-md': esRequisitoEntregado(requisito.id),
+                            // Estilos para requisito pendiente
+                            'border-gray-200 hover:border-color3-400 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600': !esRequisitoEntregado(requisito.id)
+                        }"
+                        @click="toggleRequisito(requisito.id)"
+                        :title="requisito.nombre"> 
+                        <div class="ml-1 flex-grow min-w-0"> 
+                            <label
+                                :for="`entregado-${requisito.id}`"
+                                class="text-xs font-medium block cursor-pointer truncate" 
+                                :class="{
+                                    'text-gray-900 dark:text-white': !esRequisitoEntregado(requisito.id),
+                                    'text-color2-700 dark:text-color2-400': esRequisitoEntregado(requisito.id)
+                                }">
+                                {{ requisito.nombre }}
+                            </label>
+                            <p
+                                class="text-xs mt-0.5 truncate"
+                                :class="{
+                                    'text-color2-600 dark:text-color2-400': esRequisitoEntregado(requisito.id),
+                                    'text-gray-500 dark:text-gray-400': !esRequisitoEntregado(requisito.id)
+                                }">
+                                {{ requisitosEntregados.includes(requisito.id) ? '¡Documento Entregado!' : 'Pendiente de entrega' }}
+                            </p>
+                        </div>
+
+                        <span v-if="esRequisitoEntregado(requisito.id)" class="ml-4 text-color2-700 flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                            <path
+                                fill-rule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                clip-rule="evenodd"/>
+                            </svg>
+                        </span>
+                    </div>
+                </template>
+                <div v-else class="col-span-full p-6 bg-color1-40 border-l-4 border-color1-600 text-color1-800 dark:bg-gray-700 dark:border-color1-600 dark:text-color1-400 sm:rounded-lg shadow-md">
+                    <p v-if="filtroObligatorio" class="text-sm text-center">
+                        No se encontró <b> Documentación Obligatoria</b> 
+                    </p>
+                    <p v-if="!filtroObligatorio" class="text-sm text-center">
+                        No se encontró <b> Documentación Opcional</b> 
+                    </p>
+                </div>
+            </div>
+            <p v-if="!todosObligatoriosCompletados && !solicitudBloqueada" 
+            class="border border-color1-40 ring-1 ring-color1-100 text-color1-800 rounded-md p-2 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 lucide lucide-triangle-alert-icon lucide-triangle-alert flex-shrink-0">
+                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/>
+                    <path d="M12 9v4"/>
+                    <path d="M12 17h.01"/>
+                </svg>                
+                <span>
+                    El propietario/solicitante debe entregar toda la <b> Documentación Obligatoria </b>
+                </span>
+            </p>
+            <div v-if="solicitudBloqueada" class="flex justify-between items-center w-full">
+                <div v-if="solicitudBloqueada" class="w-full">
+                    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 flex items-center pl-1 mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-color2-600" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                        </svg>
+                        Documentación Entregada
+                    </h3>
+                   <div v-if="requisitosSoloEntregados.length > 0" class="overflow-visible">
+                        <ul class="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1 list-disc pl-6 space-y-0">
+                            <li v-for="requisito in requisitosSoloEntregados" :key="requisito.id" 
+                                class="
+                                    text-[0.8125rem] font-medium text-gray-700 dark:text-gray-200 
+                                    hover:bg-green-50 dark:hover:bg-color2-900/40 transition duration-200 
+                                    rounded-lg py-1 px-1 w-full 
+                                    focus:outline-none focus:ring-2 focus:ring-color2-500
+                                    relative cursor-default"
+                                :title="requisito.nombre">                                 
+                                <span>
+                                    {{ requisito.nombre.length > 48 ? requisito.nombre.substring(0, 48) + '...' : requisito.nombre }}
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div v-else class="p-6 bg-color1-50 border-l-4 border-color1-400 text-color1-800 dark:bg-gray-700 dark:border-color1-600 dark:text-color1-400 sm:rounded-lg shadow-md">
+                        <p class="text-base">
+                            <span class="font-extrabold">Aviso:</span> No hay requisitos entregados para mostrar.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div v-if="activeTab == 'tramite'" class="space-y-4">
             <div class="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4 w-full">
                 <h3 class="flex items-center text-lg font-semibold text-gray-800 dark:text-white flex-shrink-0">
@@ -5370,7 +5964,7 @@
                     <div
                         v-for="tramiteId in tramitesSeleccionados"
                         :key="tramiteId"
-                        class="bg-color1-50 text-color1-800 text-xs font-semibold px-2 py-1 rounded-md flex items-center justify-center gap-1 shadow-sm w-[calc(50%-theme('gap.2')/2)] md:w-auto">
+                        class="bg-color1-50 text-color1-800 text-xs font-semibold px-2 py-1 rounded-md flex items-center justify-center gap-1 shadow-sm w-[calc(50%-theme('gap.2')/2)] md:w-auto">                        
                         <span class="text-[10px] flex-grow text-center">
                             {{ tiposTramites.flatMap((t) => t.tramites).find((t) => t.id === tramiteId)?.nombre_abreviado }}
                         </span>
@@ -5387,7 +5981,15 @@
                     <div
                         v-for="tramiteId in tramitesSeleccionados"
                         :key="tramiteId"
-                        class="bg-transparent border-2 border-color1-300 text-color1-600 text-sm font-semibold px-2 py-2 rounded-xl flex items-center gap-1 shadow-sm w-full md:w-auto justify-center">
+                        class="bg-color1-40 border border-color1-400 text-color1-700 text-xs font-semibold px-4 py-3 rounded-2xl flex items-center gap-1 shadow-sm w-full md:w-auto justify-center">
+                        <span class="text-color1-700 flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                            <path
+                                fill-rule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                clip-rule="evenodd"/>
+                            </svg>
+                        </span>
                         <span>
                             {{ tiposTramites.flatMap((t) => t.tramites).find((t) => t.id === tramiteId)?.nombre }}
                         </span>
@@ -5421,14 +6023,14 @@
                                         :key="tipoTramite.id"
                                         class="px-1 py-1 text-center h-[55px] whitespace-normal"
                                         :style="{
-                                            width: 760 / tiposTramites.length + 'px',
-                                            minWidth: 760 / tiposTramites.length + 'px'
+                                            width: 926 / tiposTramites.length + 'px',
+                                            minWidth: 926 / tiposTramites.length + 'px'
                                         }">
                                         <div
                                             v-if="tipoTramite.tramites[index - 1]"
                                             @click="actualizarTramitesSeleccionados(tipoTramite.tramites[index - 1].id)"
                                             :class="{
-                                                'bg-color1-600 text-white font-bold border-color1-800': tramitesSeleccionados.includes(tipoTramite.tramites[index - 1].id),
+                                                'bg-color1-600 text-white font-bold border-color1-700': tramitesSeleccionados.includes(tipoTramite.tramites[index - 1].id),
                                                 'text-gray-700 bg-gray-50 border-gray-400 hover:shadow-md hover:border-2 hover:text-color1-800': !tramitesSeleccionados.includes(
                                                     tipoTramite.tramites[index - 1].id
                                                 )
@@ -5781,18 +6383,15 @@
                         class="absolute left-0 transition-all duration-300 pointer-events-none origin-top-left"
                         :class="{
                             // Caso 1: Sin valor y sin foco
-                            'top-3 text-sm scale-90': !idLocalidadReferencia && !isFocusedLocalidadReferencia,
-
+                            'top-3 text-sm scale-90': idLocalidadReferencia == null && !isFocusedLocalidadReferencia,
                             // Caso 2: Sin valor y con foco
-                            '-top-3.5 text-xs font-normal text-color1': !idLocalidadReferencia && isFocusedLocalidadReferencia,
-
+                            '-top-3.5 text-xs font-normal text-color1': idLocalidadReferencia == null && isFocusedLocalidadReferencia,
                             // Caso 3: Con valor y sin foco
-                            '-top-3.5 text-sm': idLocalidadReferencia && !isFocusedLocalidadReferencia,
-                            
+                            '-top-3.5 text-sm': (idLocalidadReferencia != null && idLocalidadReferencia >= 0) && !isFocusedLocalidadReferencia,
                             // Caso 3: Con valor y con foco
-                            '-top-3.5 text-sm scale-90 font-normal text-color1': idLocalidadReferencia && isFocusedLocalidadReferencia,
+                            '-top-3.5 text-sm scale-90 font-normal text-color1': (idLocalidadReferencia != null && idLocalidadReferencia >= 0) && isFocusedLocalidadReferencia,
                         }">
-                        Localidad de la propiedad
+                        Localidad de la propiedad 
                     </span>
                     </template>
                     <template v-else>
@@ -5825,29 +6424,29 @@
                         </label>
                     </template>
                 </div>
-            </div>           
+            </div>         
         </div>
         <template #footer>
-            <div class="flex justify-center mb-4">
+            <div class="flex justify-end mb-4 mr-2">
+                <button
+                    type="button"
+                    class="mt-0 mr-3 bg-color3-100 hover:bg-color3-200 flex items-center justify-center text-gray-700 focus:ring-4 focus:ring-color3-300 font-medium rounded-full text-sm px-6 py-2 focus:outline-none dark:focus:ring-color3-700"
+                    @click="handleClose">
+                    Cerrar
+                </button>
                 <button
                     v-if="paraEditarSolicitud && !solicitudBloqueada"
                     type="button"
-                    class="mt-0 bg-color2-700 hover:bg-color2-600 flex items-center justify-center text-white focus:ring-4 focus:ring-color2-300 font-medium rounded-xl text-sm px-4 py-2 focus:outline-none dark:focus:ring-color2-700"
+                    class="mt-0 bg-color1-700 hover:bg-color1-800 flex items-center justify-center text-white focus:ring-4 focus:ring-color1-300 font-medium rounded-full text-sm px-6 py-2 focus:outline-none dark:focus:ring-color1-700"
                     @click="actualizarSolicitud">
-                    Actualizar
+                    Actualizar Solicitud
                 </button>
                 <button
                     v-if="!paraEditarSolicitud"
                     type="button"
-                    class="mt-0 bg-color1-700 hover:bg-color1-600 flex items-center justify-center text-white focus:ring-4 focus:ring-color1-300 font-medium rounded-xl text-sm px-6 py-2 focus:outline-none dark:focus:ring-color1-700"
+                    class="mt-0 bg-color1-700 hover:bg-color1-800 flex items-center justify-center text-white focus:ring-4 focus:ring-color1-300 font-medium rounded-full text-sm px-6 py-2 focus:outline-none dark:focus:ring-color1-700"
                     @click="agregarSolicitud">
-                    Guardar
-                </button>
-                <button
-                    type="button"
-                    class="mt-0 ml-4 bg-color3-700 hover:bg-color3-600 flex items-center justify-center text-white focus:ring-4 focus:ring-color3-300 font-medium rounded-xl text-sm px-6 py-2 focus:outline-none dark:focus:ring-color3-700"
-                    @click="handleClose">
-                    Cerrar
+                    Guardar Solicitud
                 </button>
             </div>
         </template>
@@ -5952,6 +6551,7 @@
                     <template v-if="personasFiltradas && personasFiltradas.length > 0">
                         <tr>
                             <th colspan="2" class="px-0 py-1 text-left">RESULTADOS DE LA BÚSQUEDA</th>
+                            <th></th>
                         </tr>
                     </template>
                 </thead>
@@ -5962,7 +6562,8 @@
                         :key="persona.id"
                         class="hover:text-color1-800 hover:font-bold hover:bg-color3-50 dark:hover:bg-gray-600 cursor-pointer border-b border-gray-300 dark:border-gray-600"
                         @click="seleccionaPersona(persona)">
-                        <td class="px-4 py-2 w-1/2">{{ persona.nombre + ' ' + persona.apellidos }}</td>
+                        <td class="px-4 py-2 w-1/2 text-xs font-medium">{{ persona.nombre + ' ' + persona.apellidos }}</td>
+                        <td class="px-4 py-2 w-1/2" :style="{ fontSize: '11px' }"> {{ persona.curp }} </td>
                     </tr>
                     <tr v-else>
                         <td colspan="2" class="px-4 py-6 text-sm text-gray-400 dark:text-gray-300">
@@ -6332,7 +6933,9 @@
                         </template>
 
                         <el-option :style="getItemStyle(item.id - 1)" class="custom-option" v-for="item in tiposTramites" :key="item.id" :label="item.nombre" :value="item.id">
-                            {{ item.nombre }}
+                            <span class="pl-2">
+                                {{ item.nombre }}
+                            </span>
                         </el-option>
                     </el-select>
                 </div>
@@ -6423,7 +7026,7 @@
                                     class="reset-icon mr-2 ml-2 w-4 h-4 text-current opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity hover:text-color1-600"
                                     viewBox="0 -960 960 960"
                                     fill="currentColor"
-                                    @click.prevent.stop="resetFiltrosLocalidades">
+                                    @click.prevent.stop="resetFiltroDocObligatoriasLocalidades">
                                     <path
                                         d="m336-280 144-144 144 144 56-56-144-144 144-144-56-56-144 144-144-144-56 56 144 144-144 144 56 56ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/>
                                 </svg>
@@ -6449,7 +7052,7 @@
                                                 :id="`localidad-${localidad.id}`"
                                                 type="checkbox"
                                                 class="mb-1 w-4 h-4 bg-gray-100 border-gray-300 rounded text-color1-600 focus:ring-color1-300 dark:focus:ring-color1-600 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
-                                                v-model="localidadesQueryFiltradas"
+                                                v-model="localidadesSelectQuery"
                                                 :value="localidad.id"
                                                 :disabled="localidad.count === 0"
                                                 :class="{
@@ -6507,7 +7110,7 @@
                                     class="reset-icon mr-0 ml-2 w-4 h-4 text-current opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity hover:text-color1-600"
                                     viewBox="0 -960 960 960"
                                     fill="currentColor"
-                                    @click.prevent.stop="resetFiltros">
+                                    @click.prevent.stop="resetFiltroDocObligatorias">
                                     <path
                                         d="m336-280 144-144 144 144 56-56-144-144 144-144-56-56-144 144-144-144-56 56 144 144-144 144 56 56ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/>
                                 </svg>
@@ -6773,8 +7376,7 @@
                             sm:grid-cols-2        /* En pantallas pequeñas (sm): 2 columnas */
                             lg:grid-cols-3        /* En pantallas grandes (lg): 3 columnas */
                             xl:grid-cols-4        /* En pantallas extra-grandes (xl): 4 columnas */
-                            gap-4 px-2 py-4">
-                    
+                            gap-4 px-2 py-4">                    
                     <div v-for="solicitud in solicitudes" :key="solicitud.id" 
                         @click="abreModalEditarSolicitud(solicitud)"
                         class="p-4 border rounded-lg shadow-lg bg-white dark:bg-gray-800 dark:border-gray-700 
@@ -6782,22 +7384,39 @@
                         
                         <div class="flex items-start justify-between pb-4 border-b border-gray-200 dark:border-gray-700">
                             <div class="flex flex-col">
-                                <span class="text-sm font-semibold text-gray-600 dark:text-gray-400">
-                                    Solicitud # {{ solicitud.id ? (solicitud.id % 100000).toString().padStart(5, '0') : '-' }}
+                            <span class="text-sm font-semibold text-gray-600 dark:text-gray-400">
+                                Solicitud # {{ solicitud.id ? (solicitud.id % 100000).toString().padStart(5, '0') : '-' }}
+                            </span>
+                            <span v-if="solicitud.folio && solicitud.aceptada?.activa == 1" class="mt-1">
+                                <span class="inline-flex items-center justify-center rounded-full px-2 py-1 text-sm font-bold bg-color1-50 text-color1-800">
+                                FOLIO: {{ (solicitud.folio % 100000).toString().padStart(5, '0') }}
                                 </span>
-                                <span v-if="solicitud.folio" class="mt-1">
-                                    <span class="inline-flex items-center justify-center rounded-full px-2 py-1 text-sm font-bold bg-color1-50 text-color1-800">
-                                        FOLIO: {{ (solicitud.folio % 100000).toString().padStart(5, '0') }}
-                                    </span>
-                                </span>
+                            </span>
                             </div>
-                            
-                            <button @click.stop="imprimirSolicitud(solicitud)" 
-                                class="p-1 text-gray-400 hover:text-gray-800 dark:hover:text-gray-100">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5Zm-3 0h.008v.008H15V10.5Z" />
-                                </svg>
-                            </button>
+
+                            <div class="flex items-center space-x-0">
+                                <button v-if="solicitud.id_estatus == 6" @click.stop="preguntaAceptarCancelarSolicitud(solicitud.id, solicitud.id_estatus)" 
+                                    class="p-1 text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 transition duration-150 ease-in-out"
+                                    title="Quitar cancelación">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="size-6">
+                                        <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" />
+                                        <path d="M9 15l2 2l4 -4" />
+                                    </svg>
+                                </button>
+                                <button v-if="solicitud.id_estatus == 99" @click.stop="preguntaAceptarCancelarSolicitud(solicitud.id, solicitud.id_estatus)" 
+                                    class="p-1 text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 transition duration-150 ease-in-out"
+                                    title="Cancelar">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2" /><path d="M10 12l4 5" /><path d="M10 17l4 -5" />
+                                    </svg>
+                                </button>
+                                <button @click.stop="imprimirSolicitud(solicitud)" 
+                                    class="p-1 text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 transition duration-150 ease-in-out"
+                                    title="Imprimir">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5Zm-3 0h.008v.008H15V10.5Z" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="pt-1 space-y-2 text-sm">                            
@@ -6870,7 +7489,8 @@
                             </div>
 
                             <div class="pt-2">
-                                <span class="font-bold text-gray-700 dark:text-gray-300 block mb-1">Trámites: </span>
+                                <span v-if="solicitud.tramites.length > 1" class="font-bold text-gray-700 dark:text-gray-300 block mb-1">Trámites: </span>
+                                <span v-else class="font-bold text-gray-700 dark:text-gray-300 block mb-1">Trámite: </span>
                                 <div v-if="solicitud.tramites && solicitud.tramites.length > 0" class="flex flex-wrap gap-x-2 gap-y-1">
                                       <span 
                                         v-for="sTramites in solicitud.tramites" 
@@ -6883,7 +7503,7 @@
                                     </span>
                                 </div>
                                 <div v-else class="inline text-color1-500 text-xs">SIN TRÁMITES</div>
-                            </div>
+                            </div>                            
                         </div>
                     </div>
                 </div>

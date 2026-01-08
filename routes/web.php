@@ -9,6 +9,7 @@ use App\Http\Controllers\SolicitudController;
 use App\Http\Controllers\EstadisticasController;
 use App\Http\Controllers\ColoniaController;
 use App\Http\Controllers\LocalidadController;
+use App\Http\Controllers\RequisitoDocumentacionController;
 use Illuminate\Support\Facades\Auth; // Asegúrate de importar Auth
 use App\Providers\RouteServiceProvider;
 use Inertia\Inertia;
@@ -105,6 +106,7 @@ Route::get('solicitudes/get-propiedad-solicitud/{idSolicitud}', [SolicitudContro
 Route::get('solicitudes/get-colonias', [SolicitudController::class, 'getColonias'])->name('solicitudes.get-colonias')->middleware('auth');
 Route::get('solicitudes/get-localidades', [SolicitudController::class, 'getLocalidades'])->name('solicitudes.get-localidades')->middleware('auth');
 Route::get('solicitudes/get-personas', [SolicitudController::class, 'getPersonas'])->name('solicitudes.get-personas')->middleware('auth');
+Route::get('solicitudes/get-requisitos', [SolicitudController::class, 'getRequisitos'])->name('solicitudes.get-requisitos')->middleware('auth');
 Route::post('solicitudes/store', [SolicitudController::class, 'store'])->name('solicitudes.store')->middleware('auth');
 Route::post('solicitudes/update/{id}', [SolicitudController::class, 'update'])->name('solicitudes.update')->middleware('auth'); 
 Route::post('solicitudes/valida', [SolicitudController::class, 'valida'])->name('solicitudes.valida')->middleware('auth'); 
@@ -116,6 +118,7 @@ Route::post('solicitudes/print-pdf/{id}', [SolicitudController::class, 'printPDF
 Route::post('solicitudes/print-preview-pdf/{id}', [SolicitudController::class, 'printPreviewPDFPrepare'])->name('solicitudes.print-preview-pdf.prepare')->middleware('auth');
 Route::get('solicitudes/view/{folio_digital}', [SolicitudController::class, 'view'])->name('solicitudes.view');
 Route::match(['get', 'post'],'solicitudes/{solicitud}/enviar-email', [SolicitudController::class, 'enviarSolicitudPorEmail'])->middleware('auth');
+Route::post('solicitudes/update-estatus/{id}/{idEstatus}', [SolicitudController::class, 'updateEstatus'])->name('solicitudes.update-estatus')->middleware('auth'); 
 
 Route::match(['get', 'post'],'estadisticas', [EstadisticasController::class, 'index'])->name('estadisticas')->middleware('auth');
 
@@ -123,10 +126,32 @@ Route::post('colonias/store', [ColoniaController::class, 'store'])->name('coloni
 
 Route::post('localidades/store', [LocalidadController::class, 'store'])->name('localidades.store')->middleware('auth');
 
+Route::match(['get', 'post'],'requisitos', [RequisitoDocumentacionController::class, 'index'])->name('requisitos')->middleware('auth');
+Route::post('requisitos/update/{requisito}', [RequisitoDocumentacionController::class, 'update'])->name('requisitos.update')->middleware('auth'); 
+Route::post('requisitos/store', [RequisitoDocumentacionController::class, 'store'])->name('requisitos.store')->middleware('auth'); 
+Route::post('requisitos/update-assignment/{requisito}', [RequisitoDocumentacionController::class, 'update_assignment'])->name('requisitos.update-assignment')->middleware('auth'); 
+Route::get('requisitos/get-requisitos-no-asignados-tramite/{idTramite}', [RequisitoDocumentacionController::class, 'getRequisitosNoAsignadosTramite'])->name('requisitos.get-requisitos-no-asignados-tramite')->middleware('auth');
+Route::post('requisitos/store-assignment-tramite', [RequisitoDocumentacionController::class, 'store_assignment_tramite'])->name('requisitos.store-assignment-tramite')->middleware('auth'); 
+Route::post('requisitos/store-assignment-requisito/{requisito}', [RequisitoDocumentacionController::class, 'store_assignment_requisito'])->name('requisitos.store-assignment-requisito')->middleware('auth'); 
+Route::post('requisitos/update-assignment-requisitos-tramite/{tramite}', [RequisitoDocumentacionController::class, 'update_assignment_requisitos_tramite'])->name('requisitos.update-assignment-requisitos_tramite')->middleware('auth'); 
 
+
+
+// Route::middleware(['auth'])->group(function () {
+//     // 1. Define la ruta index (listado) específicamente como POST
+//    Route::match(['GET', 'POST'], '/requisitos', [RequisitoDocumentacionController::class, 'index'])
+//         ->name('requisitos.index');
+
+//     // 2. Define el recurso, excluyendo la ruta index
+//     Route::resource('requisitos', RequisitoDocumentacionController::class)
+//         ->parameters([
+//             'requisitos' => 'requisito',
+//         ])
+//         ->except(['index', 'show']); // Excluimos 'index' y 'show'
+// });
 
 Route::middleware(['auth'])->prefix('admin')->group(function () {
-    Route::get('/dashboard', [AdminController::class, 'index'])->name('admin.dashboard');
+    Route::get('/dashboard', [AdminController::class, 'index'])->name('dashboard');
 });
 
 require __DIR__.'/auth.php';

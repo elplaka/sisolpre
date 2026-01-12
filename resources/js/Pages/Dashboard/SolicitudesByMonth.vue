@@ -6,7 +6,7 @@
         <Line :data="chartData" :options="chartOptions" class="block p-0 m-0" />
     </div>
     <div v-else class="text-center text-gray-500 py-8 px-6 pb-6 flex-grow">
-      No hay datos de solicitudes mensuales disponibles.
+      No hay datos disponibles.
     </div>
   </div>  
 </template>

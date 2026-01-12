@@ -161,13 +161,13 @@ class SolicitudController extends Controller
     {
         if ($request->query('tipo') === 'solicitante')
         {
-            $persona = Persona::with('solicitante', 'solicitante.persona')
+            $persona = Persona::with('solicitante', 'solicitante.persona', 'solicitante.domicilio_notificacion')
             ->where('curp', $curp)
             ->where('activa', 1)->first();
         }
         elseif ($request->query('tipo') === 'propietario')
         {
-            $persona = Persona::with('propietario', 'propietario.persona')
+            $persona = Persona::with('propietario', 'propietario.persona', 'propietario.domicilio_notificacion')
             ->where('curp', $curp)
             ->where('activa', 1)->first();
         }
@@ -2448,16 +2448,27 @@ class SolicitudController extends Controller
                 }
                 if ($request->idDomicilioNotificacionPropietario)
                 {
-                    $domicilioNotificacion = DomicilioNotificacion::find($request->idDomicilioNotificacionPropietario);
-                    $domicilioNotificacion->direccion = $request->domicilioNotificacionPropietario ? trim(mb_strtoupper($request->domicilioNotificacionPropietario)) : '';
-                    $domicilioNotificacion->save();
+                    if ($request->domicilioNotificacionPropietario)
+                    {
+                        $domicilioNotificacion = DomicilioNotificacion::find($request->idDomicilioNotificacionPropietario);
+                        $domicilioNotificacion->direccion = $request->domicilioNotificacionPropietario ? trim(mb_strtoupper($request->domicilioNotificacionPropietario)) : '';
+                        $domicilioNotificacion->save();
+                    }
+                    else
+                    {
+                        $contactoPropietario->id_domicilio = null;
+                    }
                 }
                 else
                 {
-                    $domicilioNotificacion = DomicilioNotificacion::create([
-                        'direccion' => $request->domicilioNotificacionPropietario ? trim(mb_strtoupper($request->domicilioNotificacionPropietario)) : '',
-                    ]);
-                    $contactoPropietario->id_domicilio = $domicilioNotificacion->id;
+                    if ($request->domicilioNotificacionPropietario)
+                    {
+                        $domicilioNotificacion = DomicilioNotificacion::create([
+                            'direccion' => $request->domicilioNotificacionPropietario ? trim(mb_strtoupper($request->domicilioNotificacionPropietario)) : '',
+                        ]);
+
+                        $contactoPropietario->id_domicilio = $domicilioNotificacion->id;
+                    }
                 }
                 $contactoPropietario->save();
             }
@@ -2520,7 +2531,7 @@ class SolicitudController extends Controller
 
         if ($contactoPropietario)  //Si existe entonces pregunta si es el activo
         {
-            if ($contactoPropietario->activo)  //Si no es activo
+            if ($contactoPropietario->activo)  //Si es activo
             {
                 if (strlen($request->domicilioNotificacionPropietario) > 0)
                 {
@@ -2536,8 +2547,26 @@ class SolicitudController extends Controller
                             'direccion' => trim(mb_strtoupper($request->domicilioNotificacionPropietario)),
                         ]);
 
-                        $contactoPropietario->id_domicilio = $domicilioNotificacion->id;
-                        $contactoPropietario->save();
+                        $idNotificacion = $domicilioNotificacion->id;
+
+                        if ($contactoPropietario->editable)
+                        {
+                            $contactoPropietario->id_domicilio = $domicilioNotificacion->id;
+                            $contactoPropietario->save();
+                        }
+                        else 
+                        {
+                            Contacto::where('id_persona', $personaPropietario->id)
+                            ->update(['activo' => 0]);  //Se ponen inactivas todos los contactos de la persona propietaria
+
+                            $contactoPropietario = Contacto::create([
+                                'id_persona' => $personaPropietario->id,
+                                'telefono' => trim($request->telefonoPropietario),
+                                'email' => $request->emailPropietario !== null ? trim(mb_strtolower($request->emailPropietario)) : null,
+                                'id_domicilio' => $idNotificacion,
+                                'activo' => true
+                            ]);
+                        }
                     }
                 }
             }
@@ -2677,16 +2706,30 @@ class SolicitudController extends Controller
                     }
                     if ($request->idDomicilioNotificacionSolicitante)
                     {
-                        $domicilioNotificacion = DomicilioNotificacion::find($request->idDomicilioNotificacionSolicitante);
-                        $domicilioNotificacion->direccion = $request->domicilioNotificacionSolicitante ? trim(mb_strtoupper($request->domicilioNotificacionSolicitante)) : '';
-                        $domicilioNotificacion->save();
+                        if ($request->domicilioNotificacionSolicitante)
+                        {
+                            $domicilioNotificacion = DomicilioNotificacion::find($request->idDomicilioNotificacionSolicitante);
+                            $domicilioNotificacion->direccion = $request->domicilioNotificacionSolicitante ? trim(mb_strtoupper($request->domicilioNotificacionSolicitante)) : '';
+                            $domicilioNotificacion->save();
+                        }
+                        else
+                        {
+                            $contactoSolicitante->id_domicilio = null;
+                        }
                     }
                     else
                     {
-                        $domicilioNotificacion = DomicilioNotificacion::create([
-                            'direccion' => $request->domicilioNotificacionSolicitante ? trim(mb_strtoupper($request->domicilioNotificacionSolicitante)) : '',
-                        ]);
-                        $contactoSolicitante->id_domicilio = $domicilioNotificacion->id;
+                        if ($request->domicilioNotificacionSolicitante)
+                        {
+                            $domicilioNotificacion = DomicilioNotificacion::create([
+                                'direccion' => $request->domicilioNotificacionSolicitante ? trim(mb_strtoupper($request->domicilioNotificacionSolicitante)) : '',
+                            ]);
+                            $contactoSolicitante->id_domicilio = $domicilioNotificacion->id;
+                        }
+                        else
+                        {
+                            $contactoSolicitante->id_domicilio = null;
+                        }
                     }
                     $contactoSolicitante->save();
                 }
@@ -2729,7 +2772,7 @@ class SolicitudController extends Controller
         }
 
         //Busca al propietario con el TELÉFONO y EMAIL
-        if (Str::startsWith(trim($request->telefonoSolicitante), '0') && $request->emailSolicitante === null) 
+        if ((Str::startsWith(trim($request->telefonoSolicitante), '0') || trim($request->telefonoSolicitante) == '') && $request->emailSolicitante === null) 
         {
             $contactoSolicitante = null;
         } 
@@ -2765,8 +2808,26 @@ class SolicitudController extends Controller
                             'direccion' => trim(mb_strtoupper($request->domicilioNotificacionSolicitante)),
                         ]);
 
-                        $contactoSolicitante->id_domicilio = $domicilioNotificacion->id;
-                        $contactoSolicitante->save();
+                        $idNotificacion = $domicilioNotificacion->id;
+
+                        if ($contactoSolicitante->editable)
+                        {
+                            $contactoSolicitante->id_domicilio = $domicilioNotificacion->id;
+                            $contactoSolicitante->save();
+                        }
+                        else 
+                        {
+                            Contacto::where('id_persona', $personaSolicitante->id)
+                            ->update(['activo' => 0]);  //Se ponen inactivas todos los contactos de la persona propietaria
+
+                            $contactoSolicitante = Contacto::create([
+                                'id_persona' => $personaSolicitante->id,
+                                'telefono' => trim($request->telefonoSolicitante),
+                                'email' => $request->emailSolicitante !== null ? trim(mb_strtolower($request->emailSolicitante)) : null,
+                                'id_domicilio' => $idNotificacion,
+                                'activo' => true
+                            ]);
+                        }
                     }
                 }
             }

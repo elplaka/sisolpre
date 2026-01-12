@@ -315,6 +315,7 @@
             apePropietario.value = propietario.persona?.apellidos
             telefonoPropietario.value = propietario.telefono
             emailPropietario.value = propietario.email
+            console.log(propietario.domicilio_notificacion)
             idDomicilioNotificacionPropietario.value = propietario.domicilio_notificacion?.id
             domicilioNotificacionPropietario.value = propietario.domicilio_notificacion?.direccion
             curpPropietarioInvalida.value = false
@@ -1264,6 +1265,8 @@
                     apeSolicitante.value = persona.value.apellidos
                     telefonoSolicitante.value = persona.value.solicitante?.telefono || null
                     emailSolicitante.value = persona.value.solicitante?.email || null
+                    domicilioNotificacionSolicitante.value = persona.value.solicitante?.domicilio_notificacion?.direccion || null
+
                     // calleSolicitante.value = persona.value.solicitante?.calle || null
                     // numeroSolicitante.value = persona.value.solicitante?.num_casa || null
                     // idColoniaSolicitante.value = persona.value.solicitante?.id_colonia || null
@@ -2471,6 +2474,14 @@
     //CHECKPOINT: En el DASHBOARD corregir lo de VER MÁS para que se enlace con la estadística correcta --OK
     //CHECKPOINT: Cuando la colonia empiece con la palabra COLONIA o COL. no imprimir COL. en el PDF -- OK
     //CHECKPOINT: De igual manera si en el número dice S/N o S / N o S/ N, o algo así no imprimir N° en el PDF -- OK
+    
+    
+    //CHECKPOINT: Probar la impresión de PREVIEW y SOLICITUD con DOMICILIO DE NOTIFICACIÓN
+    //Y SOLICITANTE Y PROPIETARIO incluido para ver si cabe junto con DOCUMENTACIÓN ENTREGADA
+
+    //CHECKPOINT: Checar cuándo se guarda en DOMICILIOS_NOTIFICACIONES, solo debe 
+    //guardarse cuando no esté en blanco el input
+    
     //CHECKPOINT: Se puede presentar el siguiente caso:
     //Una PROPIEDAD puede tener varias solicitudes sin ACEPTAR con un CROQUIS cargado
     //Si se ACEPTA una SOLICITUD entonces la PROPIEDAD (y por tanto el CROQUIS)
@@ -6023,15 +6034,15 @@
                                         :key="tipoTramite.id"
                                         class="px-1 py-1 text-center h-[55px] whitespace-normal"
                                         :style="{
-                                            width: 926 / tiposTramites.length + 'px',
-                                            minWidth: 926 / tiposTramites.length + 'px'
+                                            width: 915 / tiposTramites.length + 'px',
+                                            minWidth: 915 / tiposTramites.length + 'px'
                                         }">
                                         <div
                                             v-if="tipoTramite.tramites[index - 1]"
                                             @click="actualizarTramitesSeleccionados(tipoTramite.tramites[index - 1].id)"
                                             :class="{
                                                 'bg-color1-600 text-white font-bold border-color1-700': tramitesSeleccionados.includes(tipoTramite.tramites[index - 1].id),
-                                                'text-gray-700 bg-gray-50 border-gray-400 hover:shadow-md hover:border-2 hover:text-color1-800': !tramitesSeleccionados.includes(
+                                                'text-gray-700 bg-gray-50 border-gray-400 hover:shadow-md hover:border-color1-500 hover:ring-1 hover:ring-color1-100 hover:text-color1-800': !tramitesSeleccionados.includes(
                                                     tipoTramite.tramites[index - 1].id
                                                 )
                                             }"

@@ -6,7 +6,7 @@
       <Bar :data="chartData" :options="chartOptions" class="w-full h-full" />
     </div>
     <div v-else class="text-center text-gray-500 py-8 px-6 pb-6 flex-grow">
-      No hay datos de trámites registrados en el año actual.
+      No hay datos disponibles.
     </div>
   </div>
 </template>

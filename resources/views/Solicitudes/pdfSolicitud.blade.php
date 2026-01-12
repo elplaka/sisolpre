@@ -13,6 +13,8 @@
         $type = pathinfo($path, PATHINFO_EXTENSION);
         $data = file_get_contents($path);
         $escudo = 'data:image/' . $type . ';base64,' . base64_encode($data);
+        $domicilioSolicitante = false;
+        $domicilioPropietario = false;
 
         if ($solicitud->propiedad)
         {
@@ -116,6 +118,9 @@
             @endif
         </tr>
         @if (($solicitud->propiedad->contacto->domicilio_notificacion && strlen(trim($solicitud->propiedad->contacto->domicilio_notificacion->direccion)) > 0))
+        @php 
+            $domicilioPropietario = true;
+        @endphp
         <tr style="line-height: 1em;">
             <td class="tdPrevFieldName" style="width: 13%;">Domicilio:</td>
             <td colspan="3" style="width: 87%; line-height: 1; text-align: justify;">{{ $solicitud->propiedad->contacto->domicilio_notificacion->direccion }}</td>
@@ -164,6 +169,9 @@
         </tr>
         @if ($solicitud->propiedad && $solicitud->contacto->id == $solicitud->propiedad->contacto->id)
         @if (($solicitud->propiedad->contacto->domicilio_notificacion && strlen(trim($solicitud->propiedad->contacto->domicilio_notificacion->direccion)) > 0))
+        @php 
+            $domicilioSolicitante = true;
+        @endphp
         <tr style="line-height: 1em;">
             <td class="tdPrevFieldName" style="width: 13%;">Domicilio:</td>
             <td colspan="3" style="width: 87%; text-align: justify;">{{ $solicitud->propiedad->contacto->domicilio_notificacion->direccion }}</td>
@@ -171,6 +179,9 @@
         @endif
         @else
         @if (($solicitud->contacto->domicilio_notificacion && strlen(trim($solicitud->contacto->domicilio_notificacion->direccion)) > 0))
+        @php 
+            $domicilioSolicitante = true;
+        @endphp
         <tr style="line-height: 1em;">
             <td class="tdPrevFieldName" style="width: 13%;">Domicilio:</td>
             <td colspan="3" style="width: 87%; text-align: justify;">{{ $solicitud->contacto->domicilio_notificacion->direccion }}</td>
@@ -374,14 +385,36 @@
                 @if ($croquis == '')
                     <span style="color: red; margin: 0 0; padding: 0.25cm 0.25cm">«SIN IMAGEN DE CROQUIS»</span>
                 @else
-                <div style="position: relative; width: auto; height: auto; border: 1px solid #ccc; display: inline-block; overflow: hidden; margin: 0 auto; padding: 0.2cm 0.2cm">
-                    <div style="display: block;">
-                        <img src="{{ $croquis }}" alt="Croquis de Localización"
-                            style="width: auto; height: 6.5cm; display: block;">
-                    </div>
-                    <img src="{{ $norte }}" alt="Norte"
-                        style="position: absolute; top: 0.3cm; right: 0.4cm; max-height: 2cm; width: 1.75cm;">
-                </div>
+                    @if ($domicilioPropietario && $domicilioSolicitante)
+                        <div style="position: relative; width: auto; height: auto; border: 1px solid #ccc; display: inline-block; overflow: hidden; margin: 0 auto; padding: 0.2cm 0.2cm">
+                            <div style="display: block;">
+                                <img src="{{ $croquis }}" alt="Croquis de Localización"
+                                    style="width: auto; height: 5cm; display: block;">
+                            </div>
+                            <img src="{{ $norte }}" alt="Norte"
+                                style="position: absolute; top: 0.1cm; right: 0.2cm; max-height: 1.5cm; width: 1.3cm;">
+                        </div>
+                    @else
+                       @if ($domicilioPropietario || $domicilioSolicitante)
+                       <div style="position: relative; width: auto; height: auto; border: 1px solid #ccc; display: inline-block; overflow: hidden; margin: 0 auto; padding: 0.2cm 0.2cm">
+                            <div style="display: block;">
+                                <img src="{{ $croquis }}" alt="Croquis de Localización"
+                                    style="width: auto; height: 5.5cm; display: block;">
+                            </div>
+                            <img src="{{ $norte }}" alt="Norte"
+                                style="position: absolute; top: 0.2cm; right: 0.2cm; max-height: 1.75cm; width: 1.5cm;">
+                        </div>
+                        @else
+                        <div style="position: relative; width: auto; height: auto; border: 1px solid #ccc; display: inline-block; overflow: hidden; margin: 0 auto; padding: 0.2cm 0.2cm">
+                            <div style="display: block;">
+                                <img src="{{ $croquis }}" alt="Croquis de Localización"
+                                    style="width: auto; height: 6.5cm; display: block;">
+                            </div>
+                            <img src="{{ $norte }}" alt="Norte"
+                                style="position: absolute; top: 0.2cm; right: 0.2cm; max-height: 2cm; width: 1.75cm;">
+                        </div>
+                        @endif
+                    @endif
                 @endif
             </td>
         </tr>
@@ -396,7 +429,7 @@
     // 2. Agrupar la colección filtrada en bloques de 5 para las filas de la tabla.
     // 🔑 CAMBIO CLAVE: chunk(5)
     $gruposEntregados = $requisitosEntregados->chunk(5);
-@endphp
+    @endphp
 
     @if($gruposEntregados->isNotEmpty())
     <table style="width: 100%; border-collapse: collapse;">

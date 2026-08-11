@@ -10,9 +10,15 @@ use App\Http\Controllers\EstadisticasController;
 use App\Http\Controllers\ColoniaController;
 use App\Http\Controllers\LocalidadController;
 use App\Http\Controllers\RequisitoDocumentacionController;
+use App\Http\Controllers\TramiteController;
+use App\Http\Controllers\ConstanciaNumeroOficialController;
+use App\Http\Controllers\PropiedadController;
+
+
 use Illuminate\Support\Facades\Auth; // Asegúrate de importar Auth
 use App\Providers\RouteServiceProvider;
 use Inertia\Inertia;
+use App\Models\Tramite;
 
 /*
 |--------------------------------------------------------------------------
@@ -97,8 +103,8 @@ Route::post('admin/usuarios/update/{id}', [UsuarioController::class, 'update'])
     ->name('admin.usuarios.update')
     ->middleware(['auth', 'can:editar_usuarios']);
 
-    
-Route::match(['get', 'post'],'solicitudes', [SolicitudController::class, 'index'])->name('solicitudes')->middleware('auth');
+
+Route::match(['get', 'post'], 'solicitudes', [SolicitudController::class, 'index'])->name('solicitudes')->middleware('auth');
 Route::get('solicitudes/get-solicitud/{id}', [SolicitudController::class, 'getSolicitud'])->name('solicitudes.get-solicitud')->middleware('auth');
 Route::get('solicitudes/get-persona/{curp}', [SolicitudController::class, 'getPersona'])->name('solicitudes.get-persona')->middleware('auth');
 Route::get('solicitudes/get-propiedad/{claveCatastral}', [SolicitudController::class, 'getPropiedad'])->name('solicitudes.get-propiedad')->middleware('auth');
@@ -108,50 +114,72 @@ Route::get('solicitudes/get-localidades', [SolicitudController::class, 'getLocal
 Route::get('solicitudes/get-personas', [SolicitudController::class, 'getPersonas'])->name('solicitudes.get-personas')->middleware('auth');
 Route::get('solicitudes/get-requisitos', [SolicitudController::class, 'getRequisitos'])->name('solicitudes.get-requisitos')->middleware('auth');
 Route::post('solicitudes/store', [SolicitudController::class, 'store'])->name('solicitudes.store')->middleware('auth');
-Route::post('solicitudes/update/{id}', [SolicitudController::class, 'update'])->name('solicitudes.update')->middleware('auth'); 
-Route::post('solicitudes/valida', [SolicitudController::class, 'valida'])->name('solicitudes.valida')->middleware('auth'); 
-Route::post('solicitudes/upload-croquis/{id}', [SolicitudController::class, 'uploadCroquis'])->name('solicitudes.upload-croquis')->middleware('auth'); 
-Route::post('solicitudes/delete-croquis/{id}', [SolicitudController::class, 'deleteCroquis'])->name('solicitudes.delete-croquis')->middleware('auth'); 
+Route::post('solicitudes/update/{id}', [SolicitudController::class, 'update'])->name('solicitudes.update')->middleware('auth');
+Route::post('solicitudes/valida', [SolicitudController::class, 'valida'])->name('solicitudes.valida')->middleware('auth');
+Route::post('solicitudes/upload-croquis/{id}', [SolicitudController::class, 'uploadCroquis'])->name('solicitudes.upload-croquis')->middleware('auth');
+Route::post('solicitudes/delete-croquis/{id}', [SolicitudController::class, 'deleteCroquis'])->name('solicitudes.delete-croquis')->middleware('auth');
 Route::get('solicitudes/print-pdf/{id}', [SolicitudController::class, 'printPDF'])->name('solicitudes.print-pdf')->middleware(['auth', 'checkSolicitudStatus']);
 Route::get('solicitudes/print-preview-pdf/{id}', [SolicitudController::class, 'printPreviewPDF'])->name('solicitudes.print-preview-pdf')->middleware('auth');
 Route::post('solicitudes/print-pdf/{id}', [SolicitudController::class, 'printPDFPrepare'])->name('solicitudes.print-pdf.prepare')->middleware(['auth', 'checkSolicitudStatus']);
 Route::post('solicitudes/print-preview-pdf/{id}', [SolicitudController::class, 'printPreviewPDFPrepare'])->name('solicitudes.print-preview-pdf.prepare')->middleware('auth');
 Route::get('solicitudes/view/{folio_digital}', [SolicitudController::class, 'view'])->name('solicitudes.view');
-Route::match(['get', 'post'],'solicitudes/{solicitud}/enviar-email', [SolicitudController::class, 'enviarSolicitudPorEmail'])->middleware('auth');
-Route::post('solicitudes/update-estatus/{id}/{idEstatus}', [SolicitudController::class, 'updateEstatus'])->name('solicitudes.update-estatus')->middleware('auth'); 
+Route::match(['get', 'post'], 'solicitudes/{solicitud}/enviar-email', [SolicitudController::class, 'enviarSolicitudPorEmail'])->middleware('auth');
+Route::post('solicitudes/update-estatus/{id}/{idEstatus}', [SolicitudController::class, 'updateEstatus'])->name('solicitudes.update-estatus')->middleware('auth');
 
-Route::match(['get', 'post'],'estadisticas', [EstadisticasController::class, 'index'])->name('estadisticas')->middleware('auth');
+Route::match(['get', 'post'], 'estadisticas', [EstadisticasController::class, 'index'])->name('estadisticas')->middleware('auth');
 
 Route::post('colonias/store', [ColoniaController::class, 'store'])->name('colonias.store')->middleware('auth');
 
 Route::post('localidades/store', [LocalidadController::class, 'store'])->name('localidades.store')->middleware('auth');
 
-Route::match(['get', 'post'],'requisitos', [RequisitoDocumentacionController::class, 'index'])->name('requisitos')->middleware('auth');
-Route::post('requisitos/update/{requisito}', [RequisitoDocumentacionController::class, 'update'])->name('requisitos.update')->middleware('auth'); 
-Route::post('requisitos/store', [RequisitoDocumentacionController::class, 'store'])->name('requisitos.store')->middleware('auth'); 
-Route::post('requisitos/update-assignment/{requisito}', [RequisitoDocumentacionController::class, 'update_assignment'])->name('requisitos.update-assignment')->middleware('auth'); 
+Route::match(['get', 'post'], 'requisitos', [RequisitoDocumentacionController::class, 'index'])->name('requisitos')->middleware('auth');
+Route::post('requisitos/update/{requisito}', [RequisitoDocumentacionController::class, 'update'])->name('requisitos.update')->middleware('auth');
+Route::post('requisitos/store', [RequisitoDocumentacionController::class, 'store'])->name('requisitos.store')->middleware('auth');
+Route::post('requisitos/update-assignment/{requisito}', [RequisitoDocumentacionController::class, 'update_assignment'])->name('requisitos.update-assignment')->middleware('auth');
 Route::get('requisitos/get-requisitos-no-asignados-tramite/{idTramite}', [RequisitoDocumentacionController::class, 'getRequisitosNoAsignadosTramite'])->name('requisitos.get-requisitos-no-asignados-tramite')->middleware('auth');
-Route::post('requisitos/store-assignment-tramite', [RequisitoDocumentacionController::class, 'store_assignment_tramite'])->name('requisitos.store-assignment-tramite')->middleware('auth'); 
-Route::post('requisitos/store-assignment-requisito/{requisito}', [RequisitoDocumentacionController::class, 'store_assignment_requisito'])->name('requisitos.store-assignment-requisito')->middleware('auth'); 
-Route::post('requisitos/update-assignment-requisitos-tramite/{tramite}', [RequisitoDocumentacionController::class, 'update_assignment_requisitos_tramite'])->name('requisitos.update-assignment-requisitos_tramite')->middleware('auth'); 
+Route::post('requisitos/store-assignment-tramite', [RequisitoDocumentacionController::class, 'store_assignment_tramite'])->name('requisitos.store-assignment-tramite')->middleware('auth');
+Route::post('requisitos/store-assignment-requisito/{requisito}', [RequisitoDocumentacionController::class, 'store_assignment_requisito'])->name('requisitos.store-assignment-requisito')->middleware('auth');
+Route::post('requisitos/update-assignment-requisitos-tramite/{tramite}', [RequisitoDocumentacionController::class, 'update_assignment_requisitos_tramite'])->name('requisitos.update-assignment-requisitos_tramite')->middleware('auth');
+
+Route::match(['get', 'post'], 'tramites', [TramiteController::class, 'index'])->name('tramites')->middleware('auth');
+// Route::post('tramites/edit/{tipo_tramite}', [TramiteController::class, 'edit'])->name('tramites.edit')->middleware('auth');
+// Route::get('tramites/edit/{tipo_tramite}', function () {
+//     return redirect()->route('dashboard') // O la ruta de tu panel principal
+//         ->with('error', 'Acceso caducado o no permitido directamente.');
+// })->middleware('auth');
+Route::get('tramites/edit/{tipo_tramite}', [TramiteController::class, 'edit'])->name('tramites.edit')->middleware('auth');
 
 
+Route::post('constancias-numero-oficial/store', [ConstanciaNumeroOficialController::class, 'store'])->name('constancias-numero-oficial.store')->middleware('auth');
+Route::post('constancias-numero-oficial/update', [ConstanciaNumeroOficialController::class, 'update'])->name('constancias-numero-oficial.update')->middleware('auth');
+Route::post('constancias-numero-oficial/generar', [ConstanciaNumeroOficialController::class, 'pdf'])
+    ->name('constancias-numero-oficial.pdf.post')
+    ->middleware('auth');
+// Route::post('constancias-numero-oficial/get-tramite', [ConstanciaNumeroOficialController::class, 'getTramite'])->name('constancias-numero-oficial.get-tramite')->middleware('auth');
+Route::match(['get', 'post'], 'constancias-numero-oficial/get-tramite', [ConstanciaNumeroOficialController::class, 'getTramite'])
+    ->name('constancias-numero-oficial.get-tramite')->middleware('auth');
+Route::get('constancias-numero-oficial/get-constancia/{idConstancia}', [ConstanciaNumeroOficialController::class, 'getConstancia'])->name('constancias-numero-oficial.get-constancia')->middleware('auth');
+Route::post('constancias-numero-oficial/entregar', [ConstanciaNumeroOficialController::class, 'entregar'])->name('constancias-numero-oficial.entregar')->middleware('auth');
+Route::post('constancias-numero-oficial/update-propiedad-geo', [ConstanciaNumeroOficialController::class, 'update_propiedad_geo'])->name('constancias-numero-oficial.update-propiedad-geo')->middleware('auth');
+Route::post(
+    'constancias-numero-oficial/validar-consecutivo',
+    [ConstanciaNumeroOficialController::class, 'validarConsecutivo']
+)->name('constancias-numero-oficial.validar-consecutivo')
+    ->middleware('auth');
 
-// Route::middleware(['auth'])->group(function () {
-//     // 1. Define la ruta index (listado) específicamente como POST
-//    Route::match(['GET', 'POST'], '/requisitos', [RequisitoDocumentacionController::class, 'index'])
-//         ->name('requisitos.index');
+Route::match(['get', 'post'], 'propiedades', [PropiedadController::class, 'index'])->name('propiedades')->middleware('auth');
+Route::get('propiedades/get-historial-propiedad/{claveCatastral}', [PropiedadController::class, 'getHistorialPropiedad'])->name('solicitudes.get-propiedad')->middleware('auth');
+Route::post('propiedades/store', [PropiedadController::class, 'store'])->name('propiedades.store')->middleware('auth');
+Route::post('propiedades/edit', [PropiedadController::class, 'edit'])->name('propiedades.edit')->middleware('auth');
+Route::get('propiedades/edit', function () {
+    return redirect()->route('dashboard') // O la ruta de tu panel principal
+        ->with('error', 'Acceso caducado o no permitido directamente.');
+})->middleware('auth');
 
-//     // 2. Define el recurso, excluyendo la ruta index
-//     Route::resource('requisitos', RequisitoDocumentacionController::class)
-//         ->parameters([
-//             'requisitos' => 'requisito',
-//         ])
-//         ->except(['index', 'show']); // Excluimos 'index' y 'show'
-// });
+
 
 Route::middleware(['auth'])->prefix('admin')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'index'])->name('dashboard');
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

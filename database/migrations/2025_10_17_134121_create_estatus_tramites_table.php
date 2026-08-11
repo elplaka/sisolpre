@@ -16,16 +16,16 @@ return new class extends Migration
     {
         // 1. Crea la tabla 'estatus_tramites' para catalogar los estados de un proceso.
         Schema::create('estatus_tramites', function (Blueprint $table) {
-            
+
             // Columna ID (Llave Primaria, Autoincrementable)
             $table->unsignedBigInteger('id')->primary();
 
             // Columna Nombre: Almacena el nombre del estatus (ej: 'En Revisión', 'Aprobado', 'Rechazado')
             $table->string('nombre', 100)->unique();
-            
+
             // Columna Activo: Indica si el estatus está disponible para ser usado.
             // Por defecto es TRUE (activo). Se mapea a TINYINT(1) en MySQL.
-            $table->boolean('activo')->default(true); 
+            $table->boolean('activo')->default(true);
             $table->string('color', 30)->default('gray');
 
             // Columnas de Timestamps (created_at y updated_at)
@@ -36,19 +36,14 @@ return new class extends Migration
         DB::table('estatus_tramites')->insert([
             // ID 1: EN REVISIÓN (como los anteriores, pero ahora con color)
             ['id' => 1, 'nombre' => 'EN REVISIÓN', 'activo' => true, 'color' => 'violet', 'created_at' => $now, 'updated_at' => $now],
-            
             // ID 2: APROBADO (ahora con color)
             ['id' => 2, 'nombre' => 'APROBADO', 'activo' => true, 'color' => 'darkgreen', 'created_at' => $now, 'updated_at' => $now],
-            
             // ID 3: SUSPENDIDO (ahora con color)
             ['id' => 3, 'nombre' => 'SUSPENDIDO', 'activo' => true, 'color' => 'orange', 'created_at' => $now, 'updated_at' => $now],
-            
             // ID 4: RECHAZADO (ahora con color)
             ['id' => 4, 'nombre' => 'RECHAZADO', 'activo' => true, 'color' => 'tomato', 'created_at' => $now, 'updated_at' => $now],
-            
             // ID 5: CANCELADO (activo = false y con color)
-            ['id' => 5, 'nombre' => 'CANCELADO', 'activo' => false, 'color' => 'darkred', 'created_at' => $now, 'updated_at' => $now],
-            
+            ['id' => 5, 'nombre' => 'CANCELADO', 'activo' => true, 'color' => 'darkred', 'created_at' => $now, 'updated_at' => $now],
             // ID 99: ENTREGADO (ID especial y con color)
             ['id' => 99, 'nombre' => 'ENTREGADO', 'activo' => true, 'color' => 'mediumseagreen', 'created_at' => $now, 'updated_at' => $now],
         ]);

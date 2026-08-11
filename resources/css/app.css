@@ -3,6 +3,12 @@
 @tailwind utilities;
 
 
+@layer utilities {
+  .force-refresh {
+    display: block;
+  }
+}
+
 :root {
   --color1: rgb(123 0 58);
   --color-1: #8f0030;
@@ -10,6 +16,14 @@
   --color-1-2: #e8567c;
   --color-1-50: #ffe4ec;
   --color-1-70: #fff5f8;
+  --color-1-100: #fabacb;  /* Rosa claro para bordes suaves */
+  --color-1-200: #f08aa3;  /* Rosa medio */
+  --color-1-400: #e02d59;  /* Rojo vibrante para alertas o llamados a la acción */
+  --color-1-500: #cc0042;  /* Rojo quemado intermedio */
+
+  /* Tonos Profundos (Deep) */
+  --color-1-800: #6b0026;  /* Guinda muy oscuro para textos sobre fondos claros */
+  --color-1-900: #48001b;  /* Casi negro-guinda para contrastes máximos */
 
   --color-2: #00403e;
   --color-2-1: #002724;
@@ -25,6 +39,35 @@
   --color-gray-700: rgb(55 65 81);
   --color-gray-800: rgb(31 41 55);
   --color-gray-900: rgb(17 24 39);
+
+  /* --- COLOR 2 (Verde Azulado / Teal) --- */
+  --color-2: #005350;      /* DEFAULT */
+  --color-2-50: #e0f6f5;
+  --color-2-100: #b3e6e2;
+  --color-2-400: #26b5ad;
+  --color-2-600: #007c77;
+  --color-2-700: #005d5a;
+  --color-2-800: #00403e;  /* El que ya tenías */
+  --color-2-900: #002724;  /* El que ya tenías */
+
+  /* --- COLOR 3 (Grises de Marca) --- */
+  --color-3: #5f5e5e;      /* DEFAULT / 600 */
+  --color-3-40: #fafafa;
+  --color-3-50: #f0f0f0;
+  --color-3-200: #bfbfbf;
+  --color-3-500: #737373;
+  --color-3-700: #4b4b4b;
+  --color-3-900: #222222;
+
+  /* --- COLOR 4 (Dorado / Café) --- */
+  --color-4: #b4905e;      /* DEFAULT / 500 */
+  --color-4-50: #f6e9de;
+  --color-4-200: #e2b99a;
+  --color-4-400: #cf865b;
+  --color-4-600: #936f46;
+  --color-4-700: #70532f;
+  --color-4-800: #4f371f;
+  --color-4-900: #2e1d12;
 
   --el-color-primary: #b3003b !important;
 }
@@ -114,7 +157,6 @@
   /* Gris muy claro */
   color: rgb(75, 85, 99) !important;
   border-radius: 1.25em !important;
-  /* nuevo border-radius al hacer hover */
   transition: all 0.2s ease;
 }
 
@@ -180,10 +222,8 @@
   border-radius: 8px !important; */
 }
 
-/* Opciones seleccionadas con hover */
 .el-select-dropdown__item.is-selected:hover {
   background-color: var(--color-1-70) !important;
-  /* Rosa claro */
 }
 
 /* Marca de selección en multiselección */
@@ -232,6 +272,9 @@
 .custom-dropdown .el-select-dropdown.is-multiple .el-select-dropdown__item.is-selected.is-hovering::after {
   background-color: var(--color-1-1) !important;
 }
+
+
+
 
 /* ======================== EL-SWITCH GLOBAL ======================== */
 
@@ -327,13 +370,16 @@
   background-color: var(--color1) !important;
   border-color: var(--color1) !important;
   border-radius: 6rem !important;
-
+  padding-left: 24px !important;
+  padding-right: 24px !important;
 }
 
 .swal2-styled.swal2-cancel {
   background-color: var(--color-2) !important;
   border-color: var(--color-2) !important;
   border-radius: 6rem !important;
+  padding-left: 24px !important;
+  padding-right: 24px !important;
 }
 
 /* Cambiar color de los íconos de SWEET ALERT*/
@@ -409,7 +455,7 @@ select:disabled {
   width: 100% !important;
   /* o un valor como 24em o 100em según lo que buscas */
   max-width: 260px !important;
-  /* background-color: rgb(240, 240, 240)!important; */
+  background-color: white!important;
 }
 
 /* fecha-inicio y fecha-fin */
@@ -448,7 +494,7 @@ select:disabled {
 }
 
 .custom-date-picker.is-active .el-range-input {
-  background-color: #f2f2f2 !important;
+  background-color: white !important;
   padding: 0px 0px !important;
   /* suficiente para que no se corte el texto */
   margin: 0px !important;
@@ -465,6 +511,7 @@ select:disabled {
   /* suficiente para que no se corte el texto */
   margin: 0px !important;
   border: none !important;
+  background-color: white !important;
 }
 
 @media (max-width: 768px) {
@@ -474,7 +521,7 @@ select:disabled {
     max-width: 100% !important;
     margin: 0 auto;
     /* Centramos horizontalmente */
-    padding: 0.25rem 0.5rem;
+    padding: 0.25rem 1.5rem;
     /* Espacio interno opcional */
     box-sizing: border-box;
     /* Para que padding no aumente el ancho */
@@ -526,6 +573,7 @@ select:disabled {
   border-radius: 6px;
   /* Opcional: redondear la celda */
   cursor: pointer;
+
 }
 
 .el-picker-panel .el-date-table td.in-range .el-date-table-cell__text:hover {
@@ -540,10 +588,20 @@ select:disabled {
   font-weight: bold;
 }
 
-/* .el-date-table td.start-date.today .el-date-table-cell__text,
+/* REGLA CLAVE: Cuando el día de hoy es también el día seleccionado */
+.el-picker-panel .el-date-table td.today.current .el-date-table-cell__text {
+    color: #ffffff !important;
+}
+
+/* Asegúrate de que tu regla general de 'current' apunte al span para mayor fuerza */
+.el-picker-panel .el-date-table td.current .el-date-table-cell__text {
+    color: #ffffff !important;
+}
+
+.el-date-table td.start-date.today .el-date-table-cell__text,
 .el-date-table td.end-date.today .el-date-table-cell__text {
   color: white !important;
-} */
+}
 
 /* Círculos de inicio y fin de fechas */
 .el-date-table td.start-date .el-date-table-cell__text,
@@ -611,6 +669,8 @@ select:disabled {
   width: 90%;
   max-width: 300px;
   margin: 0 auto;
+  background-color: white !important;
+
   /* centra el componente horizontalmente */
 }
 
@@ -690,6 +750,7 @@ select:disabled {
 .custom-date-picker .el-input__wrapper {
   /* ... padding-left es 40px ... */
   padding-left: 10px !important;
+  background-color: white !important;
 }
 
 .custom-date-picker.is-disabled.el-date-editor {
@@ -948,9 +1009,7 @@ textarea {
 .custom-select .el-tag.el-tag--info:hover {
   background-color: transparent !important;
   border-radius: 0.25em !important;
-  /* nuevo border-radius al hacer hover */
   margin-left: 0.3em !important;
-  /* nuevo margin-left al hacer hover */
   border-radius: 10px !important;
 }
 
@@ -1007,9 +1066,6 @@ textarea {
   /* 3. COLOR DEL TEXTO (El contenido principal del botón) */
   color: rgb(156, 163, 175) !important;
   /* gray-100 para el texto */
-
-  /* Evita que el hover cambie el color cuando está deshabilitado */
-  /* pointer-events: none; */
 
   opacity: 1 !important;
 }
@@ -1228,17 +1284,94 @@ textarea {
   background-color: var(--color-gray-200) !important;
 }
 
-/* Cambia el color del texto de todos los ítems del menú desplegable */
-.el-select-dropdown__item {
-  color: var(--color-gray-800) !important;
 
-  display: flex !important;
-  align-items: center !important;
 
-  padding-left: 0px !important;
+/* ========================================================================= */
+/* ESTILOS CUSTOM DATE PICKER GRAY (Basado en tus estilos de Select) */
+/* ========================================================================= */
 
-  /* width: 96% !important; */
+/* 1. Contenedor principal (Wrapper) */
+.custom-select-gray.el-date-editor.el-range-editor {
+    border: none!important;
+    background-color: var(--color-gray-100) !important; /* rgb(249, 250, 251) */
+    border-radius: 1.7em !important; /* Mismo que tu .custom-select */
+    height: 2.65em !important;
+    box-shadow: none !important;
+    transition: all 0.2s ease;
+    padding: 0 15px !important;
+    padding-left: 20px !important;
+    height: 2.25em !important;
 }
+
+.custom-select-gray .el-range-input::placeholder {
+    color: var(--color-gray-900)!important;
+    font-weight: normal;
+}
+
+/* 2. Estado Focus (Cuando se abre el calendario) */
+.custom-select-gray.el-range-editor.is-active,
+.custom-select-gray.el-range-editor.is-focus {
+    background-color: var(--color-gray-200) !important; /* Igual que tu .custom-select-gray .is-focused */
+    border-color: var(--color-gray-300) !important;
+    box-shadow: none !important;
+}
+
+/* 3. Estilo de los inputs internos (Fecha inicio / fin) */
+.custom-select-gray .el-range-input {
+    background-color: transparent !important; /* Para que tome el fondo del wrapper */
+    color: var(--color-gray-900) !important; /* O usa #b3003b */
+    font-size: 13px !important; /* Igual que tu placeholder de select */
+    padding: 0 !important; 
+}
+
+/* 4. Estilo del separador "-" */
+.custom-select-gray .el-range-separator {
+    color: var(--color-gray-500) !important;
+    font-size: 13px !important;
+    padding: 0 5px !important;
+}
+
+/* 5. Iconos (Calendario) */
+.custom-select-gray .el-input__icon {
+    color: var(--color-gray-800) !important; /* gray-600 como tu .custom-select .el-select__caret */
+}
+
+/* 6. Estado DESHABILITADO (Consistencia con tus otros inputs) */
+.custom-select-gray.is-disabled.el-range-editor {
+    background-color: white !important;
+    border-color: rgb(209, 213, 219) !important;
+    opacity: 1 !important;
+    cursor: not-allowed !important;
+}
+
+.custom-select-gray.is-disabled .el-range-input {
+    background-color: white !important;
+    color: rgb(156, 163, 175) !important; /* gray-400 */
+    -webkit-text-fill-color: rgb(156, 163, 175) !important;
+}
+
+/* 7. Quitar bordes internos de los inputs de rango */
+.custom-select-gray .el-range-input:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Apuntamos directamente al icono de calendario dentro de tu datepicker */
+.custom-select-gray .el-input__icon.el-range__icon {
+    font-size: 20px !important; /* Aumenta el tamaño general */
+    width: 17px !important;
+    height: 17px !important;
+    color: var(--color-gray-900) !important; /* Si quieres que sea rojo como el texto */
+    margin-right: 8px !important; /* Espacio con respecto a la fecha "Inicio" */
+}
+
+/* Forzamos que el SVG interno ocupe todo el contenedor del icono */
+.custom-select-gray .el-input__icon.el-range__icon svg {
+    width: 20px !important;
+    height: 20px !important;
+}
+
+/* ------------------------------------------------------------- */
 
 /* Opcional: Para asegurar que el texto se mantenga oscuro incluso en hover o activo */
 .el-select-dropdown__item.hover,
@@ -1255,22 +1388,13 @@ textarea {
 
 .el-select-dropdown__item:hover,
 .el-select-dropdown__item.hover {
-  /* 1. Fondo en Hover (Ejemplo: gray-100) */
   background-color: var(--color-gray-200) !important;
-
-  /* 2. Color de Texto en Hover (Ejemplo: gray-900 para contraste) */
   color: var(--color-gray-900) !important;
 }
 
 .el-select-dropdown__item.is-disabled:hover {
-  /* 1. Anular el color de fondo en hover */
   background-color: transparent !important;
-
-  /* 2. Asegurar que el color del texto no cambie (mantener el color base) */
   color: var(--color-gray-800) !important;
-  /* Usar tu color base para el texto */
-
-  /* 3. Asegurar que el cursor sea el predeterminado (flecha), no el de puntero */
   cursor: default !important;
 }
 
@@ -1355,7 +1479,9 @@ textarea {
 .el-select-dropdown__item {
   /* Usando tu variable CSS para gray-800 */
   color: var(--color-gray-800) !important;
-
+  display: flex !important;
+    align-items: center !important;
+  line-height: normal !important;
   /* 🌟 NUEVO: TAMAÑO DE FUENTE DE LOS ÍTEMS 🌟 */
   font-size: 13px !important;
 }
@@ -1385,4 +1511,275 @@ textarea {
 .dark .hide-placeholder-on-blur:focus::placeholder {
   color: #6b7280;
   /* Tailwind gray-500 */
+}
+
+/* Cambiar el estilo del +1 para confirmar que CSS funciona */
+.el-select__tags-text {
+  font-size: 9pt !important;
+}
+
+/* Borde solo en la parte superior del rombo (visualmente arriba) */
+*[class*="arrow"] {
+  border-top: 1px solid #dcdfe6 !important;
+  border-left: 1px solid #dcdfe6 !important;
+  border-bottom: none !important;
+  border-right: none !important;
+}
+
+*[class*="arrow"]::before,
+*[class*="arrow"]::after {
+  border-top: 1px solid #dcdfe6 !important;
+  border-left: 1px solid #dcdfe6 !important;
+}
+
+/* ======================== EL-AUTOCOMPLETE ======================== */
+/* Contenedor principal - mismo estilo que tus inputs */
+.custom-autocomplete {
+    position: relative;
+}
+
+/* Wrapper del autocomplete - solo borde inferior */
+.custom-autocomplete .el-input__wrapper {
+    background-color: transparent !important;
+    border: 0 !important;
+    border-bottom: 2px solid rgb(209, 213, 219) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    transition: border-color 0.3s ease;
+}
+
+/* Estado focus - borde inferior con color primario */
+.custom-autocomplete .el-input__wrapper.is-focus {
+    border-bottom-color: var(--color1) !important;
+    box-shadow: none !important;
+}
+
+/* Cuando está hover */
+.custom-autocomplete .el-input__wrapper:hover {
+    border-bottom-color: #d1d5db !important;
+}
+
+/* Cuando está deshabilitado */
+.custom-autocomplete.is-disabled .el-input__wrapper {
+    border-bottom-color: rgb(209, 213, 219) !important;
+    background-color: transparent !important;
+}
+
+/* Input interno */
+.custom-autocomplete .el-input__inner {
+    background-color: transparent !important;
+    padding: 8px 0 !important;
+    font-size: 0.875rem !important;
+    text-transform: uppercase;
+    color: #1f2937 !important;
+}
+
+/* Placeholder - transparente por defecto (para el label flotante) */
+.custom-autocomplete .el-input__inner::placeholder {
+    color: transparent !important;
+}
+
+/* Icono de clear */
+.custom-autocomplete .el-input__suffix {
+    display: flex;
+    align-items: center;
+}
+
+.custom-autocomplete .el-input__clear {
+    color: #9ca3af !important;
+}
+
+.custom-autocomplete .el-input__clear:hover {
+    color: #6b7280 !important;
+}
+
+/* Estilo para el dropdown de sugerencias */
+.el-autocomplete__suggestions {
+    border-radius: 8px !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+    border: 1px solid rgb(209, 213, 219) !important;
+}
+
+.el-autocomplete__suggestions li {
+    padding: 10px 12px !important;
+    font-size: 0.875rem !important;
+}
+
+.el-autocomplete__suggestions li:hover {
+    background-color: #f3f4f6 !important;
+}
+
+.el-autocomplete__suggestions li.highlighted {
+    background-color: #f3f4f6 !important;
+}
+
+.custom-autocomplete .el-input__inner:focus {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    padding-bottom: 5px !important;
+}
+
+.custom-autocomplete .el-input__inner {
+    padding-bottom: 5px !important;
+}
+
+/* Estilos para cuando el input tiene valor (no placeholder) */
+.custom-autocomplete .el-input__wrapper:not(.is-focus) .el-input__inner:not(:placeholder-shown) ~ .el-input__suffix {
+    /* Ajustes si necesitas */
+}
+
+.rotate-y-180 {
+    transform: rotateY(180deg);
+}
+
+/* ======================== EL-TEXTAREA SOLO BORDE INFERIOR ======================== */
+/* El contenedor del textarea */
+.textarea-border-bottom {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-end !important;
+}
+
+.textarea-border-bottom .el-textarea__inner {
+  border: none !important;
+  border-bottom: 2px solid rgb(209, 213, 219) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 0 0 6px 0 !important;
+  resize: none !important;
+  overflow-y: auto !important;
+  /* Fuerza la alineación inferior */
+  display: flex !important;
+  align-items: flex-end !important;
+  line-height: 1.4;
+  text-transform: uppercase !important;
+   font-weight: bold !important;
+  color: #1f2937 !important;
+  padding: 0 0 2px 0 !important; /* Reduce el padding-bottom (era 6px, ahora 2px) */
+  margin-bottom: 0 !important; /* Elimina margin-bottom */
+}
+
+.textarea-border-bottom .el-textarea__inner:focus {
+  border-bottom: 2px solid var(--color-1-1) !important;
+}
+
+.swal-tramites-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-tramite-base {
+    border-radius: 9999px;
+    padding: 8px 20px;
+    border: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-por-iniciar { background-color: var(--color1); color: white; cursor: pointer; }
+.btn-en-proceso  { background-color: #3b82f6; color: white; cursor: pointer; }
+.btn-concluido   { background-color: #10b981; color: white; cursor: pointer; }
+.btn-bloqueado   { background-color: #cbd5e1; color: #94a3b8; cursor: not-allowed; opacity: 0.6; }
+
+.saas-color-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 2px 6px;
+    background: #ffffff;
+    /* border-radius: 10px;
+    border: 1px solid #e2e8f0; */
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.saas-color-card.is-interactive:hover {
+    /* border-color: var(--color-institucional); */
+    transform: translateY(-1px);
+    /* box-shadow: 0 6px 15px -3px rgba(37, 99, 235, 0.08), 0 4px 6px -4px rgba(37, 99, 235, 0.05); */
+}
+
+.saas-color-card.is-locked {
+    opacity: 0.6;
+    background-color: #f8fafc;
+}
+
+/* Izquierda de la tarjeta */
+.saas-card-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-grow: 1;
+    margin-right: 12px;
+}
+
+/* Insignia de icono adaptada al Color 1 */
+.saas-icon-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: var(--color1-100);
+    color: var(--color1);
+    flex-shrink: 0;
+}
+
+/* Textos de la tarjeta */
+.saas-card-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.saas-card-label {
+    color: #0f172a;
+    font-size: 0.88rem;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.saas-card-subtext {
+    color: #64748b;
+    font-size: 0.72rem;
+    margin-top: 2px;
+    font-weight: 400;
+}
+
+/* Botón con rounded-full (Píldora total) y Color Institucional */
+.saas-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding: 8px 20px;
+    border-radius: 9999px; /* Equivalente a rounded-full */
+    border: none;
+    background-color: var(--color1);
+    color: #ffffff;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.saas-pill-btn:hover:not(:disabled) {
+    background-color: var(--color-1);
+    box-shadow: 0 4px 8px rgba(37, 99, 235, 0.25);
+}
+
+.saas-pill-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background-color: #cbd5e1;
+    color: #475569;
+    box-shadow: none;
 }

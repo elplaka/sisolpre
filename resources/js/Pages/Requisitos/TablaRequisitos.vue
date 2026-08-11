@@ -534,7 +534,6 @@
     const crearAsignacionRequisitoTramite = async () => {
         const formData = new FormData()
 
-        isSavingModal.value = true       
         formData.append('idTramite', idTramite.value)
         formData.append('idTramiteOriginal', idTramiteOriginal.value)
         formData.append('idRequisitoEditar', idRequisitoEditar.value)
@@ -574,6 +573,12 @@
                     })
                     showModalRequisitoTramite.value = false
                     isSavingModal.value = false
+                },
+                onStart: () => {
+                    isSavingModal.value = true;
+                },
+                onFinish: () => {
+                    isSavingModal.value = false;
                 },
                 onError: (errors) => {
                     isSavingModal.value = false
@@ -1266,8 +1271,8 @@
 <template>
     <section class="bg-gray-50 dark:bg-gray-900 p-3 sm:p-5">
         <div class="mx-auto max-w-screen-xl lg:px-0 w-[100%] sm:w-[100%] md:w-[100%] lg:w-[100%]">
-            <div class="flex flex-col md:flex-row items-start md:items-center md:mb-5 md:mr-2 justify-between mt-20">
-                <h1 class="text-2xl font-bold">Requisitos </h1>
+            <div class="flex flex-col md:flex-row items-start md:items-center md:mb-5 md:mr-2 justify-between">
+                <h1 class="text-2xl font-bold ml-2">Requisitos </h1>
                 <button
                     v-if="agruparTramites"
                     ref="nuevaBtn"

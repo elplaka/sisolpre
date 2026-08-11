@@ -18,10 +18,16 @@ class Propiedad extends Model
         'numero',
         'id_colonia',
         'id_localidad',
+        'codigo_postal',
+        'referencias_ubicacion',
         'superficie',
         'superficie_construccion',
         'id_contacto',
-        'img_croquis'
+        'img_croquis',
+        'coordenada_utm_x',
+        'coordenada_utm_y',
+        'activa',
+        'editable'
     ];
 
     public function colonia()
@@ -51,7 +57,6 @@ class Propiedad extends Model
 
     protected static function booted()
     {
-        // ✅ Escucha el evento 'creating' para asignar la fecha
         static::creating(function (Propiedad $propiedad) {
             $propiedad->fecha_aceptacion = now();
         });

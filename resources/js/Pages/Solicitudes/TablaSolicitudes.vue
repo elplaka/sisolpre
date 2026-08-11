@@ -5,6 +5,7 @@
     import Swal from 'sweetalert2'
     import CalendarUp from '@/Components/UI/Icons/CalendarUp.vue';
     import CalendarDown from '@/Components/UI/Icons/CalendarDown.vue';
+    
 
     const props = defineProps({
         solicitudes: Array,
@@ -29,7 +30,7 @@
         idRangoFechasAceptacionQuery: Number,
         tiposTramitesQuery: Array,
         tramitesQuery: Array,
-        filtroChkSolicitudes: Number,
+        filtroChkSolicitudes: [Number, String],
         sortDirection: String,
         sortColumn: String,
         paraNuevaSolicitud: {
@@ -44,6 +45,8 @@
         },
         periodoActual: Object
     })
+
+    const solicitudSelected = ref(null)
 
     // Paleta de colores neutros (Guinda a Gris Oscuro)
     const colorPalette = ref([
@@ -102,6 +105,7 @@
     };
 
     const ID_CONSTANCIA_UBICACION = 18;
+    const ID_CONSTANCIA_NUMERO_OFICIAL = 4;
     
     const intervalo = ref(null)
     const intervaloMs = 30000 // 👈 ajusta aquí la frecuencia del polling
@@ -315,7 +319,6 @@
             apePropietario.value = propietario.persona?.apellidos
             telefonoPropietario.value = propietario.telefono
             emailPropietario.value = propietario.email
-            console.log(propietario.domicilio_notificacion)
             idDomicilioNotificacionPropietario.value = propietario.domicilio_notificacion?.id
             domicilioNotificacionPropietario.value = propietario.domicilio_notificacion?.direccion
             curpPropietarioInvalida.value = false
@@ -576,6 +579,327 @@
         idLocalidadReferenciaBloqueado.value = valor  
     }
 
+    const abrirRutaDinamica = (idTramite, idSolicitud) => {
+        let nombreRuta = '';
+
+        switch (idTramite) {
+            case 4:
+                nombreRuta = 'constancias-numero-oficial.get-tramite';
+                break;
+            
+            // Aquí podrás agregar futuros casos fácilmente
+            case 5:
+                nombreRuta = 'otro-tramite.nombre-de-ruta';
+                break;
+
+            default:
+                console.warn(`No hay una ruta configurada para el trámite con ID: ${idTramite}`);
+                return; // Salimos si no hay ruta definida
+        }
+
+        // Ejecutamos la navegación con la ruta seleccionada
+        router.post(route(nombreRuta), { 
+            id_solicitud: idSolicitud,
+        });
+    };
+
+    // Configuración centralizada
+    const CONFIG_TRAMITES = {
+        ACTIVOS: [4], // Agrega aquí los nuevos IDs conforme los habilites
+        DESCRIPCION_DESHABILITADO: 'Trámite en desarrollo'
+    };
+
+    const abrirTramite = async (solicitud, esAceptacion = false) => {
+        let idTramiteSeleccionado = null;
+        const folioFormateado = solicitud.folio.toString().slice(-5).padStart(5, '0');
+        const idUnico = solicitud.tramites[0].tramite ? solicitud.tramites[0].tramite.id : solicitud.tramites[0].id_tramite;
+        const esActivo = CONFIG_TRAMITES.ACTIVOS.includes(idUnico);
+
+        function obtenerEstadoTramites(tramitesDisponibles, tramitesAsignados = [], configActivos = []) {
+            return tramitesDisponibles.map(t => {
+                const id = t.tramite.id;
+                const nombre = t.tramite.nombre;
+                const asignado = tramitesAsignados.find(ta => ta.id_tramite === id);
+                
+                // Verificamos primero si está permitido por configuración
+                const esActivo = configActivos.includes(id);
+                
+                if (asignado) {
+                    // Si está asignado, pero NO está en los activos permitidos por config, lo bloqueamos
+                    if (!esActivo) {
+                        return {
+                            id,
+                            nombre,
+                            accionTexto: 'No disponible',
+                            estadoBadge: 'Bloqueado',
+                            claseCss: 'btn-bloqueado',
+                            interactivo: false
+                        };
+                    }
+                    
+                    // Si está asignado y sí es activo, evaluamos si está concluido o en proceso
+                    const esConcluido = asignado.id_estatus === 99 || ['concluido', 'finalizado'].includes(asignado.estado);
+                    return {
+                        id,
+                        nombre,
+                        accionTexto: esConcluido ? 'Ver detalles' : 'Continuar',
+                        estadoBadge: esConcluido ? 'Concluido' : 'En proceso',
+                        claseCss: esConcluido ? 'btn-concluido' : 'btn-en-proceso',
+                        interactivo: true
+                    };
+                }
+                
+                // Si no está asignado, evaluamos si se puede iniciar o queda no disponible
+                return {
+                    id,
+                    nombre,
+                    accionTexto: esActivo ? 'Iniciar' : 'No disponible',
+                    estadoBadge: esActivo ? 'Por Iniciar' : 'Bloqueado',
+                    claseCss: esActivo ? 'btn-por-iniciar' : 'btn-bloqueado',
+                    interactivo: esActivo
+                };
+            });
+        }
+
+        if (solicitud.tramites.length > 1) {
+            const tramites = obtenerEstadoTramites(
+                solicitud.tramites, 
+                solicitud.tramites_asignados, 
+                CONFIG_TRAMITES.ACTIVOS
+            );
+
+            await Swal.fire({
+                title: '<span class="inline-flex items-center gap-2 text-slate-800 font-bold"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7b003a" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg> Selección de Trámite</span>',
+                html: `
+                    <div class="text-left mt-1">
+                        <!-- Header de Folio limpio -->
+                        <div class="flex items-center justify-between bg-white border border-slate-200 rounded-xl px-4 py-3 mb-4 shadow-2xs">
+                            <span class="text-slate-800 text-sm font-bold uppercase tracking-wider">Folio de Solicitud</span>
+                            <div class="flex items-center gap-3">
+                                <div class="h-5 w-1" style="background-color: var(--color1, #7b003a);"></div>
+                                <span class="text-slate-900 text-base font-black tracking-tight">${folioFormateado}</span>
+                            </div>
+                        </div>
+
+                        <p class="text-slate-600 text-sm mb-3.5 font-medium">
+                            Elige el trámite que deseas iniciar para esta solicitud:
+                        </p>
+
+                        <div class="flex flex-col gap-2">
+                            ${tramites.map((t, index) => `
+                                <div class="flex items-stretch bg-white border rounded-xl overflow-hidden transition-all duration-200 ${
+                                    t.interactivo 
+                                        ? 'border-slate-300 shadow-sm opacity-100' 
+                                        : 'border-slate-200 bg-slate-50/60 opacity-60'
+                                }">
+                                    
+                                    <!-- Bloque Izquierdo: Ícono SVG -->
+                                    <div class="flex flex-col items-center justify-center w-12 flex-shrink-0 border-r ${
+                                        t.interactivo 
+                                            ? 'bg-slate-50 border-slate-200' 
+                                            : 'bg-slate-100 border-slate-200'
+                                    }">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${t.interactivo ? '#7b003a' : '#94a3b8'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                            <polyline points="14 2 14 8 20 8"></polyline>
+                                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                                            <polyline points="10 9 9 9 8 9"></polyline>
+                                        </svg>
+                                    </div>
+
+                                    <!-- Contenido Principal -->
+                                    <div class="flex items-center justify-between p-3 w-full gap-2.5">
+                                        <div class="flex flex-col text-left overflow-hidden">
+                                            <span class="text-sm font-bold truncate ${t.interactivo ? 'text-slate-900' : 'text-slate-400'}">
+                                                ${t.nombre}
+                                            </span>
+                                            <span class="text-xs font-semibold mt-0.5 flex items-center gap-1.5 ${t.interactivo ? 'text-slate-600' : 'text-slate-400'}">
+                                                <!-- Pequeño SVG indicador con color1 directo para asegurar su visualización -->
+                                                <svg width="6" height="6" viewBox="0 0 24 24" fill="${t.interactivo ? '#7b003a' : '#cbd5e1'}" stroke="none">
+                                                    <circle cx="12" cy="12" r="10"></circle>
+                                                </svg>
+                                                ${t.interactivo ? 'Disponible para selección' : 'No disponible actualmente'}
+                                            </span>
+                                        </div>
+
+                                        <!-- Botón conectado a la variable de Tailwind -->
+                                        <button type="button" 
+                                                class="${t.claseCss} py-2 px-4 text-sm rounded-full font-bold flex-shrink-0 transition-colors ${
+                                                    t.interactivo 
+                                                        ? 'text-white hover:bg-color1-600 cursor-pointer' 
+                                                        : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                                                }" 
+                                                style="${t.interactivo ? 'background-color: var(--color1, #7b003a);' : ''}"
+                                                ${!t.interactivo ? 'disabled' : ''}>
+                                            ${t.accionTexto}
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `,
+                showConfirmButton: false,
+                showCancelButton: true,
+                cancelButtonColor: '#64748b',
+                cancelButtonText: 'Cerrar',
+                didOpen: () => {
+                    const container = Swal.getHtmlContainer();
+                    container.querySelectorAll('button').forEach((btn, index) => {
+                        if (tramites[index].interactivo) {
+                            btn.onclick = () => {
+                                idTramiteSeleccionado = tramites[index].id;
+                                Swal.close();
+                            };
+                        }
+                    });
+                }
+            });
+
+            if (!idTramiteSeleccionado) return;
+            if (idTramiteSeleccionado) {
+                abrirRutaDinamica(idTramiteSeleccionado, solicitud.id);
+                return;
+            }
+
+        }
+        else if (solicitud.tramites.length == 1 && esActivo)
+        {
+            if (solicitud.tramites_asignados && solicitud.tramites_asignados[0]?.id_estatus == 99)
+            {
+               const result = await Swal.fire({
+                    title: 'Registro de Trámite Concluido',
+                    html: `
+                        <div style="text-align: left; margin-top: 0.25rem;">         
+                            <!-- Ficha de datos estilo tabla/oficio -->
+                            <table style="width: 100%; border-collapse: collapse; margin-bottom: 1rem; font-size: 0.85rem;">
+                                <tr>
+                                    <td style="padding: 6px 8px; background-color: #f8fafc; border: 1px solid #e2e8f0; color: #64748b; font-weight: 600; width: 35%;">Folio Solicitud</td>
+                                    <td style="padding: 6px 8px; background-color: #ffffff; border: 1px solid #e2e8f0; color: #0f172a; font-weight: 700;">${folioFormateado}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 6px 8px; background-color: #f8fafc; border: 1px solid #e2e8f0; color: #64748b; font-weight: 600;">Trámite</td>
+                                    <td style="padding: 6px 8px; background-color: #ffffff; border: 1px solid #e2e8f0; color: #1e293b; font-weight: 600;">${solicitud.tramites[0].tramite.nombre ?? 'Constancia de Número Oficial'}</td>
+                                </tr>
+                            </table>
+
+                            <div style="display: inline-flex; align-items: center; gap: 6px; background-color: #ecfdf5; color: #047857; font-size: 0.75rem; font-weight: 700; padding: 3px 8px; border-radius: 4px; margin-bottom: 0.85rem; border: 1px solid #d1fae5;">
+                                <span style="width: 6px; height: 6px; background-color: #059669; border-radius: 50%;"></span>
+                                ENTREGADO A LA PERSONA SOLICITANTE
+                            </div>
+
+                            <!-- Nota al pie de solo consulta -->
+                            <p style="color: #475569; font-size: 0.9rem; line-height: 1.4; border-top: 1px dashed #cbd5e1; padding-top: 0.75rem; margin: 0; text-align: justify">
+                                El expediente se encuentra archivado y el proceso ha finalizado formalmente. Se abrirá la vista en <strong>modo de consulta</strong> para la revisión de los detalles del trámite.
+                            </p>
+                        </div>
+                    `,
+                    icon: 'success', 
+                    showCancelButton: true,
+                    reverseButtons: true,
+                    confirmButtonText: 'Ver expediente',
+                    cancelButtonText: 'Cerrar'
+                });
+
+                if (!result.isConfirmed) {
+                    return;
+                }
+
+                abrirRutaDinamica(solicitud.tramites_asignados[0].id_tramite, solicitud.id);
+
+                return;
+            }
+
+            if (solicitud.tramites_asignados && solicitud.tramites_asignados.length > 0 && (solicitud.tramites_asignados[0]?.documento_generado && solicitud.tramites_asignados[0]?.id_estatus != 99))
+            {
+                const result = await Swal.fire({
+                    title: 'Seguimiento de Trámite',
+                    html: `
+                        <div style="text-align: left; margin-top: 0.25rem;">           
+
+                            <!-- Ficha de datos estilo tabla/oficio -->
+                            <table style="width: 100%; border-collapse: collapse; margin-bottom: 1rem; font-size: 0.85rem;">
+                                <tr>
+                                    <td style="padding: 6px 8px; background-color: #f8fafc; border: 1px solid #e2e8f0; color: #64748b; font-weight: 600; width: 35%;">Folio de Solicitud</td>
+                                    <td style="padding: 6px 8px; background-color: #ffffff; border: 1px solid #e2e8f0; color: #0f172a; font-weight: 700;">${folioFormateado}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 6px 8px; background-color: #f8fafc; border: 1px solid #e2e8f0; color: #64748b; font-weight: 600;">Trámite</td>
+                                    <td style="padding: 6px 8px; background-color: #ffffff; border: 1px solid #e2e8f0; color: #1e293b; font-weight: 600;">${solicitud.tramites[0].tramite.nombre ?? 'Constancia de Número Oficial'}</td>
+                                </tr>
+                            </table>
+
+                           <div style="display: inline-flex; align-items: center; gap: 6px; background-color: ${solicitud.tramites_asignados[0]?.id_estatus === 2 ? '#f0fdf4' : '#eff6ff'}; color: ${solicitud.tramites_asignados[0]?.id_estatus === 2 ? '#15803d' : '#1d4ed8'}; font-size: 0.75rem; font-weight: 700; padding: 3px 8px; border-radius: 4px; margin-bottom: 0.85rem; border: 1px solid ${solicitud.tramites_asignados[0]?.id_estatus === 2 ? '#bbf7d0' : '#bfdbfe'};">
+                                <span style="width: 6px; height: 6px; background-color: ${solicitud.tramites_asignados[0]?.id_estatus === 2 ? '#22c55e' : '#2563eb'}; border-radius: 50%;"></span>
+                                ${solicitud.tramites_asignados[0]?.id_estatus === 2 ? 'TRÁMITE APROBADO' : 'TRÁMITE EN PROCESO DE GESTIÓN'}
+                            </div>
+
+                            <!-- Nota de seguimiento justificada -->
+                            <p style="color: #475569; font-size: 0.9rem; line-height: 1.4; border-top: 1px dashed #cbd5e1; padding-top: 0.75rem; margin: 0; text-align: justify;">
+                                ${solicitud.tramites_asignados[0]?.id_estatus === 2 
+                                    ? 'El presente expediente cuenta con un trámite que ha sido aprobado exitosamente. Al continuar, podrá consultar los detalles finales, registros y documentos correspondientes en el panel de gestión y control.' 
+                                    : 'El presente expediente cuenta con un trámite activo que se encuentra actualmente en las fases de integración y revisión técnica. Al continuar, accederá al panel de gestión y control para dar seguimiento a los datos, registros y documentos correspondientes.'}
+                            </p>
+                        </div>
+                    `,
+                    icon: 'warning', // Sin icono para mantener la consistencia visual de cédula institucional
+                    showCancelButton: true,
+                    reverseButtons: true,
+                    confirmButtonText: solicitud.tramites_asignados[0]?.id_estatus === 2 ? 'Ver detalles finales' : 'Continuar trámite',
+                    cancelButtonText: 'Cerrar'
+                });
+
+                if (!result.isConfirmed) {
+                    return;
+                }
+
+                abrirRutaDinamica(solicitud.tramites_asignados[0].id_tramite, solicitud.id);
+
+                return;
+            }
+
+               const result = await Swal.fire({
+                title: '¿Iniciar el trámite?',
+                html: `
+                    <div style="text-align: left; margin-top: 0.25rem;">
+                        ${esAceptacion ? `
+                            <div style="background-color: #dcfce7; border: 1px solid #bbf7d0; color: #166534; padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.75rem; text-align: center;">
+                                ✓ Solicitud Aceptada
+                            </div>
+                        ` : ''}
+
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 1rem; font-size: 0.85rem;">
+                            <tr>
+                                <td style="padding: 6px 8px; background-color: #f8fafc; border: 1px solid #e2e8f0; color: #64748b; font-weight: 600; width: 35%;">Folio de Solicitud</td>
+                                <td style="padding: 6px 8px; background-color: #ffffff; border: 1px solid #e2e8f0; color: #0f172a; font-weight: 700;">${folioFormateado}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 6px 8px; background-color: #f8fafc; border: 1px solid #e2e8f0; color: #64748b; font-weight: 600;">Trámite</td>
+                                <td style="padding: 6px 8px; background-color: #ffffff; border: 1px solid #e2e8f0; color: #1e293b; font-weight: 600;">${solicitud.tramites[0]?.tramite?.nombre ?? 'Constancia de Número Oficial'}</td>
+                            </tr>
+                        </table>
+
+                        <p style="color: #475569; font-size: 0.9rem; line-height: 1.4; border-top: 1px dashed #cbd5e1; padding-top: 0.75rem; margin: 0; text-align: justify;">
+                            Se procederá a dar seguimiento con la solicitud de acuerdo a la normativa establecida. ¿Deseas dar inicio al trámite correspondiente?
+                        </p>
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                reverseButtons: true,
+                confirmButtonText: 'Sí, dar inicio',
+                cancelButtonText: 'Más adelante'
+            });
+
+            if (!result.isConfirmed) {
+                return;
+            }
+
+            abrirRutaDinamica(4, solicitud.id);
+        }
+    }
+
     const imprimirSolicitud = async (solicitud) => {
         // isLoading.value = true
 
@@ -700,6 +1024,7 @@
 
         const data = await response.json()
         solicitud = data.solicitud // Aquí se almacenan los datos en la variable puestos
+        solicitudSelected.value = solicitud
         requisitos.value = data.requisitos
 
         dropdownVisible.value = null
@@ -1967,7 +2292,7 @@
                     apePropietario.value = propiedad.value?.contacto.persona?.apellidos
                     telefonoPropietario.value = propiedad.value?.contacto.telefono
                     emailPropietario.value = propiedad.value?.contacto.email
-                    domicilioNotificacionPropietario.value = propiedad.value?.contacto.domicilio_notificacion.direccion
+                    domicilioNotificacionPropietario.value = propiedad.value?.contacto?.domicilio_notificacion?.direccion
 
                     idContactoPropiedad.value = propiedad.value.id_contacto
 
@@ -2758,6 +3083,7 @@
                 propiedadEsEditable.value = router.page.props.flash.solicitud?.propiedad?.editable
                 estatusSolicitudSelect.value = props.estatusSolicitud.filter((item) => item.id > 1)
                 paraEditarSolicitud.value = router.page.props.flash.solicitud ? true : false
+                solicitudSelected.value = router.page.props.flash.solicitud
 
                 if (idEstatusSolicitud.value == 99) 
                 {
@@ -2767,7 +3093,6 @@
                 activeTab.value = router.page.props.flash.activeTab || 'croquis'
             },
             onFinish: () => {
-                // isSavingModal.value = false
                 cambiaTabError.value = true //Cambia el tab por error
             },
             preserveScroll: true,
@@ -2775,8 +3100,6 @@
             replace: true,
 
             onError: async (errors) => {
-                // isSavingModal.value = false
-
                 if (errors.duplicado) 
                 {
                     const result = await Swal.fire({
@@ -3298,7 +3621,12 @@
         return `${day}/${month}/${year}`
     }
 
-    const actualizarTramitesSeleccionados = async (tramiteId) => { 
+    const actualizarTramitesSeleccionados = async (tramiteId) => {  
+        if (tramiteId == ID_CONSTANCIA_NUMERO_OFICIAL)
+        {
+            numeroPropiedad.value = ''
+        }
+        
         if (tramiteId === ID_CONSTANCIA_UBICACION && tramitesSeleccionados.value.length > 0 && !tramitesSeleccionados.value.includes(ID_CONSTANCIA_UBICACION)) {
             Swal.fire({
                 icon: 'warning', // Puedes usar 'error', 'info', etc.
@@ -3372,6 +3700,8 @@
                 tramitesSeleccionados.value.push(tramiteId); 
             }
 
+            // Ejecuta esto en la consola del navegador:
+
             refrescaCroquis()
         }
 
@@ -3417,8 +3747,7 @@
         }
     }
 
-    //CHECKPOINT: Checar cuando selecciono otro trámite que no estaba seleccionado se borran los REQUISITOS
-
+    
     function closeDropdown() {
         dropdownVisible.value = null
     }
@@ -3663,14 +3992,82 @@
 
         if (idEstatusSolicitud.value == 99) 
         {
+           // 1. Verificar si alguno de los trámites de la solicitud tiene un ID activo en la configuración
+            const tieneTramiteActivo = solicitudSelected.value?.tramites?.some(t => {
+                const id = t.tramite?.id ?? t.id;
+                return CONFIG_TRAMITES.ACTIVOS.includes(id);
+            });
+
+            // 2. Calcular la cantidad de trámites y el texto correspondiente
+            const cantidadTramites = solicitudSelected.value?.tramites?.length || 0;
+  
+            // 3. Construir el HTML condicionalmente (solo si hay un trámite activo según CONFIG_TRAMITES)
+            const htmlCondicional1 = tieneTramiteActivo ? `
+                <div style="display: flex; align-items: center; background-color: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #dc2626; padding: 10px 12px; border-radius: 6px;">
+                   <svg 
+                        style="width: 20px; height: 20px; color: #dc2626; flex-shrink: 0; margin-right: 10px;" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        stroke-width="2" 
+                        viewBox="0 0 24 24">
+                        <path 
+                            stroke-linecap="round" 
+                            stroke-linejoin="round" 
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l4.414 4.414A1 1 0 0118 8.414V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span style="color: #1e293b; font-size: 0.9rem;">
+                        La información capturada <strong>generará los registros correspondientes</strong> para dar continuidad a la solicitud.
+                    </span>
+                </div>
+            ` : '';
+            const htmlCondicional2 = tieneTramiteActivo ? `
+                <div style="display: flex; align-items: center; background-color: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #dc2626; padding: 10px 12px; border-radius: 6px;">
+                    <svg 
+                        style="width: 20px; height: 20px; color: #dc2626; flex-shrink: 0; margin-right: 10px;" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        stroke-width="2" 
+                        viewBox="0 0 24 24">
+                        <path 
+                            stroke-linecap="round" 
+                            stroke-linejoin="round" 
+                            d="M12 8v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                    </svg>
+                    <span style="color: #1e293b; font-size: 0.9rem;">
+                        Algunos procesos pueden requerir <strong>seguimiento desde módulos específicos</strong> del sistema.
+                    </span>
+                </div>
+            ` : '';
+
+            // 4. Lanzar el SweetAlert
             const result = await Swal.fire({
-                icon: 'warning',
-                title: '¿Deseas aceptar la solicitud?',
-                html: `<div style="text-align: center; font-size: 12pt">
-                    Si ACEPTAS, a la solicitud ya no se le podrá hacer cambios. </div>`,
+                title: '<h3 style="font-size: 1.75rem; font-weight: 700; color: #0f172a; margin: 0;">¿Aceptar esta solicitud?</h3>',
+                html: `
+                    <div style="text-align: left; font-size: 0.95rem; line-height: 1.5; color: #475569; margin-top: 0.75rem;">
+                        <p style="margin-bottom: 0.85rem; color: #334155; font-weight: 500;">
+                            Al confirmar esta acción ocurrirá lo siguiente:
+                        </p>
+
+                        <div style="display: flex; flex-direction: column; gap: 0.65rem;">
+                            ${htmlCondicional1}
+                            ${htmlCondicional2}
+                            <div style="display: flex; align-items: center; background-color: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #dc2626; padding: 10px 12px; border-radius: 6px;">
+                                <svg style="width: 20px; height: 20px; color: #dc2626; flex-shrink: 0; margin-right: 10px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                </svg>
+                                <span style="color: #1e293b; font-size: 0.9rem;"><strong>Se bloqueará la edición de la solicitud</strong>; ya no podrás modificar datos ni documentos.</span>
+                            </div>
+                        </div>
+                    </div>
+                `,
                 showCancelButton: true,
-                confirmButtonText: 'Aceptar',
-                cancelButtonText: 'Cancelar',
+                reverseButtons: true,
+                confirmButtonText: 'Sí, aceptar',
+                confirmButtonColor: '#dc2626',
+                cancelButtonText: 'No por ahora',
+                cancelButtonColor: '#64748b',
+                width: '32rem',
+                padding: '1.5rem',
                 allowOutsideClick: false,
                 allowEscapeKey: false,
                 didOpen: () => {
@@ -3679,7 +4076,7 @@
                         swalContainer.style.setProperty('z-index', '99999', 'important')
                     }
                 }
-            })
+            });
 
             if (result.isDismissed) {
                 return
@@ -3828,6 +4225,9 @@
             formData.append('croquis', file.value, nombreArchivoCroquis)
         }
         try {
+            const idEstatus = formData.get('idEstatusSolicitud');
+            // console.log('idEstatus', idEstatus);
+            // return
             await router.post('/solicitudes/update/' + idSolicitudEditar.value, formData, {
                 preserveScroll: true,
                 preserveState: true,
@@ -3842,21 +4242,27 @@
                     } 
                     else 
                     {
-                        Swal.fire({ 
-                            toast: true,
-                            icon: 'success',
-                            position: 'top-end',
-                            showConfirmButton: false,
-                            title: router.page.props.flash.success,
-                            timer: 2000,
-                            timerProgressBar: true
-                        })
+                        if (idEstatus != 99)
+                        {
+                            Swal.fire({ 
+                                toast: true,
+                                icon: 'success',
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                title: router.page.props.flash.success,
+                                timer: 2000,
+                                timerProgressBar: true
+                            })
+                        }
                         modalBuscarColoniaVisible.value = false
                         modalBuscarLocalidadVisible.value = false
                         isSavingModal.value = false
                         dialogVisible.value = false
                         resetFormData()
                         iniciarIntervalo()
+                        if (idEstatus == 99) {
+                            abrirTramite(solicitudSelected.value, true) 
+                        }
                     }
                 },
                 onFinish: () => {
@@ -3889,6 +4295,7 @@
                         }
                     })
                 }
+            
             })
         } catch (err) {
             console.error('Error inesperado:', err)
@@ -4579,9 +4986,10 @@
     });
 
     const todosObligatoriosCompletados = computed(() => {
+
         if (requisitos.value.length === 0) {
             // Si no hay requisitos en absoluto, retorna 0 (según tu solicitud)
-            return 0; 
+            return 1; 
         }
         
         // 1. Filtrar los requisitos para obtener solo los obligatorios
@@ -4602,6 +5010,7 @@
 
     const estatusSolicitudSelectFiltrados = computed(() => {
         // Si TODOS los requisitos obligatorios están completados:
+        
         if (!todosObligatoriosCompletados.value) {
             // Filtra el array original para EXCLUIR el estatus con ID 99.
             return estatusSolicitudSelect.value.filter(item => item.id !== 99);
@@ -4641,50 +5050,67 @@
     const selectedEstatus = computed(() => {
         return estatusSolicitudSelectFiltrados.value.find(t => t.id === idEstatusSolicitud.value) || null
     })
+
+    const textoBotonActualizar = computed(() => {
+        return idEstatusSolicitud.value === 99 
+            ? 'Aceptar Solicitud' // O el texto que prefieras para el ID 6
+            : 'Actualizar Solicitud';
+    });
+
+    // function todosAsignados(solicitud) {
+    //     const tramites = solicitud.tramites || [];
+    //     const asignados = solicitud.tramites_asignados || [];
+
+    //     return tramites.every(t => {
+    //         const idDisponible = t.tramite ? t.tramite.id : t.id;
+    //         return asignados.some(ta => ta.id_tramite === idDisponible);
+    //     });
+    // }
+
+    function todosAsignados(solicitud) {
+        const tramites = solicitud.tramites || [];
+        const asignados = solicitud.tramites_asignados || [];
+
+        return tramites.every(t => {
+            const idDisponible = t.tramite ? t.tramite.id : t.id;
+            
+            // Buscamos si existe el trámite asignado y validamos que además tenga documento generado
+            return asignados.some(ta => {
+                const esMismoTramite = ta.id_tramite === idDisponible;
+                const tieneDocumento = ta.documento_generado !== null && ta.documento_generado !== undefined;
+                
+                return esMismoTramite && tieneDocumento;
+            });
+        });
+    }
 </script>
 
 <template>
     <el-dialog v-model="dialogVisible" :width="dialogWidth" :before-close="handleClose" :close-on-click-modal="false" :close-on-press-escape="false" top="6vh" style="border-radius: 12px !important; ">
         <template #header>
-            <div class="flex justify-between w-full items-start"> 
-                <div class="flex items-start flex-shrink-0">
-                    <div v-if="paraEditarSolicitud" class="inline-flex items-center justify-center text-base font-medium whitespace-nowrap">
-                        
-                        <span v-if="solicitudBloqueada" class="pl-0 pr-2 py-0 flex items-center justify-center">
-                            <h3 class="text-xl font-bold">Solicitud</h3>
-                        </span>
-                        <span v-if="solicitudBloqueada" class="bg-color3-500 text-white px-3 py-0 rounded-r-md flex items-center justify-center">
-                            Folio
-                            {{ (folioSolicitud % 100000).toString().padStart(5, '0') }}
-                        </span>
-                        
-                        <span v-if="!solicitudBloqueada" class="pl-0 pr-2 py-0 flex items-center justify-center"> 
-                            <h3 class="text-xl font-bold">Editar Solicitud</h3>
-                        </span>
-                        <span v-if="!solicitudBloqueada" class="bg-color1-700 text-white px-3 py-0 rounded-r-md flex items-center justify-center">
-                            N°
-                            {{ (idSolicitudEditar % 100000).toString().padStart(5, '0') }}
-                        </span>
-                    </div>
-                    <span v-else class="whitespace-nowrap"><h3 class="text-xl font-bold">Nueva Solicitud</h3></span>
-                </div>
-                <div v-if="tramitesSeleccionados.length && activeTab != 'tramite'" 
-                    class="grid grid-cols-[auto_1fr] items-start gap-x-3 text-sm ml-4">
-                    <span v-if="tramitesSeleccionados.length > 1" class="font-semibold text-gray-700 dark:text-gray-300 flex-shrink-0 text-right pt-0.5">
-                        Trámites:
-                    </span>
-                    <span v-else class="font-semibold text-gray-700 dark:text-gray-300 flex-shrink-0 text-right pt-0.5">
-                        Trámite:
-                    </span>
-                    <div class="flex flex-wrap gap-2 items-start">
-                        <div
-                            v-for="tramiteId in tramitesSeleccionados"
-                            :key="tramiteId"
-                            class="flex items-center bg-color1-700 rounded-xl transition duration-100 mt-0">
-                            <span class="text-[12px] text-white font-medium py-0.5 px-3">
-                                {{ tiposTramites.flatMap((t) => t.tramites).find((t) => t.id === tramiteId)?.nombre }}
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 pb-1">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-1.5 bg-color1-600 rounded-full"></div> <div>
+                        <h2 class="text-xl font-bold text-slate-800">
+                            {{ solicitudBloqueada ? 'Solicitud' : (paraEditarSolicitud ? 'Editar Solicitud' : 'Nueva Solicitud') }}
+                        </h2>
+                        <p v-if="paraEditarSolicitud" class="text-xs text-slate-400 font-medium tracking-wide uppercase">
+                            {{ solicitudBloqueada ? 'Folio' : 'ID' }}: 
+                            <span class="text-slate-600">
+                                {{ ((solicitudBloqueada ? folioSolicitud : idSolicitudEditar) % 100000).toString().padStart(5, '0') }}
                             </span>
-                        </div>
+                        </p>
+                    </div>
+                </div>
+
+                <div v-if="tramitesSeleccionados?.length && activeTab != 'tramite'" class="flex flex-wrap items-center gap-2">
+                    <span class="text-[11px] uppercase font-bold text-slate-400 mr-2">
+                        {{ tramitesSeleccionados.length === 1 ? 'Trámite Seleccionado:' : 'Trámites Seleccionados:' }}
+                    </span>
+                    <div v-for="tramiteId in tramitesSeleccionados" 
+                        :key="tramiteId"
+                        class="px-2 py-1 bg-white border border-color1-500 text-color1-600 text-xs font-medium rounded-lg shadow-sm">
+                        {{ tiposTramites.flatMap((t) => t.tramites).find((t) => t.id === tramiteId)?.nombre }}
                     </div>
                 </div>
             </div>
@@ -4779,7 +5205,7 @@
         </div>
         <div class="flex flex-col mb-5 md:flex-row items-center justify-between space-y-4 md:space-y-0 md:space-x-4">
             <div class="relative w-full md:w-auto flex flex-col items-center md:items-start">
-                <label class="block text-sm text-gray-500 dark:text-gray-400">Fecha Ingreso</label>
+                <label class="block text-sm text-gray-500 dark:text-gray-400">Fecha de Ingreso</label>
                 <input
                     v-model="fecha_ingreso"
                     type="date"
@@ -4826,8 +5252,14 @@
                     </el-option>
                 </el-select>
 
-                <div v-else class="py-1 px-1 text-center text-white font-bold rounded-full" :style="{ backgroundColor: colorEstatusSolicitud }">
-                    {{ nombreEstatusSolicitud }}
+                 <div v-else class="inline-flex items-center gap-2 px-4 py-1.5 bg-white border border-slate-200 rounded-lg shadow-sm"
+                    :style="{ boxShadow: `0 0 10px ${colorEstatusSolicitud}30`, borderColor: colorEstatusSolicitud }">
+                    <span class="w-2.5 h-2.5 rounded-full animate-pulse" 
+                        :style="{ backgroundColor: colorEstatusSolicitud, boxShadow: `0 0 8px ${colorEstatusSolicitud}` }">
+                    </span>
+                    <span class="text-sm font-bold tracking-wide" :style="{ color: `color-mix(in srgb, ${colorEstatusSolicitud}, #0f172a 40%)` }">
+                        {{ nombreEstatusSolicitud }}
+                    </span>
                 </div>
             </div>
         </div>
@@ -5018,7 +5450,7 @@
                             v-model="tipoPropiedad"
                             @focus="handleFocusTipoPropiedad(true)"
                             @blur="handleFocusTipoPropiedad(false)"
-                            class="pt-[10px] pl-0 pb-1 bg-transparent border-0 border-b-2 appearance-none text-gray-900 border-gray-300 w-full text-sm focus:outline-none focus:ring-0 focus:border-color1 block dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500 peer bg-gray-50"
+                            class="pt-[10px] pl-0 pb-1 bg-transparent border-0 border-b-2 appearance-none text-gray-900 border-gray-300 w-full text-sm focus:outline-none focus:ring-0 focus:border-color1 block dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500 peer bg-white"
                             required>
                             <option value="" disabled selected style="display: none"></option>
                             <option v-for="(tipo, index) in tiposPropiedades" :key="index" :value="tipo.id">
@@ -5169,7 +5601,8 @@
                 </div>
             </div>
             <div v-if="claveCatastralCompleta" class="md:flex-1 flex md:items-center w-full md:w-auto md:gap-x-3 flex-wrap">
-                <div class="relative z-0 mb-5 group peer w-full md:w-[41%]">
+                <div class="relative z-0 mb-5 group peer w-full"
+                :class="!tramitesSeleccionados?.includes(ID_CONSTANCIA_NUMERO_OFICIAL) ? 'md:w-[41%]' : 'md:w-[56%]'">
                     <input
                         v-model="callePropiedad"
                         ref="floatingCallePropiedadRef"
@@ -5188,7 +5621,7 @@
                     <label
                         style="z-index: 10"
                         class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
-                        Calle
+                        Vialidad
                         <button
                             v-if="!callePropiedadEditable && !callePropiedadBloqueado"
                             class="ml-2 bg-transparent text-gray-500 hover:text-color1"
@@ -5202,7 +5635,8 @@
                         </button>
                     </label>
                 </div>
-                <div class="relative z-0 mb-5 group peer w-full md:w-[15%]">
+                <!-- Si el trámite es CONSTANCIA DE NÚMERO OFICIAL se oculta el número del domicilio -->
+                <div v-if="!tramitesSeleccionados?.includes(ID_CONSTANCIA_NUMERO_OFICIAL)" class="relative z-0 mb-5 group peer w-full md:w-[15%]">
                     <input
                         v-model="numeroPropiedad"
                         ref="floatingNumeroPropiedadRef"
@@ -5811,7 +6245,7 @@
                 <div v-if="esSolicitanteEditable" class="relative z-0 mb-5 group peer w-full md:w-[20%]">
                     <select
                         v-model="esSolicitante"
-                        class="pt-3 pl-0 pb-1 bg-transparent border-0 border-b-2 appearance-none text-gray-900 border-gray-300 w-full text-sm focus:outline-none focus:ring-0 focus:border-color1 block dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500 peer bg-gray-50 p-2.5"
+                        class="pt-3 pl-0 pb-1 bg-transparent border-0 border-b-2 appearance-none text-gray-900 border-gray-300 w-full text-sm focus:outline-none focus:ring-0 focus:border-color1 block dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500 peer bg-white p-2.5"
                         required>
                         <option value="" disabled selected style="display: none"></option>
                         <option :key="'1'" :value="'1'">SÍ</option>
@@ -5987,21 +6421,18 @@
                     </div>
                 </div>
             </div>
-            <div v-if="solicitudBloqueada" class="flex items-center overflow-x-auto">
-                <div v-if="tramitesSeleccionados.length" class="flex flex-wrap gap-2">
+           <div v-if="solicitudBloqueada" class="flex flex-col gap-2 p-3 bg-white border border-slate-200 rounded-lg">
+                <div class="flex flex-wrap gap-2">
                     <div
                         v-for="tramiteId in tramitesSeleccionados"
                         :key="tramiteId"
-                        class="bg-color1-40 border border-color1-400 text-color1-700 text-xs font-semibold px-4 py-3 rounded-2xl flex items-center gap-1 shadow-sm w-full md:w-auto justify-center">
-                        <span class="text-color1-700 flex-shrink-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
-                            <path
-                                fill-rule="evenodd"
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                clip-rule="evenodd"/>
-                            </svg>
+                        class="flex items-center gap-2 px-3 py-1.5 bg-color1-50 border border-color1-200 rounded-md shadow-sm">
+                        <span class="relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-color1-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-color1-500"></span>
                         </span>
-                        <span>
+                        
+                        <span class="text-xs font-medium !text-color1-900">
                             {{ tiposTramites.flatMap((t) => t.tramites).find((t) => t.id === tramiteId)?.nombre }}
                         </span>
                     </div>
@@ -6046,7 +6477,7 @@
                                                     tipoTramite.tramites[index - 1].id
                                                 )
                                             }"
-                                            class="flex items-center justify-center h-full w-full rounded-md px-4 py-2 cursor-pointer border transition-colors hover:shadow-lg hover:-translate-y-1">
+                                            class="flex items-center justify-center h-full w-full rounded-2xl px-4 py-2 cursor-pointer border transition-colors hover:shadow-lg hover:-translate-y-1">
                                             <span class="text-xs dark:text-gray-300 text-center leading-tight">
                                                 {{ tipoTramite.tramites[index - 1]?.nombre }}
                                             </span>
@@ -6107,7 +6538,7 @@
                             v-model="idDestinoObra"
                             @focus="handleFocusDestinoObra(true)"
                             @blur="handleFocusDestinoObra(false)"
-                            class="pt-3 pl-0 pb-1 bg-transparent border-0 border-b-2 appearance-none text-gray-900 border-gray-300 w-full text-sm focus:outline-none focus:ring-0 focus:border-color1 block dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500 peer bg-gray-50 p-2.5"
+                            class="pt-3 pl-0 pb-1 bg-transparent border-0 border-b-2 appearance-none text-gray-900 border-gray-300 w-full text-sm focus:outline-none focus:ring-0 focus:border-color1 block dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500 peer bg-white p-2.5"
                             required>
                             <option value="" disabled selected style="display: none"></option>
                             <option v-for="(destino, index) in destinosObras" :key="index" :value="destino.id">
@@ -6115,7 +6546,7 @@
                             </option>
                         </select>
                         <label
-                            class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-9 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1"
+                            class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-9 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1"
                             :class="{
                                 'scale-85 -translate-y-9': idDestinoObra || isFocusedDestinoObra,
                                 'scale-90 translate-y-[-11px]': !idDestinoObra && !isFocusedDestinoObra
@@ -6168,7 +6599,7 @@
                             v-model="idSector"
                             @focus="handleFocusSector(true)"
                             @blur="handleFocusSector(false)"
-                            class="pt-3 pl-0 pb-1 bg-transparent border-0 border-b-2 appearance-none text-gray-900 border-gray-300 w-full text-sm focus:outline-none focus:ring-0 focus:border-color1 block dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500 peer bg-gray-50 p-2.5"
+                            class="pt-3 pl-0 pb-1 bg-transparent border-0 border-b-2 appearance-none text-gray-900 border-gray-300 w-full text-sm focus:outline-none focus:ring-0 focus:border-color1 block dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500 peer bg-white p-2.5"
                             required>
                             <option value="" disabled selected style="display: none"></option>
                             <option v-for="(sector, index) in sectores" :key="index" :value="sector.id">
@@ -6176,7 +6607,7 @@
                             </option>
                         </select>
                         <label
-                            class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-9 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1"
+                            class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-9 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1"
                             :class="{
                                 'scale-85 -translate-y-9': idSector || isFocusedSector,
                                 'scale-90 translate-y-[-11px]': !idSector && !isFocusedSector
@@ -6231,7 +6662,7 @@
                 <div
                     ref="dropZoneCroquis"
                     v-if="!isFileLoaded && !isLoadingModal && !isUploading"
-                    class="flex items-center justify-center w-full h-60 border-2 border-gray-300 border-dashed rounded-lg bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 cursor-pointer transition-all duration-200 focus:outline-none focus:border-color1-500 focus:ring-1 focus:ring-color1-50" 
+                    class="flex items-center justify-center w-full h-60 border-2 border-gray-300 border-dashed rounded-lg bg-white dark:hover:bg-gray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 cursor-pointer transition-all duration-200 focus:outline-none focus:border-color1-500 focus:ring-1 focus:ring-color1-50" 
                     @click="triggerFileInput"
                     @dragover.prevent="handleDragOver"
                     @drop.prevent="handleDrop"
@@ -6323,7 +6754,7 @@
                             v-model="tipoPropiedadReferencia"
                             @focus="handleFocusTipoPropiedadReferencia(true)"
                             @blur="handleFocusTipoPropiedadReferencia(false)"
-                            class="pt-[10px] pl-0 pb-1 bg-transparent border-0 border-b-2 appearance-none text-gray-900 border-gray-300 w-full text-sm focus:outline-none focus:ring-0 focus:border-color1 block dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500 peer bg-gray-50"
+                            class="pt-[10px] pl-0 pb-1 bg-transparent border-0 border-b-2 appearance-none text-gray-900 border-gray-300 w-full text-sm focus:outline-none focus:ring-0 focus:border-color1 block dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500 peer bg-white"
                             required>
                             <option value="" disabled selected style="display: none"></option>
                             <option v-for="(tipo, index) in tiposPropiedades" :key="index" :value="tipo.id">
@@ -6450,7 +6881,7 @@
                     type="button"
                     class="mt-0 bg-color1-700 hover:bg-color1-800 flex items-center justify-center text-white focus:ring-4 focus:ring-color1-300 font-medium rounded-full text-sm px-6 py-2 focus:outline-none dark:focus:ring-color1-700"
                     @click="actualizarSolicitud">
-                    Actualizar Solicitud
+                    {{ textoBotonActualizar }}
                 </button>
                 <button
                     v-if="!paraEditarSolicitud"
@@ -6500,14 +6931,14 @@
                 <button
                     v-if="permiteDescartarCroquis"
                     type="button"
-                    class="mt-2 bg-color1-700 hover:bg-color1-600 flex items-center justify-center text-white focus:ring-4 focus:ring-color1-300 font-medium rounded-lg text-sm px-6 py-2 focus:outline-none dark:focus:ring-color1-700"
+                    class="mt-2 bg-color1-700 hover:bg-color1-600 flex items-center justify-center text-white focus:ring-4 focus:ring-color1-300 font-medium rounded-full text-sm px-6 py-2 focus:outline-none dark:focus:ring-color1-700"
                     @click="acceptFile">
                     Aceptar
                 </button>
                 <button
                     v-if="permiteDescartarCroquis"
                     type="button"
-                    class="mt-2 bg-color3-700 hover:bg-color3-600 flex items-center justify-center text-white focus:ring-4 focus:ring-color3-300 font-medium rounded-lg text-sm px-6 py-2 focus:outline-none dark:focus:ring-color3-700"
+                    class="mt-2 bg-color3-700 hover:bg-color3-600 flex items-center justify-center text-white focus:ring-4 focus:ring-color3-300 font-medium rounded-full text-sm px-6 py-2 focus:outline-none dark:focus:ring-color3-700"
                     @click="rejectFile">
                     Descartar
                 </button>
@@ -6558,7 +6989,7 @@
         </div>
         <div class="w-full mt-2 overflow-x-auto">
             <table class="min-w-full text-xs text-left text-gray-500 dark:text-gray-400">
-                <thead class="text-sm text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <thead class="text-sm text-gray-700 uppercase bg-white dark:bg-gray-700 dark:text-gray-400">
                     <template v-if="personasFiltradas && personasFiltradas.length > 0">
                         <tr>
                             <th colspan="2" class="px-0 py-1 text-left">RESULTADOS DE LA BÚSQUEDA</th>
@@ -6632,7 +7063,7 @@
         </div>
         <div class="w-full mt-2 overflow-x-auto">
             <table class="min-w-full text-xs text-left text-gray-500 dark:text-gray-400">
-                <thead class="text-sm text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <thead class="text-sm text-gray-700 uppercase bg-white dark:bg-gray-700 dark:text-gray-400">
                     <template v-if="coloniasFiltradas && coloniasFiltradas.length > 0">
                         <tr>
                             <th colspan="2" class="px-0 py-1 text-left">RESULTADOS DE LA BÚSQUEDA</th>
@@ -6726,7 +7157,7 @@
         </div>
         <div class="w-full mt-2 overflow-x-auto">
             <table class="min-w-full text-xs text-left text-gray-500 dark:text-gray-400">
-                <thead class="text-sm text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <thead class="text-sm text-gray-700 uppercase bg-white dark:bg-gray-700 dark:text-gray-400">
                     <template v-if="localidadesFiltradas && localidadesFiltradas.length > 0">
                         <tr>
                             <th colspan="2" class="px-0 py-1 text-left">RESULTADOS DE LA BÚSQUEDA</th>
@@ -6776,10 +7207,10 @@
         </div>
     </el-dialog>
 
-    <section class="bg-gray-50 dark:bg-gray-900 p-3 sm:p-5">
+    <section class="bg-white dark:bg-gray-900 p-3 sm:p-5">
         <div class="mx-auto max-w-screen-xl lg:px-0 w-[100%] sm:w-[100%] md:w-[100%] lg:w-[100%]">
-            <div class="flex flex-col md:flex-row items-start md:items-center md:mb-5 md:mr-2 justify-between mt-20">
-                <h1 class="text-2xl font-bold">Solicitudes </h1>
+            <div class="flex flex-col md:flex-row items-start md:items-center md:mb-5 md:mr-2 justify-between">
+                <h1 class="text-2xl font-bold ml-2">Solicitudes </h1>
                 <button
                     ref="nuevaBtn"
                     @click="abreModalSolicitud"
@@ -6808,7 +7239,7 @@
                             <input
                                 type="text"
                                 id="simple-search"
-                                class="custom-input bg-gray-50 border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-color1-500 focus:border-color1-500 block w-full pl-9 p-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500"
+                                class="custom-input bg-white border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-color1-500 focus:border-color1-500 block w-full pl-9 p-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500"
                                 placeholder="Número"
                                 v-model="numQuery"
                                 @input="handleNumInput"
@@ -6866,7 +7297,7 @@
                             <input
                                 type="text"
                                 id="simple-search"
-                                class="custom-input bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-color1-500 focus:border-color1-500 block w-full pl-10 p-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500"
+                                class="custom-input bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-color1-500 focus:border-color1-500 block w-full pl-10 p-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500"
                                 placeholder="Propietario / Solicitante"
                                 v-model="nombreQuery"
                                 @input="fetchSolicitudes(false)"
@@ -6900,7 +7331,7 @@
                             <input
                                 type="text"
                                 id="simple-search"
-                                class="custom-input bg-gray-50 border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-color1-500 focus:border-color1-500 block w-full pl-10 p-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500"
+                                class="custom-input bg-white border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-color1-500 focus:border-color1-500 block w-full pl-10 p-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500"
                                 placeholder="Clave Catastral"
                                 v-model="claveCatastralQuery"
                                 @input="fetchSolicitudes(false)"
@@ -6965,7 +7396,7 @@
                             <input
                                 type="text"
                                 id="simple-search"
-                                class="custom-input bg-gray-50 border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-color1-500 focus:border-color1-500 block w-full pl-9 p-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500"
+                                class="custom-input bg-white border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-color1-500 focus:border-color1-500 block w-full pl-9 p-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500"
                                 placeholder="Folio"
                                 v-model="folioQuery"
                                 @input="handleFolioInput"
@@ -7399,7 +7830,7 @@
                                 Solicitud # {{ solicitud.id ? (solicitud.id % 100000).toString().padStart(5, '0') : '-' }}
                             </span>
                             <span v-if="solicitud.folio && solicitud.aceptada?.activa == 1" class="mt-1">
-                                <span class="inline-flex items-center justify-center rounded-full px-2 py-1 text-sm font-bold bg-color1-50 text-color1-800">
+                                <span class="inline-flex items-center justify-center rounded-lg px-2 py-1 text-sm font-bold bg-color1-50 text-color1-800">
                                 FOLIO: {{ (solicitud.folio % 100000).toString().padStart(5, '0') }}
                                 </span>
                             </span>
@@ -7420,11 +7851,34 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2" /><path d="M10 12l4 5" /><path d="M10 17l4 -5" />
                                     </svg>
                                 </button>
-                                <button @click.stop="imprimirSolicitud(solicitud)" 
+                                <button v-if="solicitud.id_estatus != 6" @click.stop="imprimirSolicitud(solicitud)" 
                                     class="p-1 text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 transition duration-150 ease-in-out"
                                     title="Imprimir">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5Zm-3 0h.008v.008H15V10.5Z" />
+                                    </svg>
+                                </button>
+                                <button v-if="solicitud.id_estatus == 99 && solicitud.tramites?.some(t => t.id_tramite === 4)" 
+                                        @click.stop="abrirTramite(solicitud)" 
+                                        class="p-1 w-9 h-9 text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 transition duration-150 ease-in-out"
+                                        :title="todosAsignados(solicitud) ? 'Ver Trámite' : 'Iniciar Trámite'">
+                                    <svg 
+                                        xmlns="http://www.w3.org/2000/svg" 
+                                        viewBox="0 0 24 24" 
+                                        fill="none"
+                                        stroke="currentColor" 
+                                        stroke-width="1.33" 
+                                        stroke-linecap="round" 
+                                        stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                        <path d="M19 8.268a2 2 0 0 1 1 1.732v8a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2v-8a2 2 0 0 1 2 -2h3" />
+                                        <path d="M5 15.734a2 2 0 0 1 -1 -1.734v-8a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-3" />
+                                        
+                                        <!-- Reemplazamos el string JS por reactividad pura de Vue -->
+                                        <path v-if="!todosAsignados(solicitud)" 
+                                            d="M18 3.5h4M20 1.5v4" 
+                                            stroke="currentColor" 
+                                            stroke-width="1" />                                            
                                     </svg>
                                 </button>
                             </div>

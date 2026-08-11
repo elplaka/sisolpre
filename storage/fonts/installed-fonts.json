@@ -6,6 +6,23 @@
         "800": "C:\\www\\sistemas\\pmu\\storage\\fonts\/figtree_800_a620d6ed8219d99c8715c36bc6537a50",
         "900": "C:\\www\\sistemas\\pmu\\storage\\fonts\/figtree_900_7589291e976f600be61c31cdd7d499ff",
         "italic": "C:\\www\\sistemas\\pmu\\storage\\fonts\/figtree_italic_65d82ee0c35a90313bd0af43ab024bdb",
-        "bold_italic": "figtree_bold_italic_f2c8cee4270f3aa1cfa37ed05b523935"
+        "bold_italic": "C:\\www\\sistemas\\pmu\\storage\\fonts\/figtree_bold_italic_f2c8cee4270f3aa1cfa37ed05b523935",
+        "300": "C:\\www\\sistemas\\pmu\\storage\\fonts\/figtree_300_586b84e143d7e995bacfb9e87c79536b",
+        "300_italic": "C:\\www\\sistemas\\pmu\\storage\\fonts\/figtree_300_italic_3087e33317ad601b2b895197f6adca67",
+        "500": "C:\\www\\sistemas\\pmu\\storage\\fonts\/figtree_500_236a84dd330338f7f1b0cf972f980142",
+        "500_italic": "C:\\www\\sistemas\\pmu\\storage\\fonts\/figtree_500_italic_6d5e45179576050e4050d463d0a0f35b",
+        "600_italic": "C:\\www\\sistemas\\pmu\\storage\\fonts\/figtree_600_italic_9db99156a2298184217205ddf81c4954",
+        "800_italic": "C:\\www\\sistemas\\pmu\\storage\\fonts\/figtree_800_italic_758422ab3654b1fd8b46dedff6be7e46",
+        "900_italic": "figtree_900_italic_76d8a519b51353ce3ab7f8464c3f9adb"
+    },
+    "figtree-black": {
+        "900": "C:\\www\\sistemas\\pmu\\storage\\fonts\/figtree_black_900_7589291e976f600be61c31cdd7d499ff",
+        "normal": "figtree_black_normal_7589291e976f600be61c31cdd7d499ff"
+    },
+    "figtreeblackcustom": {
+        "normal": "figtreeblackcustom_normal_7589291e976f600be61c31cdd7d499ff"
+    },
+    "figtreeblack": {
+        "normal": "figtreeblack_normal_7589291e976f600be61c31cdd7d499ff"
     }
 }

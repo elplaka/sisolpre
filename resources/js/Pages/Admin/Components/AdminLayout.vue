@@ -20,8 +20,8 @@
   <div class="antialiased bg-gray-50 dark:bg-gray-900">
     <Head title="Inicio" />
 
-    <Navbar :userAuth="userAuth" />
-    <Sidebar ref="sidebar" />
+    <!-- <Navbar :userAuth="userAuth" /> -->
+    <Sidebar :userAuth="userAuth" ref="sidebar" />
     <main :style="{ marginLeft: mainMargin }">
       <slot />
     </main>
@@ -95,7 +95,7 @@ const sidebarWidth = computed(() => {
 const isMdOrLarger = computed(() => windowWidth.value >= 768); // 768px es el breakpoint 'md' de Tailwind por defecto
 
 const mainMargin = computed(() => {
-  return isMdOrLarger.value ? '12rem' : sidebarWidth.value; // '13rem' es el equivalente a md:ml-52
+  return isMdOrLarger.value ? '14rem' : sidebarWidth.value; // '13rem' es el equivalente a md:ml-52
 });
 
 const updateSidebarMarginOnMount = () => {

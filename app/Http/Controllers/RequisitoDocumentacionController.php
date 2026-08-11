@@ -17,50 +17,42 @@ use Illuminate\Validation\Rule;
 const PAG = 10;
 
 class RequisitoDocumentacionController extends Controller
-{  
-    public function obtenerRequisitos($nomRequisitosQuery, $nomTramitesQuery, $obligatorioQuery, $activoQuery, $agruparTramites) : array
-    { 
-        if ($agruparTramites)
-        {
+{
+    public function obtenerRequisitos($nomRequisitosQuery, $nomTramitesQuery, $obligatorioQuery, $activoQuery, $agruparTramites): array
+    {
+        if ($agruparTramites) {
             $applyRequisitosFilter = function ($query) use ($nomRequisitosQuery) {
-                if (!is_null($nomRequisitosQuery) && !empty($nomRequisitosQuery)) 
-                {
+                if (!is_null($nomRequisitosQuery) && !empty($nomRequisitosQuery)) {
                     $query->whereIn('requisitos_documentacion.id', $nomRequisitosQuery);
                 }
                 return $query;
             };
 
             $requisitosQuery = RequisitoDocumentacion::orderBy('nombre')
-                               ->with('tramites');
-                
+                ->with('tramites');
+
             $requisitosQuery = $applyRequisitosFilter($requisitosQuery);
-            
-            if (!is_null($nomTramitesQuery) && !empty($nomTramitesQuery)) 
-            {
+
+            if (!is_null($nomTramitesQuery) && !empty($nomTramitesQuery)) {
                 $requisitosQuery->whereHas('tramites', function ($subQuery) use ($nomTramitesQuery) {
                     $subQuery->whereIn('catalogo_tramites_requisitos.id_tramite_catalogo', $nomTramitesQuery);
                 });
             }
 
-            if (!is_null($activoQuery) && $activoQuery !== '') 
-            {
-                if ($activoQuery) 
-                {
+            if (!is_null($activoQuery) && $activoQuery !== '') {
+                if ($activoQuery) {
                     $requisitosQuery->where('activo', true);
-                } 
-                elseif (!$activoQuery) 
-                {
+                } elseif (!$activoQuery) {
                     $requisitosQuery->where('activo', false);
                 }
             }
-        }
-        else 
-        {
+        } else {
             // 1. Consulta Base con JOINS (Query Builder)
             $requisitosQuery = RequisitoDocumentacion::query()
                 ->leftjoin('catalogo_tramites_requisitos as ctr', 'requisitos_documentacion.id', '=', 'ctr.id_requisito')
                 ->leftjoin('catalogo_tramites as ct', 'ctr.id_tramite_catalogo', '=', 'ct.id')
-                ->select('requisitos_documentacion.id as id',
+                ->select(
+                    'requisitos_documentacion.id as id',
                     'requisitos_documentacion.nombre as requisito_nombre',
                     'requisitos_documentacion.nombre_corto as nombre_corto',
                     'requisitos_documentacion.editable as requisito_editable',
@@ -71,39 +63,29 @@ class RequisitoDocumentacionController extends Controller
                     'ctr.id_requisito as requisito_tramite_id_requisito',
                     'ctr.obligatorio',
                     'ctr.activo as requisito_activo',
-                    'ctr.editable as requisito_tramite_editable')
+                    'ctr.editable as requisito_tramite_editable'
+                )
                 ->orderBy('ct.nombre', 'asc')
                 ->orderBy('requisitos_documentacion.nombre', 'asc');
 
-            if (!is_null($nomRequisitosQuery) && !empty($nomRequisitosQuery)) 
-            {
+            if (!is_null($nomRequisitosQuery) && !empty($nomRequisitosQuery)) {
                 $requisitosQuery->whereIn('requisitos_documentacion.id', $nomRequisitosQuery);
             }
-            
-            if (!is_null($nomTramitesQuery) && !empty($nomTramitesQuery)) 
-            {
+
+            if (!is_null($nomTramitesQuery) && !empty($nomTramitesQuery)) {
                 $requisitosQuery->whereIn('ctr.id_tramite_catalogo', $nomTramitesQuery);
             }
-            if (!is_null($obligatorioQuery) && $obligatorioQuery !== '') 
-            {
-                if ($obligatorioQuery) 
-                {
+            if (!is_null($obligatorioQuery) && $obligatorioQuery !== '') {
+                if ($obligatorioQuery) {
                     $requisitosQuery->where('ctr.obligatorio', true);
-                } 
-                elseif (!$obligatorioQuery) 
-                {
+                } elseif (!$obligatorioQuery) {
                     $requisitosQuery->where('ctr.obligatorio', false);
                 }
             }
-
-            if (!is_null($activoQuery) && $activoQuery !== '') 
-            {
-                if ($activoQuery) 
-                {
+            if (!is_null($activoQuery) && $activoQuery !== '') {
+                if ($activoQuery) {
                     $requisitosQuery->where('ctr.activo', true);
-                } 
-                elseif (!$activoQuery) 
-                {
+                } elseif (!$activoQuery) {
                     $requisitosQuery->where('ctr.activo', false);
                 }
             }
@@ -144,7 +126,7 @@ class RequisitoDocumentacionController extends Controller
             '#800080', // 13. Morado
             '#FF69B4', // 14. Rosa
             '#5c5c5c', // 15. Gris
-            
+
             // 15 TONOS PASTEL (Versiones claras de los anteriores)
             '#6796c7', // 16. Pastel de Negro (Gris Claro)
             '#906969', // 17. Pastel de Guinda (Rosa Pálido)
@@ -169,17 +151,16 @@ class RequisitoDocumentacionController extends Controller
             $filtros['nomTramitesQuery'],
             $filtros['obligatorioQuery'],
             $filtros['activoQuery'],
-            $filtros['agruparTramites'],           
+            $filtros['agruparTramites'],
         );
 
-        if ($filtros['agruparTramites'])
-        { 
-            $requisitos = $requisitosQuery['query']->paginate(PAG);      
+        if ($filtros['agruparTramites']) {
+            $requisitos = $requisitosQuery['query']->paginate(PAG);
 
             // 3. Mapear los colores a la colección de la página actual.
             // Esto debe hacerse después de paginate().
             $requisitos->getCollection()->each(function ($requisito) use ($colores, $totalColores) {
-                
+
                 // Iteramos sobre la relación de trámites cargada
                 $requisito->tramites->each(function ($tramite) use ($colores, $totalColores) {
                     // Asignamos un color basado en el ID del trámite, ciclando con MÓDULO.
@@ -187,17 +168,14 @@ class RequisitoDocumentacionController extends Controller
                     $tramite->color = $colores[$indiceColor];
                 });
             });
-        }
-        else
-        {
+        } else {
             $requisitos = $requisitosQuery['query']->paginate(PAG);
 
             // Mapeamos los colores a la colección de la página actual.
             $requisitos->getCollection()->each(function ($requisito) use ($colores, $totalColores) {
-                
+
                 // Verifica si hay un ID de trámite (puede ser NULL por el leftJoin)
-                if ($requisito->id_tramite !== null) 
-                {
+                if ($requisito->id_tramite !== null) {
                     $indiceColor = ($requisito->id_tramite % $totalColores);
                     $requisito->color = $colores[$indiceColor];
                 } else {
@@ -213,11 +191,11 @@ class RequisitoDocumentacionController extends Controller
         $tramitesSelect = CatalogoTramite::whereHas('requisitos', function ($query) use ($requisitoIds) {
             $query->whereIn('id_requisito', $requisitoIds);
         })->orderBy('nombre')
-        ->get();
+            ->get();
 
         $tramitesSelect->each(function ($tramite) use ($colores, $totalColores) {
             $indiceColor = ($tramite->id % $totalColores);
-            
+
             // Asignar el color al atributo 'color' del modelo
             $tramite->color = $colores[$indiceColor];
         });
@@ -226,7 +204,7 @@ class RequisitoDocumentacionController extends Controller
 
         $tramites->each(function ($tramite) use ($colores, $totalColores) {
             $indiceColor = ($tramite->id % $totalColores);
-            
+
             // Asignar el color al atributo 'color' del modelo
             $tramite->color = $colores[$indiceColor];
         });
@@ -237,7 +215,7 @@ class RequisitoDocumentacionController extends Controller
             'requisitosSelect' => $requisitosSelect,
             'tramitesSelect' => $tramitesSelect,
             'tramites' => $tramites,
-            'agruparTramites' => $filtros['agruparTramites'],  
+            'agruparTramites' => $filtros['agruparTramites'],
             'paginaActual' => $filtros['page'],
         ];
     }
@@ -251,12 +229,12 @@ class RequisitoDocumentacionController extends Controller
         try {
             $messages = [
                 'idTramite.required' => 'Debes seleccionar el <b> Trámite </b> al que se asocia este requisito.',
-                'idTramite.integer' => 'Por favor, seleccionar un <b> Trámite </b>.', 
+                'idTramite.integer' => 'Por favor, seleccionar un <b> Trámite </b>.',
                 'idTramite.exists' => 'El <b> Trámite </b> seleccionado no es válido o no existe.',
 
                 'idRequisito.unique' => 'El <b> Requisito </b> ya está asignado a este <b> Trámite </b>.',
                 'idRequisito.required' => 'Debes seleccionar el <b> Requisito </b> al que se asocia este trámite.',
-                'idRequisito.integer' => 'Por favor, seleccionar un <b> Requisito </b>.', 
+                'idRequisito.integer' => 'Por favor, seleccionar un <b> Requisito </b>.',
                 'idRequisito.exists' => 'El <b> Requisito </b> seleccionado no es válido o no existe.',
             ];
 
@@ -266,11 +244,11 @@ class RequisitoDocumentacionController extends Controller
                     'required',
                     'integer',
                     'exists:requisitos_documentacion,id',
-                    
-                   Rule::unique('catalogo_tramites_requisitos', 'id_requisito')
-                    ->where(function ($query) use ($request) { 
-                        return $query->where('id_tramite_catalogo', $request->input('idTramite'));
-                    }),
+
+                    Rule::unique('catalogo_tramites_requisitos', 'id_requisito')
+                        ->where(function ($query) use ($request) {
+                            return $query->where('id_tramite_catalogo', $request->input('idTramite'));
+                        }),
                 ],
                 'requisitoObligatorio' => 'required',
                 'requisitoActivo' => 'required',
@@ -290,7 +268,7 @@ class RequisitoDocumentacionController extends Controller
 
             $tramite = CatalogoTramite::findOrFail($validatedData['idTramite']);
 
-            $tramite->requisitos()->attach($validatedData['idRequisito'], $datosPivote);    
+            $tramite->requisitos()->attach($validatedData['idRequisito'], $datosPivote);
 
             DB::commit();
 
@@ -322,8 +300,8 @@ class RequisitoDocumentacionController extends Controller
         // dd($request->all());
 
         $filtros = $this->getFilteredParameters($request);
-            
-        $page = $request->input('page', 1); 
+
+        $page = $request->input('page', 1);
 
         $props = $this->prepararVistaRequisitos($filtros);
 
@@ -345,7 +323,7 @@ class RequisitoDocumentacionController extends Controller
     {
         // En un CRUD simple, esto podría renderizar un modal o una página.
         // Aquí redirigimos a Index para usar un modal dentro de esa página.
-        return Inertia::render('Requisitos/Create'); 
+        return Inertia::render('Requisitos/Create');
     }
 
     private function getFilteredParameters(Request $request): array
@@ -368,8 +346,8 @@ class RequisitoDocumentacionController extends Controller
         } else {
             $tramites = $nomTramitesQuery;
         }
-        
-        $valorRaw = $request->input('agruparTramites', 'true'); 
+
+        $valorRaw = $request->input('agruparTramites', 'true');
         $agruparTramites = filter_var($valorRaw, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
         if ($agruparTramites === null) {
             $agruparTramites = true;
@@ -379,21 +357,21 @@ class RequisitoDocumentacionController extends Controller
 
         $obligatorioQuery = $request->input('obligatorioQuery', '');
         $obligatorioQuery = match ($obligatorioQuery) {
-            '1', 1, 'true', true => true, 
-            '0', 0, 'false', false => false, 
-            '', null, 'null' => null, 
-            default => null, 
+            '1', 1, 'true', true => true,
+            '0', 0, 'false', false => false,
+            '', null, 'null' => null,
+            default => null,
         };
-        
+
         $activoQuery = $request->input('activoQuery', '');
         $activoQuery = match ($activoQuery) {
-            '1', 1, 'true', true => true, 
-            '0', 0, 'false', false => false, 
-            '', null, 'null' => null, 
-            default => null, 
-        }; 
-        
-        $page = $request->input('page', 1); 
+            '1', 1, 'true', true => true,
+            '0', 0, 'false', false => false,
+            '', null, 'null' => null,
+            default => null,
+        };
+
+        $page = $request->input('page', 1);
 
         // --- 3. Construir y devolver el array de filtros ---
         return [
@@ -412,43 +390,43 @@ class RequisitoDocumentacionController extends Controller
         try {
             $messages = [
                 'idTramite.required' => 'Debes seleccionar el <b> Trámite </b> al que se asocia este requisito.',
-                'idTramite.integer' => 'Por favor, seleccionar un <b> Trámite </b>.', 
+                'idTramite.integer' => 'Por favor, seleccionar un <b> Trámite </b>.',
                 'idTramite.exists' => 'El <b> Trámite </b> seleccionado no es válido o no existe.',
 
                 'nombreRequisito.required' => 'Por favor, ingresa el <b>Nombre del Requisito</b>.',
                 'nombreRequisito.max' => 'El <b>Nombre del Requisito</b> no debe exceder los 255 caracteres.',
-                
+
                 // La validación unique ya NO necesita el ID para exclusión
                 'nombreRequisitoCorto.unique' => 'El <b>Nombre Corto</b> ya está siendo utilizado por otro requisito.',
                 'nombreRequisitoCorto.max' => 'El <b>Nombre del Requisito</b> no debe exceder los 50 caracteres.',
                 'nombreRequisitoCorto.regex' => 'El <b>Nombre Corto</b> solo debe contener letras mayúsculas, números y guiones bajos (A-Z, 0-9, _).',
-                'nombreRequisitoCorto.required' => 'El campo <b> Nombre Corto </b> es obligatorio.', 
+                'nombreRequisitoCorto.required' => 'El campo <b> Nombre Corto </b> es obligatorio.',
             ];
 
             $validatedData = $request->validate([
                 'nombreRequisito' => 'required|string|max:255',
                 // Quitar el ID del unique
-                'nombreRequisitoCorto' => 'required|string|max:50|unique:requisitos_documentacion,nombre_corto|regex:/^[A-Z0-9_]+$/', 
+                'nombreRequisitoCorto' => 'required|string|max:50|unique:requisitos_documentacion,nombre_corto|regex:/^[A-Z0-9_]+$/',
                 'idTramite' => 'required|integer|exists:catalogo_tramites,id',
-                'requisitoObligatorio' => 'nullable|boolean', 
+                'requisitoObligatorio' => 'nullable|boolean',
                 'requisitoActivo' => 'nullable|boolean',
             ], $messages);
 
-            
+
             // --- PASO 2: Preparación de Datos ---
-            
+
             $datosRequisitos = [
                 'nombre' => trim(mb_strtoupper($validatedData['nombreRequisito'])),
                 'nombre_corto' => trim(mb_strtoupper($validatedData['nombreRequisitoCorto']))
             ];
 
             // --- PASO 4: Transacción y Creación ---
-            
+
             DB::beginTransaction();
 
             // 1. CREAR el nuevo requisito en la tabla `requisitos_documentacion`
-            $nuevoRequisito = RequisitoDocumentacion::create($datosRequisitos); 
-            
+            $nuevoRequisito = RequisitoDocumentacion::create($datosRequisitos);
+
             // 2. Asociar el nuevo requisito al trámite usando `attach` (para Many-to-Many)
             $nuevoRequisito->tramites()->attach(
                 $validatedData['idTramite'], // ID del trámite a asociar
@@ -486,21 +464,21 @@ class RequisitoDocumentacionController extends Controller
             $messages = [
                 'nombreRequisito.required' => 'Por favor, ingresa el <b>Nombre del Requisito</b>.',
                 'nombreRequisito.max' => 'El <b>Nombre del Requisito</b> no debe exceder los 255 caracteres.',
-                
+
                 // La validación unique ya NO necesita el ID para exclusión
                 'nombreRequisitoCorto.unique' => 'El <b>Nombre Corto</b> ya está siendo utilizado por otro requisito.',
                 'nombreRequisitoCorto.max' => 'El <b>Nombre del Requisito</b> no debe exceder los 50 caracteres.',
                 'nombreRequisitoCorto.regex' => 'El <b>Nombre Corto</b> solo debe contener letras mayúsculas, números y guiones bajos (A-Z, 0-9, _).',
-                'nombreRequisitoCorto.required' => 'El campo <b> Nombre Corto </b> es obligatorio.', 
+                'nombreRequisitoCorto.required' => 'El campo <b> Nombre Corto </b> es obligatorio.',
             ];
 
             $validatedData = $request->validate([
                 'nombreRequisito' => 'required|string|max:255',
-                'nombreRequisitoCorto' => 'required|string|max:50|unique:requisitos_documentacion,nombre_corto|regex:/^[A-Z0-9_]+$/', 
+                'nombreRequisitoCorto' => 'required|string|max:50|unique:requisitos_documentacion,nombre_corto|regex:/^[A-Z0-9_]+$/',
                 'requisitoActivo' => 'nullable|boolean',
             ], $messages);
 
-            
+
             $datosRequisitos = [
                 'nombre' => trim(mb_strtoupper($validatedData['nombreRequisito'])),
                 'nombre_corto' => trim(mb_strtoupper($validatedData['nombreRequisitoCorto'])),
@@ -508,20 +486,19 @@ class RequisitoDocumentacionController extends Controller
             ];
 
             // --- PASO 4: Transacción y Creación ---
-            
+
             DB::beginTransaction();
 
             // 1. CREAR el nuevo requisito en la tabla `requisitos_documentacion`
-            $nuevoRequisito = RequisitoDocumentacion::create($datosRequisitos); 
-            
+            $nuevoRequisito = RequisitoDocumentacion::create($datosRequisitos);
+
             DB::commit();
-            
-           $filtros = $this->getFilteredParameters($request);
+
+            $filtros = $this->getFilteredParameters($request);
 
             return redirect()
                 ->route('requisitos', $filtros)
                 ->with('success', "Requisito creado exitosamente.");
-
         } catch (ValidationException $e) {
             // Manejo específico de ERRORES DE VALIDACIÓN de Laravel
             return back()->withErrors($e->errors())->withInput(); // Añadir withInput() para persistir datos
@@ -544,6 +521,126 @@ class RequisitoDocumentacionController extends Controller
         ]);
     }
 
+    // public function store_assignment_requisito(Request $request, $idRequisito)
+    // {
+    //     $idTramite = $request->input('idTramite');
+    //     $idTramiteOriginal = $request->input('idTramiteOriginal');
+    //     $idRequisitoOriginal = $request->input('idRequisitoOriginal');
+
+    //     try {
+    //         $messages = [
+    //             'idTramite.required' => 'Debes seleccionar el <b> Trámite </b> al que se asocia este requisito.',
+    //             'idTramite.integer' => 'Por favor, seleccionar un <b> Trámite </b>.', 
+    //             'idTramite.exists' => 'El <b> Trámite </b> seleccionado no es válido o no existe.',
+
+    //             'idRequisitoEditar.required' => 'Debes seleccionar el <b> Requisito </b> al que se asocia este trámite.',
+    //             'idRequisitoEditar.integer' => 'Por favor, seleccionar un <b> Requisito </b>.', 
+    //             'idRequisitoEditar.exists' => 'El <b> Requisito </b> seleccionado no es válido o no existe.',
+    //         ];
+
+    //         $validatedData = $request->validate([
+    //             'idTramite' => 'required|integer|exists:catalogo_tramites,id',
+    //             'idRequisitoEditar' => [
+    //                 'required',
+    //                 'integer',
+    //                 'exists:requisitos_documentacion,id',      
+    //             ],
+    //             'requisitoObligatorio' => 'required',
+    //             'requisitoActivo' => 'required',
+    //         ], $messages);
+
+    //         $requisito = RequisitoDocumentacion::find($idRequisito);
+
+    //         if (!$requisito) {
+    //             return redirect()
+    //             ->route('requisitos')
+    //             ->with('error', 'Requisito no encontrado en la Base de Datos.');
+    //         }
+
+    //         DB::transaction(function () use ($requisito, $idRequisito, $idTramite, $idRequisitoOriginal, $idTramiteOriginal, $validatedData) 
+    //         {
+
+    //             // 1. Verificamos si el trámite nuevo ($idTramite) ya está asociado a este requisito
+    //             $existeRelacion = $requisito->tramites()->wherePivot('id_tramite_catalogo', $idTramite)->exists();
+
+    //             if ($existeRelacion) 
+    //             {
+    //                 $datosPivote = [
+    //                     'id_requisito' => $requisito->id,
+    //                     'obligatorio' => $validatedData['requisitoObligatorio'],
+    //                     'activo'      => $validatedData['requisitoActivo'],
+    //                 ];
+
+    //                 $requisito->tramites()->detach($idTramiteOriginal);
+    //                 $requisito->tramites()->attach($idTramite, $datosPivote);
+    //             }
+    //             else 
+    //             {
+    //                 $idRequisitoNuevo = $idRequisito;
+
+    //                 $datosPivote = [
+    //                     'obligatorio' => $validatedData['requisitoObligatorio'],
+    //                     'activo'      => $validatedData['requisitoActivo'],
+    //                 ];
+
+    //                 DB::beginTransaction();
+    //                 try {
+    //                     $tramite = CatalogoTramite::findOrFail($idTramite);
+
+    //                     $tramite->requisitos()->detach($idRequisitoOriginal);
+    //                     $tramite->requisitos()->syncWithoutDetaching([
+    //                         $idRequisitoNuevo => $datosPivote
+    //                     ]);
+
+    //                     DB::commit();
+    //                 } catch (\Exception $e) {
+    //                     DB::rollBack();
+    //                     return response()->json(['error' => $e->getMessage()], 500);
+    //                 }
+    //             }
+    //         });
+
+    //         $filtros = $this->getFilteredParameters($request);
+
+    //         $page = $request->input('page', 1); 
+
+    //         $props = $this->prepararVistaRequisitos($filtros);
+
+    //         $lastPage = $props['requisitos']->lastPage();
+
+    //         if ($lastPage < $page) {
+    //             $filtros['page'] = $lastPage;
+    //         }
+
+    //         return redirect()
+    //             ->route('requisitos', $filtros)
+    //             ->with('success', "Asignación actualizada exitosamente.");
+
+    //     } catch (ValidationException $e) {
+    //         $filtros = $this->getFilteredParameters($request);
+
+    //         return redirect()
+    //             ->route('requisitos', $filtros) // Redirige a la ruta específica con los filtros
+    //             ->withErrors($e->errors())      // Adjunta los errores (Respuesta 422 para Inertia)
+    //             ->withInput();
+    //     } catch (\Exception $e) {
+    //         DB::rollBack();
+    //         $filtros = $this->getFilteredParameters($request);
+    //         Log::error("Fallo al crear requisito: " . $e->getMessage(), ['exception' => $e]);
+    //         return redirect()
+    //             ->route('requisitos', $filtros) // Redirige a la ruta específica con los filtros
+    //             ->with('error', 'Ocurrió un error inesperado al crear el requisito. Por favor, avisa al administrador del sistema.');
+    //     }
+    //     catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+    //         DB::rollBack();
+    //         $filtros = $this->getFilteredParameters($request);
+    //         Log::warning("Intento de actualización fallido: Recurso no encontrado (ID $idRequisito o relación).");
+    //         return redirect()
+    //             ->route('requisitos', $filtros)
+    //             ->with('error', 'El requisito o la relación de trámite asignado no fue encontrado.');
+    //     } 
+    // }
+
     public function store_assignment_requisito(Request $request, $idRequisito)
     {
         $idTramite = $request->input('idTramite');
@@ -553,11 +650,11 @@ class RequisitoDocumentacionController extends Controller
         try {
             $messages = [
                 'idTramite.required' => 'Debes seleccionar el <b> Trámite </b> al que se asocia este requisito.',
-                'idTramite.integer' => 'Por favor, seleccionar un <b> Trámite </b>.', 
+                'idTramite.integer' => 'Por favor, seleccionar un <b> Trámite </b>.',
                 'idTramite.exists' => 'El <b> Trámite </b> seleccionado no es válido o no existe.',
 
                 'idRequisitoEditar.required' => 'Debes seleccionar el <b> Requisito </b> al que se asocia este trámite.',
-                'idRequisitoEditar.integer' => 'Por favor, seleccionar un <b> Requisito </b>.', 
+                'idRequisitoEditar.integer' => 'Por favor, seleccionar un <b> Requisito </b>.',
                 'idRequisitoEditar.exists' => 'El <b> Requisito </b> seleccionado no es válido o no existe.',
             ];
 
@@ -566,7 +663,7 @@ class RequisitoDocumentacionController extends Controller
                 'idRequisitoEditar' => [
                     'required',
                     'integer',
-                    'exists:requisitos_documentacion,id',      
+                    'exists:requisitos_documentacion,id',
                 ],
                 'requisitoObligatorio' => 'required',
                 'requisitoActivo' => 'required',
@@ -576,18 +673,29 @@ class RequisitoDocumentacionController extends Controller
 
             if (!$requisito) {
                 return redirect()
-                ->route('requisitos')
-                ->with('error', 'Requisito no encontrado en la Base de Datos.');
+                    ->route('requisitos')
+                    ->with('error', 'Requisito no encontrado en la Base de Datos.');
             }
-            
-            DB::transaction(function () use ($requisito, $idRequisito, $idTramite, $idRequisitoOriginal, $idTramiteOriginal, $validatedData) 
-            {
-            
+
+            if (($idRequisito != $idRequisitoOriginal) || ($idTramite != $idTramiteOriginal)) {
+                $yaExisteRelacion = DB::table('catalogo_tramites_requisitos') // Asegúrate que este sea el nombre de tu tabla pivote
+                    ->where('id_requisito', $idRequisito)
+                    ->where('id_tramite_catalogo', $idTramite)
+                    ->exists();
+
+                if ($yaExisteRelacion) {
+                    $filtros = $this->getFilteredParameters($request);
+                    return redirect()
+                        ->route('requisitos', $filtros)
+                        ->with('error', 'No se pudo actualizar: Este trámite ya tiene asignado el requisito seleccionado.');
+                }
+            }
+
+            DB::transaction(function () use ($requisito, $idRequisito, $idTramite, $idRequisitoOriginal, $idTramiteOriginal, $validatedData) {
                 // 1. Verificamos si el trámite nuevo ($idTramite) ya está asociado a este requisito
                 $existeRelacion = $requisito->tramites()->wherePivot('id_tramite_catalogo', $idTramite)->exists();
 
-                if ($existeRelacion) 
-                {
+                if ($existeRelacion) {
                     $datosPivote = [
                         'id_requisito' => $requisito->id,
                         'obligatorio' => $validatedData['requisitoObligatorio'],
@@ -596,9 +704,7 @@ class RequisitoDocumentacionController extends Controller
 
                     $requisito->tramites()->detach($idTramiteOriginal);
                     $requisito->tramites()->attach($idTramite, $datosPivote);
-                }
-                else 
-                {
+                } else {
                     $idRequisitoNuevo = $idRequisito;
 
                     $datosPivote = [
@@ -624,11 +730,8 @@ class RequisitoDocumentacionController extends Controller
             });
 
             $filtros = $this->getFilteredParameters($request);
-            
-            $page = $request->input('page', 1); 
-
+            $page = $request->input('page', 1);
             $props = $this->prepararVistaRequisitos($filtros);
-
             $lastPage = $props['requisitos']->lastPage();
 
             if ($lastPage < $page) {
@@ -638,49 +741,44 @@ class RequisitoDocumentacionController extends Controller
             return redirect()
                 ->route('requisitos', $filtros)
                 ->with('success', "Asignación actualizada exitosamente.");
-
         } catch (ValidationException $e) {
             $filtros = $this->getFilteredParameters($request);
-
             return redirect()
-                ->route('requisitos', $filtros) // Redirige a la ruta específica con los filtros
-                ->withErrors($e->errors())      // Adjunta los errores (Respuesta 422 para Inertia)
+                ->route('requisitos', $filtros)
+                ->withErrors($e->errors())
                 ->withInput();
         } catch (\Exception $e) {
             DB::rollBack();
             $filtros = $this->getFilteredParameters($request);
             Log::error("Fallo al crear requisito: " . $e->getMessage(), ['exception' => $e]);
             return redirect()
-                ->route('requisitos', $filtros) // Redirige a la ruta específica con los filtros
-                ->with('error', 'Ocurrió un error inesperado al crear el requisito. Por favor, avisa al administrador del sistema.');
-        }
-        catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+                ->route('requisitos', $filtros)
+                ->with('error', 'Ocurrió un error inesperado al crear el requisito.');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             DB::rollBack();
             $filtros = $this->getFilteredParameters($request);
-            Log::warning("Intento de actualización fallido: Recurso no encontrado (ID $idRequisito o relación).");
+            Log::warning("Intento de actualización fallido: Recurso no encontrado.");
             return redirect()
                 ->route('requisitos', $filtros)
                 ->with('error', 'El requisito o la relación de trámite asignado no fue encontrado.');
-        } 
+        }
     }
 
     public function update_assignment_requisitos_tramite(Request $request, $idTramite)
     {
-        $requisitosString = $request->input('requisitosAsignacionesTramite');    
+        $requisitosString = $request->input('requisitosAsignacionesTramite');
         $requisitosIds = json_decode($requisitosString, true);
 
-        try 
-        {
+        try {
             $tramite = CatalogoTramite::find($idTramite);
 
             if (!$tramite) {
                 return redirect()
-                ->route('requisitos')
-                ->with('error', 'Trámite no encontrado en la Base de Datos.');
+                    ->route('requisitos')
+                    ->with('error', 'Trámite no encontrado en la Base de Datos.');
             }
 
-            DB::transaction(function () use ($tramite, $requisitosIds) 
-            {
+            DB::transaction(function () use ($tramite, $requisitosIds) {
                 $requisitosIdsCollection = collect($requisitosIds);
 
                 $requisitosActuales = $tramite->requisitos()->get();
@@ -695,42 +793,33 @@ class RequisitoDocumentacionController extends Controller
 
                 $idsRequisitosFaltantes = $requisitosIdsCollection->diff($idsRequisitosExistentes);
 
-                $requisitosFaltantes = RequisitoDocumentacion::
-                    whereIn('id', $idsRequisitosFaltantes)
+                $requisitosFaltantes = RequisitoDocumentacion::whereIn('id', $idsRequisitosFaltantes)
                     ->get();
-                
-                
+
+
                 $datosPivote = [
                     'id_tramite_catalogo' => $tramite->id,
                     'obligatorio' => 1,
                     'activo'      => 1,
-                    'editable'    => 1, 
+                    'editable'    => 1,
                 ];
 
-                foreach($requisitosFaltantes as $requisito)
-                {
+                foreach ($requisitosFaltantes as $requisito) {
                     $tramite->requisitos()->attach($requisito->id, $datosPivote);
                 }
 
-                foreach($requisitosSeleccionados as $requisito)
-                {
-                    if ($requisito->pivot->activo == 0)
-                    {
+                foreach ($requisitosSeleccionados as $requisito) {
+                    if ($requisito->pivot->activo == 0) {
                         $requisito->pivot->activo = 1;
                         $requisito->pivot->save();
                     }
                 }
 
-                foreach($requisitosDesseleccionados as $requisito)
-                {
-                    if ($requisito->pivot->activo == 1)
-                    {
-                        if ($requisito->pivot->editable == 1)
-                        {
+                foreach ($requisitosDesseleccionados as $requisito) {
+                    if ($requisito->pivot->activo == 1) {
+                        if ($requisito->pivot->editable == 1) {
                             $requisito->pivot->delete();
-                        }
-                        else
-                        {
+                        } else {
                             $requisito->pivot->activo = 0;
                             $requisito->pivot->save();
                         }
@@ -739,8 +828,8 @@ class RequisitoDocumentacionController extends Controller
             });
 
             $filtros = $this->getFilteredParameters($request);
-            
-            $page = $request->input('page', 1); 
+
+            $page = $request->input('page', 1);
 
             $props = $this->prepararVistaRequisitos($filtros);
 
@@ -753,16 +842,13 @@ class RequisitoDocumentacionController extends Controller
             return redirect()
                 ->route('requisitos', $filtros)
                 ->with('success', "Asignación realizada exitosamente.");
-
-            
         } catch (\Exception $e) {
-            
         }
     }
 
     public function update_assignment(Request $request, $idRequisito)
     {
-        $tramitesString = $request->input('requisitoAsignacionesTramites');    
+        $tramitesString = $request->input('requisitoAsignacionesTramites');
         $tramitesIds = json_decode($tramitesString, true);
 
         try {
@@ -770,16 +856,15 @@ class RequisitoDocumentacionController extends Controller
 
             if (!$requisito) {
                 return redirect()
-                ->route('requisitos')
-                ->with('error', 'Requisito no encontrado en la Base de Datos.');
+                    ->route('requisitos')
+                    ->with('error', 'Requisito no encontrado en la Base de Datos.');
             }
-            
-            DB::transaction(function () use ($requisito, $tramitesIds) 
-            {
+
+            DB::transaction(function () use ($requisito, $tramitesIds) {
                 $tramitesIdsCollection = collect($tramitesIds);
 
                 $tramitesActuales = $requisito->tramites()->get();
-                
+
                 $tramitesSeleccionados = $requisito->tramites()
                     ->wherePivotIn('id_tramite_catalogo', $tramitesIds)
                     ->get();
@@ -790,41 +875,32 @@ class RequisitoDocumentacionController extends Controller
 
                 $idsTramitesFaltantes = $tramitesIdsCollection->diff($idsTramitesExistentes);
 
-                $tramitesFaltantes = CatalogoTramite::
-                    whereIn('id', $idsTramitesFaltantes)
+                $tramitesFaltantes = CatalogoTramite::whereIn('id', $idsTramitesFaltantes)
                     ->get();
-                
+
                 $datosPivote = [
                     'id_requisito' => $requisito->id,
                     'obligatorio' => 1,
                     'activo'      => 1,
-                    'editable'    => 1, 
+                    'editable'    => 1,
                 ];
 
-                foreach($tramitesFaltantes as $tramite)
-                {
+                foreach ($tramitesFaltantes as $tramite) {
                     $requisito->tramites()->attach($tramite->id, $datosPivote);
                 }
 
-                foreach($tramitesSeleccionados as $tramite)
-                {
-                    if ($tramite->pivot->activo == 0)
-                    {
+                foreach ($tramitesSeleccionados as $tramite) {
+                    if ($tramite->pivot->activo == 0) {
                         $tramite->pivot->activo = 1;
                         $tramite->pivot->save();
                     }
                 }
 
-                foreach($tramitesDesseleccionados as $tramite)
-                {
-                    if ($tramite->pivot->activo == 1)
-                    {
-                        if ($tramite->pivot->editable == 1)
-                        {
+                foreach ($tramitesDesseleccionados as $tramite) {
+                    if ($tramite->pivot->activo == 1) {
+                        if ($tramite->pivot->editable == 1) {
                             $tramite->pivot->delete();
-                        }
-                        else
-                        {
+                        } else {
                             $tramite->pivot->activo = 0;
                             $tramite->pivot->save();
                         }
@@ -833,8 +909,8 @@ class RequisitoDocumentacionController extends Controller
             });
 
             $filtros = $this->getFilteredParameters($request);
-            
-            $page = $request->input('page', 1); 
+
+            $page = $request->input('page', 1);
 
             $props = $this->prepararVistaRequisitos($filtros);
 
@@ -847,7 +923,6 @@ class RequisitoDocumentacionController extends Controller
             return redirect()
                 ->route('requisitos', $filtros)
                 ->with('success', "Requisito actualizado exitosamente.");
-
         } catch (ValidationException $e) {
             // Manejo específico de ERRORES DE VALIDACIÓN de Laravel
             // Inertia/Vue lo maneja, regresando los errores al formulario.
@@ -871,12 +946,12 @@ class RequisitoDocumentacionController extends Controller
     public function actualizaActivoCatalogoTramitesRequisitos($idRequisito, $valor)
     {
         DB::table('catalogo_tramites_requisitos')
-        // Condición 1: El registro en la pivote debe pertenecer a uno de los trámites seleccionados.
-        ->where('id_requisito', $idRequisito)
-        // Paso 3: Realizar la actualización.
-        ->update([
-            'activo' => $valor, 
-        ]);
+            // Condición 1: El registro en la pivote debe pertenecer a uno de los trámites seleccionados.
+            ->where('id_requisito', $idRequisito)
+            // Paso 3: Realizar la actualización.
+            ->update([
+                'activo' => $valor,
+            ]);
     }
 
     public function update(Request $request, $idRequisito)
@@ -888,8 +963,8 @@ class RequisitoDocumentacionController extends Controller
                 'nombreRequisitoCorto.unique' => 'El <b>Nombre Corto</b> ya está siendo utilizado por otro requisito.',
                 'nombreRequisitoCorto.max' => 'El <b>Nombre del Requisito</b> no debe exceder los 50 caracteres.',
                 'nombreRequisitoCorto.regex' => 'El <b>Nombre Corto</b> solo debe contener letras mayúsculas, números y guiones bajos (A-Z, 0-9, _).',
-                'nombreRequisitoCorto.required' => 'El campo <b>Nombre Corto</b> es obligatorio.', 
-             ];
+                'nombreRequisitoCorto.required' => 'El campo <b>Nombre Corto</b> es obligatorio.',
+            ];
 
             $validatedData = $request->validate([
                 'nombreRequisito' => 'required|string|max:255',
@@ -897,7 +972,7 @@ class RequisitoDocumentacionController extends Controller
                     'required',
                     'string',
                     'max:50',
-                    'unique:requisitos_documentacion,nombre_corto,' . $idRequisito . ',id', 
+                    'unique:requisitos_documentacion,nombre_corto,' . $idRequisito . ',id',
                     'regex:/^[A-Z0-9_]+$/'
                 ],
                 'requisitoActivo' => 'nullable|boolean',
@@ -913,15 +988,15 @@ class RequisitoDocumentacionController extends Controller
 
             DB::beginTransaction();
 
-            $requisito->update($datosRequisitos);    
-            
+            $requisito->update($datosRequisitos);
+
             $this->actualizaActivoCatalogoTramitesRequisitos($idRequisito, $validatedData['requisitoActivo']);
 
             DB::commit();
 
             $filtros = $this->getFilteredParameters($request);
-            
-            $page = $request->input('page', 1); 
+
+            $page = $request->input('page', 1);
 
             $props = $this->prepararVistaRequisitos($filtros);
 
@@ -934,7 +1009,6 @@ class RequisitoDocumentacionController extends Controller
             return redirect()
                 ->route('requisitos', $filtros)
                 ->with('success', "Requisito actualizado exitosamente.");
-
         } catch (ValidationException $e) {
             // Manejo específico de ERRORES DE VALIDACIÓN de Laravel
             // Inertia/Vue lo maneja, regresando los errores al formulario.
@@ -964,10 +1038,10 @@ class RequisitoDocumentacionController extends Controller
         if (!$requisito->editable) {
             return back()->with('error', 'Este requisito no puede ser eliminado por la configuración del sistema.');
         }
-        
+
         try {
             DB::beginTransaction();
-            
+
             // 2. Eliminación (MySQL se encarga de las restricciones de clave foránea)
             $requisito->delete();
 
@@ -975,8 +1049,7 @@ class RequisitoDocumentacionController extends Controller
 
             // 3. Respuesta Inertia: Redirección
             return redirect()->route('requisitos.index')
-                             ->with('success', "Requisito '{$requisito->nombre}' eliminado correctamente.");
-
+                ->with('success', "Requisito '{$requisito->nombre}' eliminado correctamente.");
         } catch (QueryException $e) {
             DB::rollBack();
             // Error de clave foránea (MySQL) si está relacionado con trámites/solicitudes

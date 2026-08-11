@@ -4,6 +4,7 @@ namespace App\Exceptions;
 
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Session\TokenMismatchException;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -36,6 +37,14 @@ class Handler extends ExceptionHandler
                 return response()->json(['message' => 'No autorizado.'], 403);
             }
             return redirect('/')->with('error', 'No tienes permiso para acceder a esta página.');
+        }
+
+        if ($exception instanceof TokenMismatchException) {
+            // Si la petición viene de Inertia, el 'back()' refresca los props y el token CSRF
+            // Enviamos un mensaje flash para que Vue pueda mostrar una notificación
+            return back()->with([
+                'error' => 'Tu sesión ha expirado por inactividad. Por favor, intenta enviar el formulario de nuevo.'
+            ]);
         }
 
         return parent::render($request, $exception);

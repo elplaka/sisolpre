@@ -1,0 +1,8 @@
+- En SOLICITUDES indiciar cuando un trámite ya ha sido entregado (NO ES NECESARIO)
+- Validar que el consecutivo solo sea en el AÑO ACTUAL - OK
+- Cuando sea CONSTANCIA DE NÚMERO OFICIAL solamente poner el número del domicilio con color1 cuando sea asignado dentro del trámite, si ya trae número que lo ponga gris
+- Cuando es nueva solicitud y no hay CROQUIS NO DEBE DE PERMITIR que se cambie a SOLICITUD ACEPTADA 
+- Agregar GEO DATA a las solicitudes cuando sea CONST. NUM. OFICIAL
+- Crear plantillas para SOLICITUDES (Previa y definitiva)
+
+

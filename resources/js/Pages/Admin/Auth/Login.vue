@@ -115,7 +115,7 @@
                         </div>
                         <div class="flex items-center justify-end mt-4">
                             <button
-                                class="bg-color1-800 hover:bg-color1-700 text-white focus:ring-4 focus:outline-none focus:ring-color1-300 font-medium rounded-lg text-sm w-full sm:w-auto px-4 py-2 text-center dark:bg-color1-600 dark:hover:bg-color1-700 dark:focus:ring-color1-800"
+                                class="bg-color1-800 hover:bg-color1-700 text-white focus:ring-4 focus:outline-none focus:ring-color1-300 font-medium rounded-full text-sm w-full sm:w-auto px-8 py-2 text-center dark:bg-color1-600 dark:hover:bg-color1-700 dark:focus:ring-color1-800"
                                 :class="{ 'opacity-50': form.processing }"
                                 :disabled="form.processing || showSpinner"
                             >

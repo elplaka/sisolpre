@@ -45,8 +45,8 @@ class HandleInertiaRequests extends Middleware
     {
         return [
             ...parent::share($request),
-                'auth' => [
-                    'user' => $request->user() ? [
+            'auth' => [
+                'user' => $request->user() ? [
                     'id' => $request->user()->id,
                     'name' => $request->user()->name,
                     'email' => $request->user()->email,
@@ -61,14 +61,16 @@ class HandleInertiaRequests extends Middleware
             // 'cart' => new CartResource(Cart::getProductsAndCartItems()),
 
             'flash' => [
-                'success' => fn () => $request->session()->get('success'),
-                'error' => fn () => $request->session()->get('error'),
-                'warning' => fn () => $request->session()->get('warning'),
-                'info' => fn () => $request->session()->get('info'),
-                'idColonia' => fn () => $request->session()->get('idColonia'),
-                'idLocalidad' => fn () => $request->session()->get('idLocalidad'),
-                'activeTab' => fn () => $request->session()->get('activeTab'),
-                'solicitud' => fn () => $request->session()->get('solicitud'),
+                'success' => fn() => $request->session()->get('success'),
+                'error' => fn() => $request->session()->get('error'),
+                'warning' => fn() => $request->session()->get('warning'),
+                'info' => fn() => $request->session()->get('info'),
+                'idColonia' => fn() => $request->session()->get('idColonia'),
+                'idLocalidad' => fn() => $request->session()->get('idLocalidad'),
+                'activeTab' => fn() => $request->session()->get('activeTab'),
+                'solicitud' => fn() => $request->session()->get('solicitud'),
+                'idConstancia' => fn() => $request->session()->get('idConstancia'),
+                'necesitaConfirmacion' => fn() => $request->session()->get('necesitaConfirmacion'),
             ],
             'canLogin' => app('router')->has('login'),
             'canRegister' => app('router')->has('register'),

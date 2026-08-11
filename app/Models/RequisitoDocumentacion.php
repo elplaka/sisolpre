@@ -37,8 +37,8 @@ class RequisitoDocumentacion extends Model
             'id_requisito',                 // Clave foránea local en la tabla pivote
             'id_tramite_catalogo'           // Clave foránea del modelo remoto en la tabla pivote
         )->withPivot('obligatorio', 'activo', 'editable')
-         ->orderBy('catalogo_tramites.nombre', 'asc')
-        ->withTimestamps();
+            ->orderBy('catalogo_tramites.nombre', 'asc')
+            ->withTimestamps();
     }
 
     public function solicitudes()
@@ -50,8 +50,18 @@ class RequisitoDocumentacion extends Model
             'id_requisito_documentacion',  // 2. Clave foránea local (ID de este modelo) en la tabla pivote
             'id_solicitud'                 // 3. Clave foránea relacionada (ID del otro modelo) en la tabla pivote
         )
-        // Recuerda incluir withPivot() y withTimestamps() si las usas.
-        // ->withPivot('entregado')
-        ->withTimestamps();
+            // Recuerda incluir withPivot() y withTimestamps() si las usas.
+            // ->withPivot('entregado')
+            ->withTimestamps();
+    }
+
+    public function tramitesRealizados()
+    {
+        return $this->belongsToMany(
+            Tramite::class,
+            'tramites_documentacion',
+            'id_requisito_documentacion',
+            'id_tramite'
+        )->withTimestamps();
     }
 }

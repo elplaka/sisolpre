@@ -602,9 +602,9 @@
                 <span class="ml-2 text-gray-300">Cargando...</span>
             </div>
         </div>
-        <div class="mx-auto max-w-screen-xl lg:px-0 w-[100%] sm:w-[100%] md:w-[100%] lg:w-[100%] mt-20">
+        <div class="mx-auto max-w-screen-xl lg:px-0 w-[100%] sm:w-[100%] md:w-[100%] lg:w-[100%]">
             <div class="flex items-center space-x-4">
-                <h1 class="text-2xl font-bold">Estadísticas </h1>
+                <h1 class="text-2xl font-bold ml-2">Estadísticas </h1>
             </div>
         </div>
         <br>        

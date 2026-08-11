@@ -175,7 +175,7 @@
                 <p class="text-white">Cargando...</p>
             </div>
         </div> -->
-        <div class="w-full pl-5 pb-5 mt-20">
+        <div class="w-full pl-5 pb-5 mt-5">
             <div :class="[
                 userRole === 'AUXILIAR' 
                 ? 'flex flex-col md:flex-row gap-4 pt-4 pr-4 h-[calc(85vh-2rem)]' 

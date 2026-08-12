@@ -225,30 +225,99 @@ class ConstanciaNumeroOficialController extends Controller
                 // 3. Lógica de Propiedad (Solo si el número asignado cambió o es nueva)
                 $propiedadOriginal = Propiedad::findOrFail($propiedad['id']);
 
-                if (is_null($propiedadOriginal->numero) || $propiedadOriginal->numero !== $request->input('numero_asignado')) {
+
+                // if (is_null($propiedadOriginal->numero) || $propiedadOriginal->numero !== $request->input('numero_asignado')) {
+                //     $nuevaPropiedad = $propiedadOriginal->replicate();
+                //     $nuevaPropiedad->numero = $request->input('numero_asignado');
+                //     if (is_null($propiedadOriginal->codigo_postal)) {
+                //         $nuevaPropiedad->codigo_postal = $request->input('codigo_postal');
+                //     }
+                //     if (is_null($propiedadOriginal->coordenada_utm_x)) {
+                //         $nuevaPropiedad->coordenada_utm_x = $request->input('coordenada_utm_x');
+                //     }
+                //     if (is_null($propiedadOriginal->coordenada_utm_y)) {
+                //         $nuevaPropiedad->coordenada_utm_y = $request->input('coordenada_utm_y');
+                //     }
+                //     if (is_null($propiedadOriginal->referencias_ubicacion)) {
+                //         $nuevaPropiedad->referencias_ubicacion = trim(mb_strtoupper($request->input('referencias_ubicacion')));
+                //     }
+                //     $nuevaPropiedad->save();
+
+                //     Propiedad::where('clave_catastral', trim($propiedad['clave_catastral']))
+                //         ->where('id', '!=', $nuevaPropiedad->id)
+                //         ->update(['activa' => 0, 'editable' => 0]);
+
+                //     $constancia->update(['id_propiedad' => $nuevaPropiedad->id]);
+                // }
+
+                if (
+                    is_null($propiedadOriginal->numero) ||
+                    $propiedadOriginal->numero != $request->input('numero_asignado') ||
+
+                    is_null($propiedadOriginal->codigo_postal) ||
+                    $propiedadOriginal->codigo_postal != $request->input('codigo_postal') ||
+
+                    is_null($propiedadOriginal->coordenada_utm_x) ||
+                    $propiedadOriginal->coordenada_utm_x != $request->input('coordenada_utm_x') ||
+
+                    is_null($propiedadOriginal->coordenada_utm_y) ||
+                    $propiedadOriginal->coordenada_utm_y != $request->input('coordenada_utm_y') ||
+
+                    is_null($propiedadOriginal->referencias_ubicacion) ||
+                    $propiedadOriginal->referencias_ubicacion != $request->input('referencias_ubicacion')
+                ) {
                     $nuevaPropiedad = $propiedadOriginal->replicate();
-                    $nuevaPropiedad->numero = $request->input('numero_asignado');
-                    if (is_null($propiedadOriginal->codigo_postal)) {
+
+                    if (
+                        is_null($propiedadOriginal->numero) ||
+                        $propiedadOriginal->numero != $request->input('numero_asignado')
+                    ) {
+                        $nuevaPropiedad->numero = $request->input('numero_asignado');
+                    }
+
+                    if (
+                        is_null($propiedadOriginal->codigo_postal) ||
+                        $propiedadOriginal->codigo_postal != $request->input('codigo_postal')
+                    ) {
                         $nuevaPropiedad->codigo_postal = $request->input('codigo_postal');
                     }
-                    if (is_null($propiedadOriginal->coordenada_utm_x)) {
+
+                    if (
+                        is_null($propiedadOriginal->coordenada_utm_x) ||
+                        $propiedadOriginal->coordenada_utm_x != $request->input('coordenada_utm_x')
+                    ) {
                         $nuevaPropiedad->coordenada_utm_x = $request->input('coordenada_utm_x');
                     }
-                    if (is_null($propiedadOriginal->coordenada_utm_y)) {
+
+                    if (
+                        is_null($propiedadOriginal->coordenada_utm_y) ||
+                        $propiedadOriginal->coordenada_utm_y != $request->input('coordenada_utm_y')
+                    ) {
                         $nuevaPropiedad->coordenada_utm_y = $request->input('coordenada_utm_y');
                     }
-                    if (is_null($propiedadOriginal->referencias_ubicacion)) {
-                        $nuevaPropiedad->referencias_ubicacion = trim(mb_strtoupper($request->input('referencias_ubicacion')));
+
+                    if (
+                        is_null($propiedadOriginal->referencias_ubicacion) ||
+                        $propiedadOriginal->referencias_ubicacion != $request->input('referencias_ubicacion')
+                    ) {
+                        $nuevaPropiedad->referencias_ubicacion = $request->input('referencias_ubicacion');
                     }
+
                     $nuevaPropiedad->save();
 
-                    Propiedad::where('clave_catastral', trim($propiedad['clave_catastral']))
+                    Propiedad::where(
+                        'clave_catastral',
+                        trim($propiedad['clave_catastral'])
+                    )
                         ->where('id', '!=', $nuevaPropiedad->id)
-                        ->update(['activa' => 0, 'editable' => 0]);
+                        ->update([
+                            'activa' => 0,
+                            'editable' => 0
+                        ]);
 
-                    // dd($constancia, $nuevaPropiedad->id);
-
-                    $constancia->update(['id_propiedad' => $nuevaPropiedad->id]);
+                    $constancia->update([
+                        'id_propiedad' => $nuevaPropiedad->id
+                    ]);
                 }
             }
 

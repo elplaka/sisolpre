@@ -398,8 +398,6 @@
                   const confirmado = await confirmaAprobacion();
 
                   if (confirmado) {
-                    isSavingModal.value = true
-                    isProcessingModal.value = false
                     sinDatosInicialesGeo.value = false
                     setTimeout(() => {
                     router.post('/constancias-numero-oficial/store', {
@@ -407,6 +405,7 @@
                       confirmacion_final: true
                     }, {
                       onStart: () => {
+                        isProcessingModal.value = true
                         isSavingModal.value = true;
                       },
                       onSuccess: async (newPage) => {
@@ -718,6 +717,13 @@
         // 2.1 Código Postal
         if (p.codigo_postal) {
             partes.push(`C.P. ${p.codigo_postal}`);
+        }
+        else
+        {
+          if (form.codigo_postal)
+          {
+            partes.push(`C.P. ${form.codigo_postal}`);
+          }
         }
 
 
@@ -1614,6 +1620,13 @@ const abrirGeoData = async () => {
 
 };
 
+  const datosGeoCompletos = computed(() => {
+      return !!form.codigo_postal &&
+              !!form.coordenada_utm_x &&
+              !!form.coordenada_utm_y &&
+              !!form.referencias_ubicacion;
+  });
+
 
 </script>
 
@@ -1687,8 +1700,19 @@ const abrirGeoData = async () => {
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
               <span class="absolute top-1 right-1 flex h-2.5 w-2.5">
-                  <span class="animate-ping group-hover:animate-none absolute inline-flex h-full w-full rounded-full bg-color1-500 opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-color1-400"></span>
+                  <span
+                      class="absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping"
+                      :class="datosGeoCompletos
+                          ? 'bg-green-500'
+                          : 'bg-color1-500'"
+                  ></span>
+
+                  <span
+                      class="relative inline-flex rounded-full h-2.5 w-2.5"
+                      :class="datosGeoCompletos
+                          ? 'bg-green-500'
+                          : 'bg-color1-400'"
+                  ></span>
               </span>
             </button>
           </div>

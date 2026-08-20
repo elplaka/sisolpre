@@ -122,6 +122,8 @@
              sinDatosInicialesGeo.value = true;
           }
 
+          generarPrefijoBase();
+
       // Si es un trámite nuevo (initialData)
       return {
           consecutivo: '',
@@ -147,25 +149,40 @@
       // 2. Pasamos esos valores directamente al useForm
       const form = useForm(obtenerValoresIniciales());
 
-      const prefijoBase = computed(() => {
-        // Si no hay fecha en el form, usamos la de hoy como fallback
+  //     const prefijoBase = computed(() => {
+  //       const fechaBase = form.fecha_emision ? new Date(form.fecha_emision + 'T00:00:00') : new Date();
+        
+  //       const dia = String(fechaBase.getDate()).padStart(2, '0');
+  //       const mes = String(fechaBase.getMonth() + 1).padStart(2, '0');
+  //       const anio = String(fechaBase.getFullYear()).slice(-2);
+        
+  //       const tipoId = String(props.initialData?.tipo_tramite?.tipo_tramite?.id || '0').padStart(3, '0');
+        
+  //       return `${dia}.${mes}.${anio}/DPU/${tipoId}`;
+  // });
 
-        const fechaBase = form.fecha_emision ? new Date(form.fecha_emision + 'T00:00:00') : new Date();
-        
-        // Extraemos los datos de la fecha seleccionada
-        const dia = String(fechaBase.getDate()).padStart(2, '0');
-        const mes = String(fechaBase.getMonth() + 1).padStart(2, '0');
-        const anio = String(fechaBase.getFullYear()).slice(-2);
-        
-        const tipoId = String(props.initialData?.tipo_tramite?.tipo_tramite?.id || '0').padStart(3, '0');
-        
-        return `${dia}.${mes}.${anio}/DPU/${tipoId}`;
-  });
+  // Definimos la variable para el prefijo
+  const prefijoBase = ref('');
 
-  watch(prefijoBase, (nuevoValor) => {
-    if (esSoloLectura.value) return;
-      form.prefijo_base = nuevoValor + '/';
-  }, { immediate: true });
+  // Función que debes llamar justo antes de abrir o al abrir la ventana modal
+  const generarPrefijoBase = () => {
+    const fechaBase = form.fecha_emision ? new Date(form.fecha_emision + 'T00:00:00') : new Date();
+    
+    const dia = String(fechaBase.getDate()).padStart(2, '0');
+    const mes = String(fechaBase.getMonth() + 1).padStart(2, '0');
+    const anio = String(fechaBase.getFullYear()).slice(-2);
+    
+    const tipoId = String(props.initialData?.tipo_tramite?.tipo_tramite?.id || '0').padStart(3, '0');
+    
+    prefijoBase.value = `${dia}.${mes}.${anio}/DPU/${tipoId}`;
+
+    form.prefijo_base = prefijoBase.value + '/';
+};
+
+  // watch(prefijoBase, (nuevoValor) => {
+  //   if (esSoloLectura.value) return;
+  //     form.prefijo_base = nuevoValor + '/';
+  // }, { immediate: true });
 
   const confirmarEntrega = async() => {
     const faltantes = documentacion.value.filter(d => 
@@ -478,6 +495,11 @@
               onStart: () => {
                   isProcessingModal.value = true;
               },
+              onSuccess: async (newPage) => {
+                        form.id_constancia = newPage.props.flash.idConstancia;
+                        notificarExito(newPage.props.flash.success);
+                        procesarCierre(true);
+              },
               onError: async (errors) => {
                 const esErrorDeRed = !errors || Object.keys(errors).length === 0;
 
@@ -524,6 +546,7 @@
               if (!isSavingModal.value) {
                   isSavingModal.value = false;
               }
+              isProcessingModal.value = false;
             }
           });
       } catch (err) {
@@ -1074,7 +1097,8 @@
             form.motivo_justificacion = null;
         }
 
-        form.prefijo_base = prefijoBase.value + '/';
+        // form.prefijo_base = prefijoBase.value + '/';
+
           router.post('/constancias-numero-oficial/update', form, {
               onSuccess: (page) => {
                 if (!aImprimir){
@@ -1672,7 +1696,8 @@ const abrirGeoData = async () => {
                     type="date"
                     format="DD-MM-YYYY"
                     :clearable=false
-                    value-format="YYYY-MM-DD"/>
+                    value-format="YYYY-MM-DD"
+                    @change="generarPrefijoBase"/>
 
                 <div v-else 
                     class="w-full flex items-center px-[3px] text-sm font-bold text-gray-800 border-b border-transparent cursor-not-allowed select-none antialiased tabular-nums">
@@ -1745,17 +1770,18 @@ const abrirGeoData = async () => {
                                         group-focus-within:text-color1-600 group-focus-within:scale-90">
                             Número de Oficio
                           </label>
-                          <input 
-                          v-if="!isLocked" 
-                          ref="inputPrefijo"
-                          v-model="form.prefijo_base" 
-                          @blur="isLocked = true"
-                          :disabled="esSoloLectura" 
-                          class="w-[125px] font-bold text-gray-800 border-0 p-0 text-sm focus:ring-0 leading-none m-0"/>
+                         <input 
+                            v-if="!isLocked" 
+                            ref="inputPrefijo"
+                            v-model="form.prefijo_base" 
+                            @blur="isLocked = true"
+                            :disabled="esSoloLectura" 
+                            class="font-bold text-gray-800 border border-gray-400 rounded px-1 py-0.5 text-sm focus:outline-none focus:border-color1-600 focus:ring-0 leading-none m-0 shadow-sm"
+                            :class="[isLocked ? 'w-[126px]' : 'w-[138px]']"/>
                         <template v-else>
                           <span 
-                          class="text-gray-800 font-bold border-0 p-0 text-sm focus:ring-0 leading-none m-0"
-                          :class="[esSoloLectura ? 'cursor-not-allowed font-bold' : '']">
+                          class="font-bold border-0 p-0 text-sm focus:ring-0 leading-none m-0"
+                          :class="[esSoloLectura ? 'cursor-not-allowed font-bold text-gray-800' : 'text-gray-400']">
                           {{ form.prefijo_base }} 
                           </span>
                         </template>
@@ -1772,7 +1798,8 @@ const abrirGeoData = async () => {
                                   maxlength="4"
                                   :disabled="esSoloLectura"
                                   placeholder="####"
-                                  class="w-[40px] px-[1px] font-bold text-gray-800 text-sm bg-transparent border-0 focus:outline-none focus:ring-0 peer uppercase leading-none">                           
+                                  class="w-[40px] px-[1px] font-bold text-gray-800 text-sm bg-transparent border-0 focus:outline-none focus:ring-0 peer uppercase leading-none"
+                                  :class="isLocked ? 'opacity-100' : 'opacity- cursor-not-allowed pointer-events-none'">                           
                           </div>
                       </div>
                     </div>
@@ -1802,7 +1829,7 @@ const abrirGeoData = async () => {
                   @click="habilitarEdicion"
                   class="p-1 transition-colors duration-200 shrink-0"
                   :class="[isLocked ? 'text-gray-400 hover:text-color1-600' : 'text-color1-600']"
-                  title="Editar prefijo" 
+                  :title="isLocked ? 'Editar prefijo' : 'Bloquear edición'"
                   v-if="!esSoloLectura">
                   <svg v-if="isLocked" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/>
@@ -2195,7 +2222,7 @@ const abrirGeoData = async () => {
           </div>
         </section>
         <section v-else class="mt-4">
-          <div v-if="form.id_estatus == 99" class="relative inline-block mb-4" style="z-index: 10">
+          <div v-if="form.id_estatus == 99" class="relative inline-block mb-4" style="z-index: 9999">
             <button 
               @click="showDocs = !showDocs" 
               type="button"
@@ -2223,7 +2250,7 @@ const abrirGeoData = async () => {
             </button>
            <div 
               v-if="showDocs" ref="popupRef"
-              class="absolute z-50 left-[calc(100%+12px)] top-[50%] -translate-y-[50%] w-80 bg-white rounded-2xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.3)] border border-gray-100 animate-in fade-in slide-in-from-left-3 duration-300 origin-left">
+              class="absolute z-50000 left-[calc(100%+12px)] top-[50%] -translate-y-[50%] w-80 bg-white rounded-2xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.3)] border border-gray-100 animate-in fade-in slide-in-from-left-3 duration-300 origin-left">
               <div class="absolute top-1/2 -left-1.5 w-3 h-3 bg-white border-l border-b border-gray-100 rotate-45 -translate-y-1/2 z-0"></div>
               <div class="relative z-10 overflow-hidden rounded-2xl bg-white flex flex-col">
                 <div class="px-4 py-3 border-b border-gray-50 bg-gray-50/50 flex justify-between items-center shrink-0">

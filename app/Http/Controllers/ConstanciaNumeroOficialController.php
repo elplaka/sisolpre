@@ -210,6 +210,81 @@ class ConstanciaNumeroOficialController extends Controller
 
             if ($constancia) {
                 $constancia->fill($dataConstancia);
+
+                try {
+
+                    $propiedadOriginal = Propiedad::findOrFail($propiedad['id']);
+
+                    $codigoPostal       = $request->input('codigo_postal');
+                    $coordenadaUtmX     = $request->input('coordenada_utm_x');
+                    $coordenadaUtmY     = $request->input('coordenada_utm_y');
+                    $referencias        = $request->input('referencias_ubicacion');
+
+                    // Detectamos si realmente hubo algún cambio
+                    $hayCambios =
+                        $propiedadOriginal->codigo_postal != $codigoPostal ||
+                        $propiedadOriginal->coordenada_utm_x != $coordenadaUtmX ||
+                        $propiedadOriginal->coordenada_utm_y != $coordenadaUtmY ||
+                        $propiedadOriginal->referencias_ubicacion != $referencias;
+
+
+                    // Solo replicamos si hubo cambios
+                    if ($hayCambios) {
+
+                        $nuevaPropiedad = $propiedadOriginal->replicate();
+
+                        // Solo asignamos los valores que realmente cambiaron
+                        if ($propiedadOriginal->codigo_postal != $codigoPostal) {
+                            $nuevaPropiedad->codigo_postal = $codigoPostal;
+                        }
+
+                        if ($propiedadOriginal->coordenada_utm_x != $coordenadaUtmX) {
+                            $nuevaPropiedad->coordenada_utm_x = $coordenadaUtmX;
+                        }
+
+                        if ($propiedadOriginal->coordenada_utm_y != $coordenadaUtmY) {
+                            $nuevaPropiedad->coordenada_utm_y = $coordenadaUtmY;
+                        }
+
+                        if ($propiedadOriginal->referencias_ubicacion != $referencias) {
+                            $nuevaPropiedad->referencias_ubicacion = $referencias;
+                        }
+
+                        $nuevaPropiedad->save();
+
+
+                        // Actualizamos la constancia únicamente porque
+                        // se creó una nueva propiedad
+                        $constancia = ConstanciaNumeroOficial::where(
+                            'id_tramite',
+                            $idTramite
+                        )->first();
+
+                        if ($constancia) {
+
+                            $constancia->id_propiedad = $nuevaPropiedad->id;
+                            $constancia->save();
+
+                            $this->registrarCambio(
+                                $constancia,
+                                $idTramite,
+                                'ACTUALIZAR_PROPIEDAD_GEO'
+                            );
+                        }
+                    }
+                } catch (\Exception $e) {
+
+                    Log::error(
+                        "Error al actualizar Geo en trámite {$idTramite}: "
+                            . $e->getMessage()
+                    );
+
+                    return back()->with(
+                        'error',
+                        'Error al actualizar Geo en trámite.'
+                    );
+                }
+
                 $this->registrarCambio($constancia, $idTramite, 'ACTUALIZAR_CONSTANCIA');
                 $constancia->save();
             } else {
@@ -224,31 +299,6 @@ class ConstanciaNumeroOficialController extends Controller
 
                 // 3. Lógica de Propiedad (Solo si el número asignado cambió o es nueva)
                 $propiedadOriginal = Propiedad::findOrFail($propiedad['id']);
-
-
-                // if (is_null($propiedadOriginal->numero) || $propiedadOriginal->numero !== $request->input('numero_asignado')) {
-                //     $nuevaPropiedad = $propiedadOriginal->replicate();
-                //     $nuevaPropiedad->numero = $request->input('numero_asignado');
-                //     if (is_null($propiedadOriginal->codigo_postal)) {
-                //         $nuevaPropiedad->codigo_postal = $request->input('codigo_postal');
-                //     }
-                //     if (is_null($propiedadOriginal->coordenada_utm_x)) {
-                //         $nuevaPropiedad->coordenada_utm_x = $request->input('coordenada_utm_x');
-                //     }
-                //     if (is_null($propiedadOriginal->coordenada_utm_y)) {
-                //         $nuevaPropiedad->coordenada_utm_y = $request->input('coordenada_utm_y');
-                //     }
-                //     if (is_null($propiedadOriginal->referencias_ubicacion)) {
-                //         $nuevaPropiedad->referencias_ubicacion = trim(mb_strtoupper($request->input('referencias_ubicacion')));
-                //     }
-                //     $nuevaPropiedad->save();
-
-                //     Propiedad::where('clave_catastral', trim($propiedad['clave_catastral']))
-                //         ->where('id', '!=', $nuevaPropiedad->id)
-                //         ->update(['activa' => 0, 'editable' => 0]);
-
-                //     $constancia->update(['id_propiedad' => $nuevaPropiedad->id]);
-                // }
 
                 if (
                     is_null($propiedadOriginal->numero) ||
@@ -405,19 +455,11 @@ class ConstanciaNumeroOficialController extends Controller
 
     public function pdf(Request $request)
     {
-        Log::info('1. Inicio PDF');
-
         $constancia = ConstanciaNumeroOficial::where('id_tramite', $request->id)->firstOrFail();
-
-        Log::info('2. Constancia encontrada');
 
         $plantilla = ConstanciaNumeroOficialPlantilla::where('activa', true)->firstOrFail();
 
-        Log::info('3. Plantilla encontrada');
-
         $nombreVista = "plantillas.constancia-de-numero-oficial.v{$plantilla->id}";
-
-        Log::info('4. Antes de generar PDF');
 
         $curp = $constancia->propiedad?->contacto?->persona?->curp;
 
@@ -499,7 +541,6 @@ class ConstanciaNumeroOficialController extends Controller
             ->where('fin', '>=', $constancia->fecha_emision)
             ->first();
 
-
         // 2. Preparar el array de datos
         $data = [
             'prefijo_oficio' => $constancia->prefijo_oficio,
@@ -568,8 +609,6 @@ class ConstanciaNumeroOficialController extends Controller
             'isFontSubsettingEnabled' => true,
             'chroot' => storage_path('fonts'),
         ]);
-
-        Log::info('5. PDF generado');
 
         // return $pdf->setPaper('letter', 'portrait')->stream('constancia_num.pdf');
         return response($pdf->output(), 200)

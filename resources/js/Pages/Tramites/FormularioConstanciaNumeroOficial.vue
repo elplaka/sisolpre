@@ -1,8 +1,8 @@
 <script setup>
-  import { ref, onMounted, onUnmounted, watch, computed, nextTick, resolveTransitionHooks } from 'vue';
+  import { ref, watch, computed, nextTick, onMounted, onUnmounted } from 'vue';
   import { useForm, router, usePage } from '@inertiajs/vue3'; // Asumiendo que usas Inertia como en tu package.json
   import axios from 'axios';
-  
+
   const props = defineProps({
       initialData: {
           type: Object,
@@ -16,7 +16,9 @@
       selectedTramite: Object,
       documentoData: Object,
       todosEstatus: Array,  //Ando jalando los estatus de la base de datos para de ahí obtener los colores
-  });
+  });;
+
+  const emit = defineEmits(['save', 'cancel', 'toggle-doc']);
 
   const isSavingModal = ref(false)
   const isLoadingModal = ref(false)
@@ -27,6 +29,7 @@
   const registroCreado = ref(false)
   const registroActualizado = ref(false)
   const constanciaImpresa = ref(false)
+  const prefijoBase = ref('');
   const esSoloLectura = computed(() => {
       return form.id_estatus == 99; // Suponiendo que 99 es 'Entregado'
   });
@@ -35,16 +38,14 @@
 
   watch(isDocOpen, (nuevoValor) => {
     emit('toggle-doc', nuevoValor);
-});
-
-  const emit = defineEmits(['save', 'cancel', 'toggle-doc']);
+})
 
   const isLocked = ref(true);
   const showDocs = ref(false);
   const popupRef = ref(null);
   const showGeoData = ref(false);
   const sinDatosInicialesGeo = ref(false);
-  
+
   const closeOnClickOutside = (event) => {
     // Si el popup está abierto Y el clic NO fue dentro del popup ni del botón que lo abre
     if (showDocs.value && popupRef.value && !popupRef.value.contains(event.target)) {
@@ -55,8 +56,24 @@
     }
   };
 
+    const generarPrefijoBase = () => {
+    const fechaBase = form.fecha_emision ? new Date(form.fecha_emision + 'T00:00:00') : new Date();
+    
+    const dia = String(fechaBase.getDate()).padStart(2, '0');
+    const mes = String(fechaBase.getMonth() + 1).padStart(2, '0');
+    const anio = String(fechaBase.getFullYear()).slice(-2);
+    
+    const tipoId = String(props.initialData?.tipo_tramite?.tipo_tramite?.id || '0').padStart(3, '0');
+    
+    prefijoBase.value = `${dia}.${mes}.${anio}/DPU/${tipoId}`;
+
+    if (!esSoloLectura.value) {
+        form.prefijo_base = prefijoBase.value + '/';
+    }
+};
+
   // 1. Definimos una función que determine los valores iniciales reales
-  const obtenerValoresIniciales = () => {    
+  const obtenerValoresIniciales = () => {  
       let docsNormalizados = [];
       // Si viene de una edición (documentoData existe)
       if (props.documentoData) {
@@ -122,12 +139,17 @@
              sinDatosInicialesGeo.value = true;
           }
 
-          generarPrefijoBase();
+          const fechaActual = new Date();
+          const dia = String(fechaActual.getDate()).padStart(2, '0');
+          const mes = String(fechaActual.getMonth() + 1).padStart(2, '0');
+          const anio = String(fechaActual.getFullYear()).slice(-2);
+          const tipoId = String(props.initialData?.tipo_tramite?.tipo_tramite?.id || '0').padStart(3, '0');
+          const prefijoInicial = `${dia}.${mes}.${anio}/DPU/${tipoId}/`;
 
       // Si es un trámite nuevo (initialData)
       return {
           consecutivo: '',
-          prefijo_base: '', // Usamos el computed aquí
+          prefijo_base: prefijoInicial, // Usamos el computed aquí
           id_tramite: props.initialData?.id || null,
           fecha_emision: new Date().toISOString().split('T')[0],
           fecha_expiracion: new Date().toISOString().split('T')[0],
@@ -146,45 +168,10 @@
       };
   };
 
-      // 2. Pasamos esos valores directamente al useForm
-      const form = useForm(obtenerValoresIniciales());
+  const valoresIniciales = obtenerValoresIniciales();
+  const form = useForm(valoresIniciales);
 
-  //     const prefijoBase = computed(() => {
-  //       const fechaBase = form.fecha_emision ? new Date(form.fecha_emision + 'T00:00:00') : new Date();
-        
-  //       const dia = String(fechaBase.getDate()).padStart(2, '0');
-  //       const mes = String(fechaBase.getMonth() + 1).padStart(2, '0');
-  //       const anio = String(fechaBase.getFullYear()).slice(-2);
-        
-  //       const tipoId = String(props.initialData?.tipo_tramite?.tipo_tramite?.id || '0').padStart(3, '0');
-        
-  //       return `${dia}.${mes}.${anio}/DPU/${tipoId}`;
-  // });
-
-  // Definimos la variable para el prefijo
-  const prefijoBase = ref('');
-
-  // Función que debes llamar justo antes de abrir o al abrir la ventana modal
-  const generarPrefijoBase = () => {
-    const fechaBase = form.fecha_emision ? new Date(form.fecha_emision + 'T00:00:00') : new Date();
-    
-    const dia = String(fechaBase.getDate()).padStart(2, '0');
-    const mes = String(fechaBase.getMonth() + 1).padStart(2, '0');
-    const anio = String(fechaBase.getFullYear()).slice(-2);
-    
-    const tipoId = String(props.initialData?.tipo_tramite?.tipo_tramite?.id || '0').padStart(3, '0');
-    
-    prefijoBase.value = `${dia}.${mes}.${anio}/DPU/${tipoId}`;
-
-    form.prefijo_base = prefijoBase.value + '/';
-};
-
-  // watch(prefijoBase, (nuevoValor) => {
-  //   if (esSoloLectura.value) return;
-  //     form.prefijo_base = nuevoValor + '/';
-  // }, { immediate: true });
-
-  const confirmarEntrega = async() => {
+   const confirmarEntrega = async() => {
     const faltantes = documentacion.value.filter(d => 
             !form.documentacion_entregada.includes(d.id_requisito)
         );

@@ -2,10 +2,13 @@
 - Validar que el consecutivo solo sea en el AÑO ACTUAL - OK
 - Cuando sea CONSTANCIA DE NÚMERO OFICIAL solamente poner el número del domicilio con color1 cuando sea asignado dentro del trámite, si ya trae número que lo ponga gris - OK
 - Cuando se está COMPLETANDO la CONSTANCIA DE NUM. OFICIAL y después que se confirman los datos y le doy ACTUALIZAR DATOS ya no sale mensaje en el sweet alert que indique que se actualizó - OK
-- Que no cambie el prefijo oficio al guardar
-- Cuando es nueva solicitud y no hay CROQUIS NO DEBE DE PERMITIR que se cambie a SOLICITUD ACEPTADA 
+- Que no cambie el prefijo oficio al guardar  OK
+- Que al modificar el PREFIJO OFICIO se indique que se está editando y el consecutivo que al pasar el mouse por ahí que cambie el cursor - OK
 - Agregar GEO DATA a las solicitudes cuando sea CONST. NUM. OFICIAL
 - Crear plantillas para SOLICITUDES (Previa y definitiva)
+- Ver los trámites que más se solicitan (por ejemplo en los dos últimos años) y ordenar los trámites a seleccionar de la solicitud por el más solicitado (en este caso es const. num. of.)
+- Cuando es nueva solicitud y no hay CROQUIS NO DEBE DE PERMITIR que se cambie a SOLICITUD ACEPTADA 
+
 
 
 

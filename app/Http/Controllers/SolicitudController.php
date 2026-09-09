@@ -3047,7 +3047,20 @@ class SolicitudController extends Controller
         $tiposPropiedades = TipoPropiedad::orderBy('nombre')->get();
         $destinosObras = DestinoObra::orderBy('nombre')->get();
         $sectores = SectorTramite::orderBy('nombre')->get();
-        $tiposTramites = TipoTramite::with('tramites')->where('activo', true)->get();
+        //$tiposTramites = TipoTramite::with('tramites')->where('activo', true)->get();
+        $tiposTramites = TipoTramite::with([
+            'tramites' => function ($query) {
+                $query
+                    ->withCount([
+                        'solicitudesTramites as solicitudes_actuales' => function ($query) {
+                            $query->whereYear('created_at', now()->year);
+                        }
+                    ])
+                    ->orderByDesc('solicitudes_actuales')
+                    ->orderBy('nombre');
+            }
+        ])->get();
+
         $localidades = Localidad::orderBy('nombre')->get();
 
         $resumen = $this->obtenerResumenSolicitudes([

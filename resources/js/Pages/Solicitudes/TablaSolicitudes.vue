@@ -5,6 +5,12 @@
     import Swal from 'sweetalert2'
     import CalendarUp from '@/Components/UI/Icons/CalendarUp.vue';
     import CalendarDown from '@/Components/UI/Icons/CalendarDown.vue';
+
+    const tiposExpandidos = ref({});
+
+const toggleTipoTramites = (tipoId) => {
+    tiposExpandidos.value[tipoId] = !tiposExpandidos.value[tipoId];
+};
     
 
     const props = defineProps({
@@ -205,6 +211,7 @@
     const floatingSuperficieConstruccionPropiedadRef = ref(null)
     const floatingCallePropiedadRef = ref(null)
     const floatingNumeroPropiedadRef = ref(null)
+    const floatingCodigoPostalPropiedadRef = ref(null)
 
     const floatingDestinoObraRef = ref(null)
     const floatingSectorRef = ref(null)
@@ -266,6 +273,7 @@
             superficiePropiedad.value = propiedad?.superficie
             superficieConstruccionPropiedad.value = propiedad?.superficie_construccion
             callePropiedad.value = propiedad?.calle
+            codigoPostalPropiedad.value = propiedad?.codigo_postal
             numeroPropiedad.value = propiedad?.numero
             idColoniaPropiedad.value = propiedad?.id_colonia
             nombreColoniaPropiedad.value = propiedad?.colonia?.nombre
@@ -502,6 +510,7 @@
         superficiePropiedadEditable.value = valor
         superficieConstruccionPropiedadEditable.value = valor
         callePropiedadEditable.value = valor
+        codigoPostalPropiedadEditable.value = valor
         numeroPropiedadEditable.value = valor
         idColoniaPropiedadEditable.value = valor
         idLocalidadPropiedadEditable.value = valor
@@ -555,6 +564,7 @@
         superficiePropiedadBloqueado.value = valor
         superficieConstruccionPropiedadBloqueado.value = valor
         callePropiedadBloqueado.value = valor
+        codigoPostalPropiedadBloqueado.value = valor
         numeroPropiedadBloqueado.value = valor
         idColoniaPropiedadBloqueado.value = valor
         idLocalidadPropiedadBloqueado.value = valor
@@ -1190,6 +1200,7 @@
         superficiePropiedad.value = ''
         superficieConstruccionPropiedad.value = ''
         callePropiedad.value = ''
+        codigoPostalPropiedad.value = ''
         numeroPropiedad.value = ''
         idColoniaPropiedad.value = ''
         nombreColoniaPropiedad.value = ''
@@ -1386,6 +1397,7 @@
     const superficiePropiedad = ref('')
     const superficieConstruccionPropiedad = ref('')
     const callePropiedad = ref('')
+    const codigoPostalPropiedad = ref('')
     const numeroPropiedad = ref('')
     const idColoniaPropiedad = ref('')
     const nombreColoniaPropiedad = ref('')
@@ -1398,6 +1410,7 @@
     const superficiePropiedadEditable = ref(true)
     const superficieConstruccionPropiedadEditable = ref(true)
     const callePropiedadEditable = ref(true)
+    const codigoPostalPropiedadEditable = ref(true)
     const numeroPropiedadEditable = ref(true)
     const idColoniaPropiedadEditable = ref(true)
     const idLocalidadPropiedadEditable = ref(true)
@@ -1405,6 +1418,7 @@
     const superficiePropiedadBloqueado = ref(true)
     const superficieConstruccionPropiedadBloqueado = ref(true)
     const callePropiedadBloqueado = ref(true)
+    const codigoPostalPropiedadBloqueado = ref(true)
     const numeroPropiedadBloqueado = ref(true)
     const idColoniaPropiedadBloqueado = ref(true)
     const idLocalidadPropiedadBloqueado = ref(true)
@@ -2259,6 +2273,7 @@
                     superficiePropiedad.value = propiedad.value.superficie
                     superficieConstruccionPropiedad.value = propiedad.value.superficie_construccion
                     callePropiedad.value = propiedad.value.calle
+                    codigoPostalPropiedad.value = propiedad.value.codigo_postal
                     numeroPropiedad.value = propiedad.value.numero
                     idColoniaPropiedad.value = propiedad.value.id_colonia
                     nombreColoniaPropiedad.value = propiedad.value?.colonia?.nombre || ''
@@ -2336,6 +2351,7 @@
                     if (!(tipoPropiedad.value == '' || tipoPropiedad.value == null)) datosPropiedadOcupados++
                     if (!(superficiePropiedad.value == '' || superficiePropiedad.value == null)) datosPropiedadOcupados++
                     if (!(callePropiedad.value == '' || callePropiedad.value == null)) datosPropiedadOcupados++
+                    if (!(codigoPostalPropiedad.value == '' || codigoPostalPropiedad.value == null)) datosPropiedadOcupados++
                     if (!(numeroPropiedad.value == '' || numeroPropiedad.value == null)) datosPropiedadOcupados++
                     if (!(callePropiedad.value == '' || callePropiedad.value == null)) datosPropiedadOcupados++
                     
@@ -2902,6 +2918,7 @@
                     formData2.append('claveCatastral', claveCatastralSinEspacios.value);
                     formData2.append('tramitesSeleccionados', tramitesSeleccionados.value);
                     formData2.append('callePropiedad', callePropiedad.value);
+                    formData2.append('codigoPostalPropiedad', codigoPostalPropiedad.value);
                     formData2.append('numeroPropiedad', numeroPropiedad.value);
                     formData2.append('idColoniaPropiedad', idColoniaPropiedad.value);
                     formData2.append('idLocalidadPropiedad', idLocalidadPropiedad.value);
@@ -2965,6 +2982,7 @@
             formData2.append('claveCatastral', claveCatastralSinEspacios.value);
             formData2.append('tramitesSeleccionados', tramitesSeleccionados.value);
             formData2.append('callePropiedad', callePropiedad.value);
+            formData2.append('codigoPostalPropiedad', codigoPostalPropiedad.value);
             formData2.append('numeroPropiedad', numeroPropiedad.value);
             formData2.append('idColoniaPropiedad', idColoniaPropiedad.value);
             formData2.append('idLocalidadPropiedad', idLocalidadPropiedad.value);
@@ -3223,6 +3241,7 @@
         }
         formData.append('claveCatastral', claveCatastralSinEspacios.value)
         formData.append('callePropiedad', callePropiedad.value)
+        formData.append('codigoPostalPropiedad', codigoPostalPropiedad.value)
         formData.append('numeroPropiedad', numeroPropiedad.value)
         formData.append('idColoniaPropiedad', idColoniaPropiedad.value)
         formData.append('idLocalidadPropiedad', idLocalidadPropiedad.value)
@@ -3837,6 +3856,12 @@
             setTimeout(() => {
                 floatingCallePropiedadRef.value?.focus()
             }, 50)
+            } else if (control == 'codigoPostalPropiedadEditable') {
+            codigoPostalPropiedadEditable.value = !codigoPostalPropiedadEditable.value
+            setTimeout(() => {
+                floatingCodigoPostalPropiedadRef.value?.focus()
+            }, 50)
+       
         } else if (control == 'numeroPropiedadEditable') {
             numeroPropiedadEditable.value = !numeroPropiedadEditable.value
             setTimeout(() => {
@@ -4131,6 +4156,7 @@
         formData.append('claveCatastral', claveCatastralSinEspacios.value)
         formData.append('tipoPropiedad', tipoPropiedad.value)
         formData.append('callePropiedad', callePropiedad.value)
+        formData.append('codigoPostalPropiedad', callePropiedad.value)
         formData.append('numeroPropiedad', numeroPropiedad.value)
         formData.append('idColoniaPropiedad', idColoniaPropiedad.value)
         formData.append('idLocalidadPropiedad', idLocalidadPropiedad.value)
@@ -5086,7 +5112,7 @@
 </script>
 
 <template>
-    <el-dialog v-model="dialogVisible" :width="dialogWidth" :before-close="handleClose" :close-on-click-modal="false" :close-on-press-escape="false" top="6vh" style="border-radius: 12px !important; ">
+    <el-dialog v-model="dialogVisible" :width="dialogWidth" :before-close="handleClose" :close-on-click-modal="false" :close-on-press-escape="false" top="4vh" style="border-radius: 12px !important; ">
         <template #header>
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 pb-1">
                 <div class="flex items-center gap-3">
@@ -5602,7 +5628,7 @@
             </div>
             <div v-if="claveCatastralCompleta" class="md:flex-1 flex md:items-center w-full md:w-auto md:gap-x-3 flex-wrap">
                 <div class="relative z-0 mb-5 group peer w-full"
-                :class="!tramitesSeleccionados?.includes(ID_CONSTANCIA_NUMERO_OFICIAL) ? 'md:w-[41%]' : 'md:w-[56%]'">
+                :class="!tramitesSeleccionados?.includes(ID_CONSTANCIA_NUMERO_OFICIAL) ? 'md:w-[31%]' : 'md:w-[46%]'">
                     <input
                         v-model="callePropiedad"
                         ref="floatingCallePropiedadRef"
@@ -5626,6 +5652,40 @@
                             v-if="!callePropiedadEditable && !callePropiedadBloqueado"
                             class="ml-2 bg-transparent text-gray-500 hover:text-color1"
                             @click="habilitarCaptura('callePropiedadEditable')">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1">
+                                <!-- Uso de `group-hover` para cambiar el color -->
+                                <path
+                                    d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h357l-80 80H200v560h560v-278l80-80v358q0 33-23.5 56.5T760-120H200Zm280-360ZM360-360v-170l367-367q12-12 27-18t30-6q16 0 30.5 6t26.5 18l56 57q11 12 17 26.5t6 29.5q0 15-5.5 29.5T897-728L530-360H360Zm481-424-56-56 56 56ZM440-440h56l232-232-28-28-29-28-231 231v57Zm260-260-29-28 29 28 28 28-28-28Z"
+                                />
+                            </svg>
+                        </button>
+                    </label>
+                </div>
+                <div class="relative z-0 mb-5 group peer w-full"
+                :class="!tramitesSeleccionados?.includes(ID_CONSTANCIA_NUMERO_OFICIAL) ? 'md:w-[6%]' : 'md:w-[10%]'">
+                    <input
+                        v-model="codigoPostalPropiedad"
+                        ref="floatingCodigoPostalPropiedadRef"
+                        type="text"
+                        class="block w-full text-sm text-gray-900 border-0 appearance-none dark:text-white dark:focus:border-color1 focus:outline-none focus:ring-0 peer"
+                        :class="[
+                            {
+                                'pb-1 py-2.5 px-0': codigoPostalPropiedadEditable,
+                                'bg-color3-50 p-0 m-0 mt-2': !codigoPostalPropiedadEditable,
+                                'border-b-2 border-gray-300 focus:border-color1 dark:border-gray-600': codigoPostalPropiedadEditable
+                            }
+                        ]"
+                        placeholder=""
+                        :disabled="!codigoPostalPropiedadEditable"
+                        required/>
+                    <label
+                        style="z-index: 10"
+                        class="peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-90 peer-focus:-translate-y-6 peer-focus:scale-90 absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-85 top-3 -z-10 origin-[0] peer-focus:text-color1 peer-focus:dark:text-color1">
+                        Código Postal
+                        <button
+                            v-if="!codigoPostalPropiedadEditable && !codigoPostalPropiedadBloqueado"
+                            class="ml-2 bg-transparent text-gray-500 hover:text-color1"
+                            @click="habilitarCaptura('codigoPostalPropiedadEditable')">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="12px" class="fill-gray-500 hover:fill-color1">
                                 <!-- Uso de `group-hover` para cambiar el color -->
                                 <path
@@ -6450,16 +6510,148 @@
                                         :style="{
                                             width: `${100 / tiposTramites.length}%`
                                         }"
-                                        class="bg-gray-100 uppercase px-4 py-2 text-sm font-semibold text-gray-900 dark:text-white text-center">
-                                        {{ tipoTramite.nombre }}
+                                        class="
+                                            bg-gray-100
+                                            px-3
+                                            py-2
+                                            text-sm
+                                            font-semibold
+                                            text-gray-900
+                                            dark:text-white
+                                            text-center
+                                            align-middle
+                                        "
+                                    >
+                                        <div class="relative flex items-center justify-center">
+
+                                            <!-- NOMBRE CENTRADO -->
+                                            <span
+                                                class="
+                                                    uppercase
+                                                    leading-tight
+                                                    text-sm
+                                                    font-bold
+                                                    text-center
+                                                "
+                                            > 
+                                                {{ tipoTramite.nombre }}
+                                            </span>
+
+
+                                            <!-- CONTADOR / BOTÓN -->
+                                            <button
+                                                v-if="tipoTramite.tramites.length > 2"
+                                                type="button"
+                                                @click.stop="
+                                                    toggleTipoTramites(tipoTramite.id)
+                                                "
+                                                :title="
+                                                    tiposExpandidos[tipoTramite.id]
+                                                        ? 'Mostrar menos trámites'
+                                                        : `Mostrar ${tipoTramite.tramites.length} trámites`
+                                                "
+                                                class="
+                                                    absolute
+                                                    right-0
+                                                    flex-shrink-0
+                                                    inline-flex
+                                                    items-center
+                                                    justify-center
+                                                    min-w-[24px]
+                                                    h-[22px]
+                                                    px-1.5
+                                                    rounded-full
+                                                    bg-color1-50
+                                                    text-color1-700
+                                                    hover:bg-color1-100
+                                                    hover:text-color1-800
+                                                    text-[10px]
+                                                    font-bold
+                                                    transition-all
+                                                    duration-200
+                                                    cursor-pointer
+                                                ">
+
+                                                <template
+                                                    v-if="!tiposExpandidos[tipoTramite.id]">
+                                                   <span class="text-xs font-medium ml-1 mr-1">{{ tipoTramite.tramites.length }}</span> 
+                                                   <svg class="w-2 h-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                                    </svg>
+                                                </template>
+
+                                                <template v-else>
+                                                    <svg
+                                                        class="w-3.5 h-3.5"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        stroke-width="2.5"
+                                                        viewBox="0 0 24 24">
+                                                        <path
+                                                            stroke-linecap="round"
+                                                            stroke-linejoin="round"
+                                                            d="M5 12h14"
+                                                        />
+                                                    </svg>
+                                                </template>
+
+                                            </button>
+
+
+                                            <!-- SI SOLO HAY 1 O 2 TRÁMITES -->
+                                            <span
+                                                v-else
+                                                class="
+                                                    absolute
+                                                    right-0
+                                                    flex-shrink-0
+                                                    inline-flex
+                                                    items-center
+                                                    justify-center
+                                                    min-w-[24px]
+                                                    h-[22px]
+                                                    px-1.5
+                                                    rounded-full
+                                                    bg-gray-200
+                                                    text-gray-600
+                                                    text-[10px]
+                                                    font-bold
+                                                "
+                                                :title="
+                                                    `${tipoTramite.tramites.length} ${
+                                                        tipoTramite.tramites.length === 1
+                                                            ? 'trámite'
+                                                            : 'trámites'
+                                                    }`
+                                                "
+                                            >
+                                                {{ tipoTramite.tramites.length }}
+                                            </span>
+
+                                        </div>
                                     </th>
                                 </tr>
                                 <tr>
                                     <th class="h-2 bg-white" colspan="100"></th>
                                 </tr>
-                            </thead>
+                            </thead>                           
                             <tbody>
-                                <tr v-for="index in Math.max(...tiposTramites.map((t) => t.tramites.length))" :key="index">
+
+                                <!-- Trámites -->
+                                <tr
+                                    v-for="index in Math.max(...tiposTramites.map((t) => t.tramites.length))"
+                                    :key="index"
+                                    v-show="
+                                        tiposTramites.some(
+                                            (tipo) =>
+                                                tipo.tramites[index - 1] &&
+                                                (
+                                                    tiposExpandidos[tipo.id] ||
+                                                    index <= 2
+                                                )
+                                        )
+                                    ">
+
                                     <td
                                         v-for="tipoTramite in tiposTramites"
                                         :key="tipoTramite.id"
@@ -6468,22 +6660,63 @@
                                             width: 915 / tiposTramites.length + 'px',
                                             minWidth: 915 / tiposTramites.length + 'px'
                                         }">
+
                                         <div
-                                            v-if="tipoTramite.tramites[index - 1]"
-                                            @click="actualizarTramitesSeleccionados(tipoTramite.tramites[index - 1].id)"
-                                            :class="{
-                                                'bg-color1-600 text-white font-bold border-color1-700': tramitesSeleccionados.includes(tipoTramite.tramites[index - 1].id),
-                                                'text-gray-700 bg-gray-50 border-gray-400 hover:shadow-md hover:border-color1-500 hover:ring-1 hover:ring-color1-100 hover:text-color1-800': !tramitesSeleccionados.includes(
+                                            v-if="
+                                                tipoTramite.tramites[index - 1] &&
+                                                (
+                                                    tiposExpandidos[tipoTramite.id] ||
+                                                    index <= 2
+                                                )
+                                            "
+                                            @click="
+                                                actualizarTramitesSeleccionados(
                                                     tipoTramite.tramites[index - 1].id
                                                 )
+                                            "
+                                            :class="{
+                                                'bg-color1-600 text-white font-bold border-color1-700':
+                                                    tramitesSeleccionados.includes(
+                                                        tipoTramite.tramites[index - 1].id
+                                                    ),
+
+                                                'text-gray-700 bg-gray-50 border-gray-400 hover:shadow-md hover:border-color1-500 hover:ring-1 hover:ring-color1-100 hover:text-color1-800':
+                                                    !tramitesSeleccionados.includes(
+                                                        tipoTramite.tramites[index - 1].id
+                                                    )
                                             }"
-                                            class="flex items-center justify-center h-full w-full rounded-2xl px-4 py-2 cursor-pointer border transition-colors hover:shadow-lg hover:-translate-y-1">
-                                            <span class="text-xs dark:text-gray-300 text-center leading-tight">
+                                            class="flex items-center justify-center h-full w-full rounded-2xl px-4 py-2 cursor-pointer border transition-all hover:shadow-lg hover:-translate-y-1">
+
+                                            <span
+                                                class="text-xs dark:text-gray-300 text-center leading-tight">
                                                 {{ tipoTramite.tramites[index - 1]?.nombre }}
                                             </span>
+
                                         </div>
+
                                     </td>
+
                                 </tr>
+
+
+                                <!-- ================================================= -->
+                                <!-- BOTONES VER MÁS / VER MENOS -->
+                                <!-- ================================================= -->
+
+                                <tr>
+
+                                    <td
+                                        v-for="tipoTramite in tiposTramites"
+                                        :key="'boton-' + tipoTramite.id"
+                                        class="px-1 py-2 text-center"
+                                    >
+
+                                        
+
+                                    </td>
+
+                                </tr>
+
                             </tbody>
                         </table>
                     </div>

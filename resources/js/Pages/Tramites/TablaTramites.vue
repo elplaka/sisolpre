@@ -493,7 +493,7 @@
                                         </svg>
                                         <span class="leading-tight truncate" :title="tram.propiedad?.clave_catastral">
                                             <span>{{ tram.propiedad?.calle }}</span>
-                                            <span v-if="tram.propiedad?.numero"> N° {{ tram.propiedad.numero }}</span>
+                                            <span v-if="tram.propiedad?.numero && tram.id_tramite != 4"> N° {{ tram.propiedad.numero }}</span>
                                             <span v-else>
                                                 <span class="text-color1-800 font-bold" v-if="tram.id_tramite == 4 && (tram.id_estatus == 2 || tram.id_estatus == 99) && tram.constancia_numero_oficial?.propiedad?.numero"> N° {{ tram.constancia_numero_oficial?.propiedad?.numero }}</span>
                                             </span>

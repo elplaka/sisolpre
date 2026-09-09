@@ -34,13 +34,42 @@
     // Esto es más robusto que solo la extensión
     $type = Storage::mimeType($path);
 
-    // Codificar la imagen en base64
-    $croquis = 'data:' . $type . ';base64,' . base64_encode($data);
+    $croquis = '';
+
+    if (!empty($imgCroquis)) {
+    $pathCroquis = 'public/croquis/' . trim($imgCroquis);
+
+    if (Storage::exists($pathCroquis)) {
+    $absPath = Storage::path($pathCroquis); // Ruta absoluta en disco
+
+    if (file_exists($absPath)) {
+    // Intentamos limpiar la imagen procesándola con GD para eliminar perfiles corruptos
+    $imgInfo = @getimagesize($absPath);
+    if ($imgInfo !== false) {
+    $imgData = null;
+
+    // Dependiendo del tipo original, la reconstruimos limpia
+    if ($imgInfo[2] == IMAGETYPE_PNG) {
+    $sourceImage = @imagecreatefrompng($absPath);
+    } elseif ($imgInfo[2] == IMAGETYPE_JPEG) {
+    $sourceImage = @imagecreatefromjpeg($absPath);
     } else {
-    // Manejar el caso donde la imagen no se encuentra
-    // Puedes asignar una imagen por defecto, un placeholder, o un string vacío.
-    $croquis = ''; // O la ruta a una imagen de "no encontrado" en base64
-    // Log::warning("El archivo de croquis no se encontró en: " . $path);
+    $sourceImage = @imagecreatefromstring(file_get_contents($absPath));
+    }
+
+    if ($sourceImage) {
+    // Creamos un buffer temporal en memoria como JPG limpio
+    ob_start();
+    imagejpeg($sourceImage, null, 90); // 90% de calidad, sin perfiles pesados
+    $cleanData = ob_get_clean();
+    imagedestroy($sourceImage);
+
+    $croquis = 'data:image/jpeg;base64,' . base64_encode($cleanData);
+    }
+    }
+    }
+    }
+    }
     }
 
     $path = getcwd() . '/img/norte.png';

@@ -5,11 +5,33 @@
 - Que no cambie el prefijo oficio al guardar  OK
 - Que al modificar el PREFIJO OFICIO se indique que se está editando y el consecutivo que al pasar el mouse por ahí que cambie el cursor - OK
 - Agregar GEO DATA a las solicitudes cuando sea CONST. NUM. OFICIAL
+- Que el botón de GUARDAR SOLICITUD no se active hasta que cumpla con todos los campos completados
 - Crear plantillas para SOLICITUDES (Previa y definitiva)
 - Ver los trámites que más se solicitan (por ejemplo en los dos últimos años) y ordenar los trámites a seleccionar de la solicitud por el más solicitado (en este caso es const. num. of.)
 - Cuando es nueva solicitud y no hay CROQUIS NO DEBE DE PERMITIR que se cambie a SOLICITUD ACEPTADA 
 
 
+https://www.youtube.com/playlist?list=PL9K7mSSNVUT8VN0d4HAyD1lIrbTTnovcp  PLAYLIST DE GLORIAS
+
+https://www.youtube.com/watch?v=QhgTlpR6l6s&list=PL9K7mSSNVUT8VN0d4HAyD1lIrbTTnovcp&index=12 GLORIA POP  Gloria a Dios en el cielo, Fernando Leiva
+
+https://www.youtube.com/watch?v=HgSkQURUVEQ&list=PL9K7mSSNVUT8VN0d4HAyD1lIrbTTnovcp&index=9  GLORIA
+
+https://www.youtube.com/watch?v=fBGFd0mfVD8&list=PL9K7mSSNVUT8VN0d4HAyD1lIrbTTnovcp&index=11  OTRO GLORIA
+
+https://www.youtube.com/watch?v=uLsXT6jqjbs&list=RDuLsXT6jqjbs&start_radio=1 OTRO GLORIA (CHECAR LETRA)
+
+https://www.youtube.com/watch?v=_8I-5Uy5Kdw&list=RD_8I-5Uy5Kdw&start_radio=1
+
+https://www.youtube.com/watch?v=cxqvuGaYXKo&list=RDcxqvuGaYXKo&start_radio=1  GLORIA PALAZON
+
+https://www.youtube.com/watch?v=2N26CcC7rNo&list=RD2N26CcC7rNo&start_radio=1  GLORIA EMMANUEL ROQUE
+
+https://www.youtube.com/watch?v=U973nJrVhPs&list=RDU973nJrVhPs&start_radio=1  GLORIA CARISMÁTICO
+
+https://www.youtube.com/watch?v=Dk3ZFJXATYU&list=RDDk3ZFJXATYU&start_radio=1  GLORIA MI MENOR
+
+quiero una consulta para un mejor UX y UI en una app. Tengo una tabla donde muestro los trámites a realizar, divididos en 3 columnas, cada una con un título y es el tipo de trámite, la primera es DE USO DE SUELO, la segunda es DE CONSTRUCCIÓN y la tercera es USO DE LA VÍA PÚBLICA, y la primera columna tiene 8 trámites, la segunda tiene 6 trámites y la tercera tiene 4, quisiera mostrar los primeros dos trámites de cada tipo y mostrar un button para mostrar todos los demás, qué me recomiendas hacer?? 
 
 
 

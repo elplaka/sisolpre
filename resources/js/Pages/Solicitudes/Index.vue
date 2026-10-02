@@ -6,27 +6,23 @@
         :solicitudes="solicitudes.data"
         :pagination="solicitudes"
         :estatusSolicitud="estatusSolicitud"
-        :tiposPropiedades="tiposPropiedades"
-        :destinosObras="destinosObras"
-        :sectores ="sectores"
-        :tiposTramites="tiposTramites"
-        :tramites="tramites"
-        :localidades="localidades"
         :localidadesQuery="localidadesQuery"
         :numQuery ="numQuery"
-        :folioQuery ="folioQuery"
         :nombreQuery ="nombreQuery"
         :fechaIngresoInicioQuery="props.fechaIngresoInicioQuery"
         :fechaIngresoFinQuery="props.fechaIngresoFinQuery"
-        :claveCatastralQuery="claveCatastralQuery"
+        :totalesEstatusQuery="props.totalesEstatusQuery"
         :idRangoFechasIngresoQuery="props.idRangoFechasIngresoQuery"
-        :tiposTramitesQuery="tiposTramitesQuery"
-        :tramitesQuery="tramitesQuery"
         :sortColumn="sortColumn"
         :sortDirection="sortDirection"
         :paraNuevaSolicitud="paraNuevaSolicitud"
         :filtroChkSolicitudes="filtroChkSolicitudes"
-        :periodoActual="periodoActual">
+        :periodoActual="periodoActual"
+        :localidadesList="localidadesList"
+        :areasList="areasList"
+        :estatusList="estatusList"
+        :totalSolicitudes="totalSolicitudes"
+        :page="page">
       </TablaSolicitudes>
     </AdminLayout>
   </template>
@@ -40,25 +36,21 @@ import { Head } from '@inertiajs/vue3'; // Componente Head para Inertia.js
 const props = defineProps({
   solicitudes: Object, // Datos paginados de las solicitudes
   estatusSolicitud: Object,
-  tiposPropiedades: Object,
-  destinosObras: Object,
-  tiposTramites: Object,
-  sectores: Object, // Datos relacionados de los sectores
-  tramites: Object, // Datos relacionados de los trámites
   localidadesQuery: Object,
-  localidades: Object,
+  localidadesList: Array,
   fechaIngresoInicioQuery: String,
   fechaIngresoFinQuery: String,
   idRangoFechasIngresoQuery: Number,
-  tiposTramitesQuery: Object, // Datos relacionados de los tipos de trámites
-  tramitesQuery: Object, // Datos relacionados de los trámites
+  totalesEstatusQuery: Object,
   numQuery: String, // Cadena de búsqueda
-  folioQuery: String, // Cadena de búsqueda
   nombreQuery: String, // Cadena de búsqueda
-  claveCatastralQuery: String, // Cadena de búsqueda
   filtroChkSolicitudes: Number, // Filtro de solicitudes
   sortColumn: String, // Columna por la que se ordena
   sortDirection: String, // Dirección del ordenamiento (asc/desc)
+  areasList: Array,
+  estatusList: Array,
+  totalSolicitudes: Number,
+  page: Number,
   paraNuevaSolicitud: {
             type: [Boolean, String], // Acepta Boolean O String
             validator: (value) => {

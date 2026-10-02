@@ -23,32 +23,26 @@ class UsuarioController extends Controller
         $sortDirection = $request->input('sortDirection', 'asc'); // 'asc' como dirección por defecto
 
         $searchQuery = $request->input('query');
-        if ($searchQuery)
-        {
+        if ($searchQuery) {
             $usersQuery = User::join('user_types', 'users.user_type_id', '=', 'user_types.id')
-            ->with('userType')->select('users.*') // Incluye la relación primero
-            ->where(function ($query) use ($searchQuery) {
-                $query->where('users.name', 'like', '%' . $searchQuery . '%')
-                      ->orWhere('last_name', 'like', '%' . $searchQuery . '%');
-            });
+                ->with('userType')->select('users.*') // Incluye la relación primero
+                ->where(function ($query) use ($searchQuery) {
+                    $query->where('users.name', 'like', '%' . $searchQuery . '%')
+                        ->orWhere('last_name', 'like', '%' . $searchQuery . '%');
+                });
 
-            if ($sortColumn == 'user_types.name') 
-            { 
-                $usersQuery->orderBy('user_types.name', $sortDirection)->orderBy('users.name', $sortDirection); 
-            } 
-            else 
-            { 
+            if ($sortColumn == 'user_types.name') {
+                $usersQuery->orderBy('user_types.name', $sortDirection)->orderBy('users.name', $sortDirection);
+            } else {
                 $usersQuery->orderBy($sortColumn, $sortDirection);
             }
 
             // Obtener los distintos user_type_id de la colección 
             $userTypeIds = $usersQuery->pluck('user_type_id')->unique();
-            foreach ($userTypeIds as $userTypeId) 
-            { 
-                if (!in_array($userTypeId, $selectedTypes)) 
-                { 
-                    $selectedTypes[] = $userTypeId; 
-                } 
+            foreach ($userTypeIds as $userTypeId) {
+                if (!in_array($userTypeId, $selectedTypes)) {
+                    $selectedTypes[] = $userTypeId;
+                }
             }
 
             if (!empty($selectedTypes)) {
@@ -72,26 +66,20 @@ class UsuarioController extends Controller
             $inactivos = User::where('es_activo', 0)->count();
 
             $users = $usersQuery->paginate(10);
-        }
-        else
-        { 
+        } else {
             $usersQuery = User::join('user_types', 'users.user_type_id', '=', 'user_types.id')
-            ->with('userType')->select('users.*');
+                ->with('userType')->select('users.*');
 
-            if ($sortColumn == 'user_types.name') 
-            { 
-                $usersQuery->orderBy('user_types.name', $sortDirection)->orderBy('users.name', $sortDirection); 
-            } 
-            else 
-            { 
+            if ($sortColumn == 'user_types.name') {
+                $usersQuery->orderBy('user_types.name', $sortDirection)->orderBy('users.name', $sortDirection);
+            } else {
                 $usersQuery->orderBy($sortColumn, $sortDirection);
             }
 
             $usersType = $usersQuery;
             $userIdsTypes = $usersType->pluck('id');
 
-            if (empty($selectedTypes))
-            {
+            if (empty($selectedTypes)) {
                 $usersType = $usersQuery;
                 $userIds = $usersType->pluck('id');
 
@@ -102,11 +90,9 @@ class UsuarioController extends Controller
                     if ($isInactive) {
                         $query->orWhere('es_activo', false);
                     }
-                });  
-                $userIdsTypes = $usersType->pluck('id');              
-            }
-            else
-            {
+                });
+                $userIdsTypes = $usersType->pluck('id');
+            } else {
                 $usersQuery->whereIn('user_type_id', $selectedTypes);
                 $usersType = $usersQuery;
                 $userIds = $usersType->pluck('id');
@@ -119,9 +105,8 @@ class UsuarioController extends Controller
                         $query->orWhere('es_activo', false);
                     }
                 });
-                if ($isActive || $isInactive) 
-                { 
-                    $userIdsTypes = $usersQuery->pluck('id'); 
+                if ($isActive || $isInactive) {
+                    $userIdsTypes = $usersQuery->pluck('id');
                 }
             }
 
@@ -183,7 +168,7 @@ class UsuarioController extends Controller
             'password.required' => 'La CONTRASEÑA es obligatoria.',
             'password.min' => 'La CONTRASEÑA debe tener al menos 3 caracteres.',
             'password.confirmed' => 'La confirmación de CONTRASEÑA no coincide.'
-        ]); 
+        ]);
 
         try {
             DB::beginTransaction(); // Inicia la transacción
@@ -220,14 +205,14 @@ class UsuarioController extends Controller
             }
 
             DB::commit(); // Confirma la transacción si todo salió bien
-        
+
             return back()->with('success', 'Usuario creado exitosamente')->with('users', User::all());
         } catch (\Exception $e) {
             DB::rollBack(); // Revierte la transacción si ocurre un error
             return response()->json(['error' => 'Hubo un error al crear el usuario: ' . $e->getMessage()], 500);
         }
     }
-    
+
     public function search(Request $request)
     {
         $selectedTypes = $request->input('selectedTypes', []);
@@ -239,21 +224,17 @@ class UsuarioController extends Controller
 
         $searchQuery = $request->input('query');  // Recibe el valor de query
 
-        if ($searchQuery)
-        { 
+        if ($searchQuery) {
             $usersQuery = User::join('user_types', 'users.user_type_id', '=', 'user_types.id')
-            ->with('userType')->select('users.*') // Incluye la relación primero
-            ->where(function ($query) use ($searchQuery) {
-                $query->where('users.name', 'like', '%' . $searchQuery . '%')
-                    ->orWhere('last_name', 'like', '%' . $searchQuery . '%');
-            });
+                ->with('userType')->select('users.*') // Incluye la relación primero
+                ->where(function ($query) use ($searchQuery) {
+                    $query->where('users.name', 'like', '%' . $searchQuery . '%')
+                        ->orWhere('last_name', 'like', '%' . $searchQuery . '%');
+                });
 
-            if ($sortColumn == 'user_types.name') 
-            { 
-                $usersQuery->orderBy('user_types.name', $sortDirection)->orderBy('users.name', $sortDirection); 
-            } 
-            else 
-            { 
+            if ($sortColumn == 'user_types.name') {
+                $usersQuery->orderBy('user_types.name', $sortDirection)->orderBy('users.name', $sortDirection);
+            } else {
                 $usersQuery->orderBy($sortColumn, $sortDirection);
             }
 
@@ -280,29 +261,22 @@ class UsuarioController extends Controller
             // Obtener los distintos user_type_id de la colección 
             $userTypeIds = $usersQuery->pluck('user_type_id')->unique();
             $selectedTypes = [];
-            foreach ($userTypeIds as $userTypeId) 
-            { 
-                if (!in_array($userTypeId, $selectedTypes)) 
-                { 
-                    $selectedTypes[] = strval($userTypeId); 
-                } 
+            foreach ($userTypeIds as $userTypeId) {
+                if (!in_array($userTypeId, $selectedTypes)) {
+                    $selectedTypes[] = strval($userTypeId);
+                }
             }
-        }
-        else
-        {
+        } else {
             $userIdsTypes = User::pluck('id');
 
             $usersQuery = User::join('user_types', 'users.user_type_id', '=', 'user_types.id')
-            ->with('userType')->select('users.*');
+                ->with('userType')->select('users.*');
 
             $userIds = $usersQuery->pluck('id');
 
-            if ($sortColumn == 'user_types.name') 
-            { 
-                $usersQuery->orderBy('user_types.name', $sortDirection)->orderBy('users.name', $sortDirection); 
-            } 
-            else 
-            { 
+            if ($sortColumn == 'user_types.name') {
+                $usersQuery->orderBy('user_types.name', $sortDirection)->orderBy('users.name', $sortDirection);
+            } else {
                 $usersQuery->orderBy($sortColumn, $sortDirection);
             }
 
@@ -324,13 +298,13 @@ class UsuarioController extends Controller
             $inactivos = User::where('es_activo', 0)->whereIn('id', $userIds)->count();
         }
         $users = $usersQuery->paginate(10);
-        
+
         // Obtener los tipos de usuario con el conteo basado en los usuarios filtrados
         $types = UserType::withCount(['users as users_count' => function ($query) use ($userIdsTypes) {
             $query->whereIn('id', $userIdsTypes); // Solo contar usuarios que están en el filtro
         }])->orderBy('name')->get();
 
-       // Obtener usuarios activos
+        // Obtener usuarios activos
         $activos = User::where('es_activo', 1)->whereIn('id', $userIdsTypes)->count();
         // Obtener usuarios inactivos
         $inactivos = User::where('es_activo', 0)->whereIn('id', $userIdsTypes)->count();
@@ -347,7 +321,7 @@ class UsuarioController extends Controller
             'inactivos' => $inactivos,
         ]);
     }
-    
+
     /**
      * Update the specified resource in storage.
      */
@@ -365,12 +339,11 @@ class UsuarioController extends Controller
         $user->isAdmin = boolval($user->user_type_id == 1);
         $user->es_activo = $request->es_activo;
 
-        if (strlen($request->password))
-        {
+        if (strlen($request->password)) {
             $user->password = Hash::make($request->password);
         }
 
-         switch ($request->type_id) {
+        switch ($request->type_id) {
             case 1:
                 $user->syncRoles(['ADMINISTRADOR']);     // Reemplaza el rol anterior
                 break;
@@ -391,11 +364,10 @@ class UsuarioController extends Controller
         $user->syncPermissions([]);          // Limpia permisos directos (opcional, si usas roles correctamente)
 
         //HAY QUE ENVIAR UN CORREO ELECTRÓNICO DE CONFIRMACIÓN CON LOS DATOS Y CON EL TOKEN
-       
+
         $user->update();
 
         return back()->with('success', 'Usuario actualizado con éxito');
-      
     }
 
     /**
@@ -424,7 +396,7 @@ class UsuarioController extends Controller
         ]);
 
         $user->assignRole('ADMINISTRADOR');
-                   
+
         return redirect()->route('admin.login')->with('success', 'Usuario registrado exitosamente. ¡Bienvenido!');
     }
 
@@ -432,5 +404,4 @@ class UsuarioController extends Controller
     {
         return Inertia::render('Auth/Register');
     }
-
 }

@@ -6,18 +6,11 @@
     const sortColumn = ref('')
     const isLoading = ref(false);
 
-    function abreSolicitudes() {
-        sortDirection.value = 'desc'
-        sortColumn.value = 'fecha_ingreso'
+    function nuevaSolicitud() {
         isLoading.value = true;
 
-        router.post(
-            '/solicitudes',
-            {
-                sortColumn: sortColumn.value,
-                sortDirection: sortDirection.value,
-                paraNuevaSolicitud: true,
-            },
+        router.get(
+            '/solicitudes/nueva',
             {
                 onStart: () => { // <--- Inicia el estado de carga
                     isLoading.value = true;
@@ -44,7 +37,7 @@
         <div class="bg-white rounded-lg shadow-sm min-h-[160px] flex flex-col gap-4">
             <h3 class="text-lg font-semibold">Accesos Directos</h3>
             <button 
-                @click="abreSolicitudes"
+                @click="nuevaSolicitud"
                 class="w-full md:w-auto flex items-center justify-center gap-2 bg-color1-600 hover:bg-color1-700 text-white py-2 px-4 rounded-full transition-colors shadow-md hover:shadow-lg">
                 <span class="text-xl">+</span>
                 <span class="text-md font-bold">Nueva Solicitud</span>

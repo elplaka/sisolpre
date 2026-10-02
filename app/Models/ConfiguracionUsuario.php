@@ -21,5 +21,4 @@ class ConfiguracionUsuario extends Model
         'id_user',
         'id_rango_fecha_busqueda'
     ];
-
 }

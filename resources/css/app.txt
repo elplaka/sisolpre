@@ -512,8 +512,6 @@ select:disabled {
   margin: 0px !important;
   border: none !important;
   background-color: white !important;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important; /* simula el shadow-sm */
-  transition: all 0.2s ease-in-out;
 }
 
 
@@ -526,9 +524,10 @@ select:disabled {
 
 .custom-date-picker.el-date-editor:focus,
 .custom-date-picker.el-date-editor:focus-within {
-  border: none !important;
-  box-shadow: 0 0 0 2px var(--color-1), 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
-  border-radius: 16px !important;
+  border: 2.25px solid var(--color-1-1) !important;
+  box-shadow: none !important;
+  border-radius: 8px !important;
+  /* mantener el borde redondeado si lo tenías */
 }
 
 .el-picker-panel .el-date-table td.available:not(.in-range):hover {
@@ -1051,14 +1050,14 @@ textarea {
 /* ========================================================================= */
 /* Tags con clase info */
 .custom-select-gray .el-tag.el-tag--info {
-  background-color: var(--color-gray-200) !important;
+  background-color: var(--color1) !important;
   color: white !important;
   border-radius: 100px !important;
 }
 
 /* Icono cerrar tag */
 .custom-select-gray .el-tag .el-tag__close {
-  color: black !important;
+  color: white !important;
   background-color: transparent !important;
 
   transition:
@@ -1077,8 +1076,9 @@ textarea {
 }
 
 .custom-select-gray .el-select__tags-text {
-  color: black !important;
+  color: white !important;
   font-size: 12px !important;
+
   max-width: 300px !important;
   /* Ajusta este valor (ej. 100px) según tu diseño */
 
@@ -1089,55 +1089,13 @@ textarea {
   /* Evita que el texto se envuelva en varias líneas */
 }
 
-/* Solo en pantallas de celular (menores a 640px) */
-@media (max-width: 639px) {
-   /* 1. Ocultar por completo el ícono de la izquierda en móviles */
-    .custom-select-gray .el-input__prefix {
-        display: none !important;
-    }
-
-    /* 2. Reducir el ancho del contenedor de los tags seleccionados */
-    .custom-select-gray .el-select__selection {
-        max-width: 115px !important;
-        overflow: hidden !important;
-        display: flex !important;
-        align-items: center !important;
-        flex-wrap: nowrap !important;
-        height: 100% !important;
-    }
-
-    /* 3. Limitar el texto del tag y forzar puntos suspensivos (...) */
-    .custom-select-gray .el-select__tags-text {
-        max-width: 60px !important;
-        display: inline-block !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-        white-space: nowrap !important;
-    }
+.custom-select-gray .el-select__inner {
+  color: rgb(15, 25, 29);
 }
 
-/* --- ALINEACIÓN GENERAL PARA COMPUTADORAS Y CELULARES --- */
-
-/* Forzar que el contenedor principal del select sea un flex centrado verticalmente */
-
-
-/* Fijar y centrar verticalmente la flecha de la derecha (suffix) para que nunca se baje */
-.custom-select-gray .el-input__suffix,
-.custom-select-gray .el-select__suffix {
-    display: flex !important;
-    align-items: center !important;
-    position: absolute !important;
-    right: 8px !important;
-    top: 0 !important;
-    bottom: 0 !important;
-    height: 100% !important;
-    margin: auto !important;
-}
-
-.custom-select-gray .el-input__suffix-inner,
-.custom-select-gray .el-select__suffix-inner {
-    display: flex !important;
-    align-items: center !important;
+.custom-select-gray .el-select__placeholder {
+  color: rgb(200, 200, 200) !important;
+  font-size: 13px !important;
 }
 
 .custom-select-gray-down .el-select__wrapper {
@@ -1148,7 +1106,7 @@ textarea {
 
 /* Focus del select */
 .custom-select-gray .el-select__wrapper.is-focused {
-  background-color: white !important;
+  background-color: var(--color-gray-100) !important;
 }
 
 /* Opcional: Estilo para los bordes y sombras */
@@ -1186,14 +1144,8 @@ textarea {
 }
 
 
-.custom-select-gray .el-select__wrapper.is-focused,
-.custom-select-gray .el-select__wrapper.is-active,
-.custom-select-gray .el-select__wrapper:focus,
-.custom-select-gray .el-select__wrapper:active,
-.custom-select-gray .el-select__wrapper:focus-within {
-  border: 1.5px solid #c9cbcf !important; /* Mantiene el borde base limpio para que no brinque el tamaño */
-  box-shadow: 0 0 0 2px var(--color1), 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
-  border-radius: 16px !important;
+.custom-select-gray-down .el-select__wrapper.is-focused {
+  box-shadow: 0px 1.5px 0px 0px var(--color1) !important;
 }
 
 .custom-select-gray-down .el-select .el-select__caret.el-icon svg path {
@@ -1242,7 +1194,7 @@ textarea {
 }
 
 .custom-select-gray .el-tag.el-tag--info:hover {
-  background-color: var(--color-gray-300) !important;
+  background-color: var(--color-1-1) !important;
   /* border-radius: 0.25em !important;    */
   /* margin-left: 0.3em !important;  */
   /* border-radius: 10px !important; */
@@ -1251,58 +1203,34 @@ textarea {
 
 /* Contenedor principal del select */
 .custom-select-gray .el-select__wrapper {
-  border: 1.5px solid #c9cbcf !important;
+  /* border: 0.08em solid rgb(209, 213, 219) !important; */
   background-color: rgb(255, 255, 255);
   --tw-border-opacity: 1;
-  box-shadow: none !important;
+  box-shadow: 1px !important;
   /* Eliminar ring (sombra) */
-  border-radius: 16px !important;
-  height: 37.5px !important;        /* O el valor exacto en píxeles que tenga tu input de fecha (ej. 38px o 40px) */
-  min-height: 37.5px !important;
+  border-radius: 9999px !important;
+  min-height: 2.25em;
   /* Altura mínima */
-  padding-left: 1em !important;
+  padding-left: 1em;
   /* Espaciado interno */
-  padding-right: 0.5em !important;
+  padding-right: 0.5em;
   /* Espaciado interno */
-  display: flex !important;
-  align-items: center !important;
-  flex-wrap: wrap !important;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  height: 2.65em !important;
 }
-
-@media (max-width: 768px) {
-  .custom-select-gray .el-select__wrapper {
-    height: 40px !important;
-    min-height: 40px !important;
-    display: flex !important;
-    align-items: center !important;
-  }
-}
-
-/* 1. Color para el Placeholder (cuando está vacío y tiene la clase is-transparent) */
-.custom-select-gray .el-select__placeholder.is-transparent span {
-  color: rgb(170, 170, 170) !important;
-  font-size: 14px !important;
-  font-weight: 400 !important;
-}
-
-/* 2. Color para el Item Seleccionado (cuando ya tiene texto y YA NO tiene is-transparent) */
-.custom-select-gray .el-select__placeholder:not(.is-transparent) span {
-  color: rgb(45, 55, 65) !important;
-  font-size: 14px !important;
-  font-weight: 500 !important;
-}
-
 
 /* Tags dentro del select */
 .custom-select-gray .el-select__tags .el-tag {
   background-color: transparent !important;
   color: var(--color-gray-800) !important;
-  padding: 0.1em 0.2em !important;
+  padding: 0.3em 0.5em !important;
   /* Padding ajustado */
   font-size: 12px !important;
   border-radius: 4px !important;
   border: none !important;
-  margin: 0.1em !important;
+  margin: 0.2em !important;
   /* Margen entre tags */
   transition: all 0.2s ease;
   font-weight: normal;
@@ -1312,52 +1240,15 @@ textarea {
 .custom-select-gray .el-select__tags {
   /* Centra verticalmente el contenedor de los tags */
   align-items: center !important;
-  max-width: 100% !important;
-  flex-wrap: nowrap !important;
-  overflow: hidden !important;
 
   /* Elimina cualquier margin vertical no deseado en el contenedor de tags */
   margin: 0 !important;
 }
 
-.custom-select-gray .el-tag .el-tag__content {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
 .custom-select-gray .el-select__wrapper:hover {
-  background-color: var(--color-gray-50) !important;
+  background-color: var(--color-gray-100) !important;
 }
 
-.custom-select-gray .el-input__prefix {
-    display: flex !important;
-    align-items: center !important;
-    height: 100% !important;
-    top: 0 !important;
-    bottom: 0 !important;
-    margin: auto !important;
-}
-
-.custom-select-gray .el-input__prefix-inner {
-    display: flex !important;
-    align-items: center !important;
-}
-
-/* 2. Mantiene la flecha del sufijo (suffix) perfectamente centrada sin importar si hay tags */
-.custom-select-gray .el-input__suffix {
-    display: flex !important;
-    align-items: center !important;
-    height: 100% !important;
-    top: 0 !important;
-    bottom: 0 !important;
-    margin: auto !important;
-}
-
-.custom-select-gray .el-input__suffix-inner {
-    display: flex !important;
-    align-items: center !important;
-}
 
 
 /* ========================================================================= */
@@ -1443,22 +1334,6 @@ textarea {
 .custom-select-gray .el-input__icon.el-range__icon svg {
     width: 20px !important;
     height: 20px !important;
-}
-
-/* Si NO usas scoped en tu bloque <style> */
-.custom-select-gray.solicitante-bloqueado .el-select__selected-item,
-.custom-select-gray.solicitante-bloqueado .el-select__placeholder,
-.custom-select-gray.solicitante-bloqueado .el-input__inner {
-    color: rgb(111, 116, 125) !important;
-    -webkit-text-fill-color: rgb(111, 116, 125)  !important;
-}
-
-/* O si SÍ usas <style scoped>, utiliza :deep() para penetrar el componente de Element Plus */
-.custom-select-gray.solicitante-bloqueado :deep(.el-select__selected-item),
-.custom-select-gray.solicitante-bloqueado :deep(.el-select__placeholder),
-.custom-select-gray.solicitante-bloqueado :deep(.el-input__inner) {
-    color: rgb(111, 116, 125) !important;
-    -webkit-text-fill-color: rgb(111, 116, 125) !important;
 }
 
 /* ------------------------------------------------------------- */
@@ -1872,39 +1747,4 @@ textarea {
     background-color: #cbd5e1;
     color: #475569;
     box-shadow: none;
-}
-
-/* Reduce el padding izquierdo y derecho de las opciones del desplegable */
-.el-select-dropdown__item {
-  padding-left: 0px !important;  /* Ajusta este valor a los píxeles que necesites (por defecto suele ser 20px) */
-  padding-right: 0px !important;
-}
-
-
-/* Opcional: Si el texto está dentro de un span o etiqueta interna que limite el tamaño */
-.el-select-dropdown__item span {
-  padding-left: 0px !important;
-  font-size: 14px !important;
-}
-
-/* Estilo base y de enfoque hacia afuera para el input date nativo */
-.custom-native {
-  border: 1.5px solid #d1d5db !important; /* Borde sutil por defecto (equivalente a border-gray-300) */
-  outline: none !important;
-  accent-color: #8f0030;
-}
-
-.dark .custom-native {
-  border: 1.5px solid #374151 !important; /* Borde para modo oscuro (border-gray-700) */
-}
-
-.custom-native:focus {
-  border-color: transparent !important;
-  box-shadow: 0 0 0 2px var(--color-1), 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
-}
-
-/* Estado de error manteniendo la misma lógica de anillo exterior en rojo */
-.custom-native.custom-date-error {
-  border-color: transparent !important;
-  box-shadow: 0 0 0 2px #ef4444, 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
 }

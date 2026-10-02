@@ -83,8 +83,10 @@
                             <ApplicationLogo class="w-25 h-20 fill-current text-gray-500" />
                         </Link>
                     </div>
-                    <div class="text-gray-700" style="text-align: center; margin-bottom: 20px; margin-top: 10px">
-                        <p style="font-size: 14pt"><b>SISTEMA PMU</b></p>
+                  <div class="text-center my-5 md:my-6">
+                        <p class="text-[11px] sm:text-sm md:text-base font-bold tracking-wider text-gray-700">
+                            SIPRES
+                        </p>
                     </div>
                     <form @submit.prevent="submit">
                         <div>
@@ -92,7 +94,7 @@
                             <input
                                 type="text"
                                 id="nickname"
-                                class="bg-gray-50 border mt-2 border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-color1-500 focus:border-color1-500 block w-full pl-2 p-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500"
+                                class="bg-gray-50 border mt-2 border-gray-300 text-gray-900 text-sm rounded-2xl focus:ring-color1-500 focus:border-color1-500 block w-full pl-2 p-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500"
                                 v-model="form.nickname"
                                 @focus="clearError"
                                 required
@@ -105,7 +107,7 @@
                             <input
                                 type="password"
                                 id="password"
-                                class="bg-gray-50 border mt-2 border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-color1-500 focus:border-color1-500 block w-full pl-2 p-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500"
+                                class="bg-gray-50 border mt-2 border-gray-300 text-gray-900 text-sm rounded-2xl focus:ring-color1-500 focus:border-color1-500 block w-full pl-2 p-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-color1-500 dark:focus:border-color1-500"
                                 v-model="form.password"
                                 @focus="clearError"
                                 required

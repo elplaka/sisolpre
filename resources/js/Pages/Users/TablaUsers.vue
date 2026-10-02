@@ -732,7 +732,7 @@
                     <button
                         :disabled="isSubmitting"
                         type="submit"
-                        class="bg-color1-800 hover:bg-color1-700 text-white focus:ring-4 focus:outline-none focus:ring-color1-300 font-medium rounded-lg text-base md:text-sm w-full md:w-1/6 px-4 py-2 text-center dark:bg-color1-600 dark:hover:bg-color1-700 dark:focus:ring-color1-800"
+                        class="bg-color1-800 hover:bg-color1-700 text-white focus:ring-4 focus:outline-none focus:ring-color1-300 font-medium rounded-full text-base md:text-sm w-full md:w-1/6 px-4 py-2 text-center dark:bg-color1-600 dark:hover:bg-color1-700 dark:focus:ring-color1-800"
                     >
                         Aceptar
                     </button>
@@ -740,7 +740,7 @@
                         :disabled="isSubmitting"
                         @click="cierraModalEditarUsuario"
                         type="button"
-                        class="bg-color3-600 hover:bg-color3-500 text-white focus:ring-4 focus:outline-none focus:ring-color3-300 font-medium rounded-lg text-base md:text-sm w-full md:w-1/6 px-4 py-2 text-center dark:bg-color3-600 dark:hover:bg-color3-700 dark:focus:ring-color3-800"
+                        class="bg-color3-600 hover:bg-color3-500 text-white focus:ring-4 focus:outline-none focus:ring-color3-300 font-medium rounded-full text-base md:text-sm w-full md:w-1/6 px-4 py-2 text-center dark:bg-color3-600 dark:hover:bg-color3-700 dark:focus:ring-color3-800"
                     >
                         Cancelar
                     </button>
@@ -781,7 +781,7 @@
                         <button
                             @click="abreModalUsuario"
                             type="button"
-                            class="bg-color1-800 hover:bg-color1-700 flex items-center justify-center text-white focus:ring-4 focus:ring-color1-300 font-medium rounded-lg text-sm px-6 py-2 focus:outline-none dark:focus:ring-color1-800"
+                            class="bg-color1-800 hover:bg-color1-700 flex items-center justify-center text-white focus:ring-4 focus:ring-color1-300 font-medium rounded-full text-sm px-6 py-2 focus:outline-none dark:focus:ring-color1-800"
                         >
                             + Nuevo
                         </button>
@@ -791,7 +791,7 @@
                                 :disabled="users.length == 0"
                                 id="filterDropdownButton"
                                 data-dropdown-toggle="filterDropdown"
-                                class="w-full md:w-auto flex items-center justify-center py-2 px-4 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-primary-700 focus:z-10 focus:ring-4 focus:ring-color1-200 dark:focus:ring-color1-700 dark:bg-color1-800 dark:text-color1-400 dark:border-color1-600 dark:hover:text-white dark:hover:bg-color1-700"
+                                class="w-full md:w-auto flex items-center justify-center py-2 px-4 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-full border border-gray-200 hover:bg-gray-100 hover:text-primary-700 focus:z-10 focus:ring-4 focus:ring-color1-200 dark:focus:ring-color1-700 dark:bg-color1-800 dark:text-color1-400 dark:border-color1-600 dark:hover:text-white dark:hover:bg-color1-700"
                                 :style="users.length == 0 ? 'background-color: #f3f4f6; border-color: #d1d5db; color: #9ca3af; cursor: not-allowed;' : ''"
                                 type="button"
                             >

@@ -28,12 +28,12 @@
     // a las referencias de los componentes Vue importados.
     // Usamos `markRaw` para evitar que Vue haga reactivo un objeto de componentes, lo cual es una optimización.
     const panelComponents = markRaw({
-        LatestSolicitudesPanel: LatestSolicitudesPanel,
-        SolicitudesByMonthPanel: SolicitudesByMonthPanel,
-        TramitesByYearPanel: TramitesByYearPanel,
-        SolicitudesByLocationPanel: SolicitudesByLocationPanel,
-        PeopleSolicitudesPanel: PeopleSolicitudesPanel,
-        SolicitudesByPropertyTypePanel: SolicitudesByPropertyTypePanel,
+        // LatestSolicitudesPanel: LatestSolicitudesPanel,
+        // SolicitudesByMonthPanel: SolicitudesByMonthPanel,
+        // TramitesByYearPanel: TramitesByYearPanel,
+        // SolicitudesByLocationPanel: SolicitudesByLocationPanel,
+        // PeopleSolicitudesPanel: PeopleSolicitudesPanel,
+        // SolicitudesByPropertyTypePanel: SolicitudesByPropertyTypePanel,
         ShortcutsPanel: ShortcutsPanel,
         // Añade aquí cualquier otro componente de panel que hayas importado
         // SomeOtherDataPanel: SomeOtherDataPanel,
@@ -176,42 +176,40 @@
             </div>
         </div> -->
         <div class="w-full pl-5 pb-5 mt-5">
-            <div :class="[
-                userRole === 'AUXILIAR' 
-                ? 'flex flex-col md:flex-row gap-4 pt-4 pr-4 h-[calc(85vh-2rem)]' 
-                : 'grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 pr-4 h-full']">
-                
-                <!-- Elementos ocultos (sin cambios) -->
-                <div class="bg-color1-600 hidden"></div>
-                <div class="bg-color2-600 hidden"></div>
-
-                <!-- Paneles -->
-                <div 
-                    v-for="(panel, index) in userRole === 'AUXILIAR' ? panelConfig.slice(0, 3) : panelConfig" 
-                    :key="index"
-                    :class="[
-                        'bg-white rounded-lg shadow-md p-0 flex flex-col justify-between w-full overflow-hidden',
-                        userRole === 'AUXILIAR' 
-                        ? 'h-full' 
-                        : 'md:min-h-[270px] md:max-h-[270px]']">
-                    <component
-                        :is="panelComponents[panel.component_name]"
-                        :panelData="panelData[panel.data_key]"
-                        class="p-4 sm:p-5 md:p-6 w-full pb-0"
-                        :userAuth="userAuth"/>
-                   <div 
-                        @click="abreEstadistica(panel.component_name)"
-                        v-if="panel.component_name !== 'ShortcutsPanel' && panel.component_name !== 'PeopleSolicitudesPanel' "
-                        class="bg-gray-100 text-gray-800 font-bold py-3 px-6 text-sm flex items-center justify-between cursor-pointer border-t border-gray-200
-                            transition-colors duration-200 ease-in-out hover:bg-gray-200">
-                        <span>Ver más...</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                        </svg>
-                    </div>
-                </div>
+    <!-- Contenedor principal adaptable -->
+    <div :class="[
+        userRole === 'AUXILIAR' 
+            ? 'flex flex-col lg:flex-row gap-5 pt-2 pr-5 min-h-[75vh]' 
+            : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pt-2 pr-5']">
+            
+        <!-- Paneles Dinámicos -->
+        <div 
+            v-for="(panel, index) in userRole === 'AUXILIAR' ? panelConfig.slice(0, 3) : panelConfig" 
+            :key="index"
+            class="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between overflow-hidden group">
+            
+            <!-- Contenido del Panel -->
+            <div class="p-5 sm:p-6 w-full flex-grow">
+                <component
+                    :is="panelComponents[panel.component_name]"
+                    :panelData="panelData[panel.data_key]"
+                    :userAuth="userAuth"
+                />
             </div>
+
+            <!-- Footer de la tarjeta con acción "Ver más" (Opcional y limpio) -->
+            <!-- <div 
+                v-if="panel.component_name !== 'ShortcutsPanel' && panel.component_name !== 'PeopleSolicitudesPanel'"
+                @click="abreEstadistica(panel.component_name)"
+                class="bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-300 font-medium py-3 px-6 text-xs uppercase tracking-wider flex items-center justify-between cursor-pointer border-t border-gray-100 dark:border-gray-700/60 group-hover:bg-gray-100 dark:group-hover:bg-gray-700/60 transition-colors">
+                <span>Ver detalles</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </div> -->
         </div>
+    </div>
+</div>
     </AdminLayout>
 </template>
 

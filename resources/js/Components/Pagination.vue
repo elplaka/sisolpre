@@ -6,7 +6,21 @@
         data: {
             type: Object,
             required: true
+        },
+        itemName: {
+            type: String,
+            default: ''
+        },
+        pluralName: {
+            type: String,
+            default: ''
         }
+    });
+
+    const resolvedItemName = computed(() => {
+        if (!props.itemName) return '';
+        // Si es 1 usa el singular, de lo contrario usa el plural (con un fallback por si se te olvida mandar el plural)
+        return props.data.total === 1 ? props.itemName : (props.pluralName || props.itemName);
     });
 
     // Define los eventos que este componente puede emitir
@@ -57,6 +71,7 @@
                     <span class="font-semibold text-gray-900 dark:text-white">{{ data.from }}-{{ data.to }}</span>
                     de
                     <span class="font-semibold text-gray-900 dark:text-white">{{ data.total }}</span>
+                    <span v-if="itemName" class="ml-1">{{ resolvedItemName }}</span>
                 </span> 
                 <ul class="inline-flex items-stretch -space-x-px">
                     <li>

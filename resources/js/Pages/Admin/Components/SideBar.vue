@@ -75,16 +75,23 @@
     aria-label="Sidebar" 
     id="drawer-navigation">
 
-    <div class="p-4">
+    <div class="pt-6">
     <Link :href="route('dashboard')" class="flex flex-col items-center group">
-        <img
+    <!-- Imagen para celular -->
+    <img
+        src="/img/logo_r.svg"
+        alt="Logo"
+        class="w-12 mb-2 logo-anim block sm:hidden"
+    />
+    <!-- Imagen para pantallas medianas en adelante -->
+    <img
         src="/img/logo.svg"
         alt="Logo"
-        class="w-36 mb-2 logo-anim"
-        />
+        class="w-36 mb-2 logo-anim hidden sm:block"
+    />
 
-        <span class="hidden sm:block text-xs font-bold text-center dark:text-white uppercase tracking-wider title-anim">
-        Planeación Urbana
+        <span class="hidden sm:block text-lg font-bold text-center dark:text-white uppercase tracking-wider title-anim">
+        SIPRES
         </span>
     </Link>
     </div>
@@ -126,7 +133,7 @@
                 </Link>
             </li>
 
-            <li>
+            <!-- <li>
                 <Link
                     href="#"
                     @click.prevent="cargarTramitesConParametros"
@@ -154,10 +161,10 @@
                     </svg>
                     <span class="ml-2 hidden sm:block transition-transform duration-150 origin-left group-hover:scale-105">Trámites</span>
                 </Link>
-            </li>
+            </li> -->
 
             <!-- Ítem 3: Propiedades -->
-            <li v-if="$page.props.auth.user?.permissions.includes('ver_propiedades')">
+            <!-- <li v-if="$page.props.auth.user?.permissions.includes('ver_propiedades')">
                 <Link
                     href="#"
                     @click.prevent="cargarPropiedadesConParametros"
@@ -188,7 +195,7 @@
                     </svg>
                     <span class="ml-2 hidden sm:block transition-transform duration-150 origin-left group-hover:scale-105">Propiedades</span>
                 </Link>
-            </li>
+            </li> -->
 
             <!-- Ítem 4: Estadísticas -->
             <li v-if="$page.props.auth.user?.permissions.includes('ver_estadisticas')">
@@ -209,7 +216,7 @@
             </li>
 
             <!-- Ítem 5: Requisitos -->
-            <li v-if="$page.props.auth.user?.permissions.includes('ver_requisitos')">
+            <!-- <li v-if="$page.props.auth.user?.permissions.includes('ver_requisitos')">
                 <Link
                     :href="route('requisitos')"
                     :class="[
@@ -239,7 +246,7 @@
                     </svg>
                     <span class="ml-2 hidden sm:block transition-transform duration-150 origin-left group-hover:scale-105">Requisitos</span>
                 </Link>
-            </li>
+            </li> -->
 
             <!-- Ítem 6: Usuarios -->
             <li v-if="$page.props.auth.user?.permissions.includes('ver_usuarios')">
@@ -261,34 +268,42 @@
         </ul>
     </div>
 
-    <div class="p-4">
-      <div class="flex items-center mb-4 sm:flex-row flex-col">
-        <img class="w-10 h-10 rounded-full border border-gray-300" src="/img/user.jpg" alt="User">
-        <div class="ml-3 hidden sm:block overflow-hidden">
-          <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ $page.props.auth.user.name }}</p>
-          <p class="text-xs text-gray-500 truncate">{{ $page.props.auth.user.email }}</p>
+    <div class="p-3 sm:p-4">
+    <!-- Contenedor del Perfil de Usuario -->
+    <div class="flex items-center gap-3 mb-4 flex-col sm:flex-row text-center sm:text-left">
+        <img class="w-10 h-10 rounded-full border border-gray-300 object-cover flex-shrink-0" src="/img/user.jpg" alt="User">
+        
+        <!-- En pantallas grandes se muestra, en móviles se oculta (puedes cambiar 'hidden sm:block' por un comportamiento colapsable si usas un estado de sidebar) -->
+        <div class="hidden sm:block overflow-hidden">
+            <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ $page.props.auth.user.name }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ $page.props.auth.user.email }}</p>
         </div>
-      </div>
-      <Link 
+    </div>
+
+    <!-- Botón de Cerrar Sesión Responsive (Muestra solo icono en móvil y texto completo en sm+) -->
+    <Link 
         :href="route('logout')" 
         method="post" 
         as="button"
-        class="group w-full flex items-center justify-center p-2 text-sm text-color1-700 bg-color1-50 rounded-full hover:bg-color1-700 dark:bg-color1-900/20 dark:hover:bg-color1-900/40 transition-colors">
+        class="group w-full flex items-center justify-center p-2.5 sm:p-2 text-sm text-color1-700 bg-color1-50 rounded-xl sm:rounded-full hover:bg-color1-700 dark:bg-color1-900/20 dark:hover:bg-color1-900/40 transition-colors"
+        title="Cerrar Sesión"
+    >
         <svg 
             xmlns="http://www.w3.org/2000/svg" 
             fill="none" 
             viewBox="0 0 24 24" 
             stroke-width="1.5" 
             stroke="currentColor" 
-            class="w-5 h-5 mr-2 text-color1-700 transition-colors group-hover:text-white">
+            class="w-5 h-5 sm:mr-2 text-color1-700 transition-colors group-hover:text-white flex-shrink-0">
             <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
         </svg>
         
-        <span class="text-color1-700 sm:inline font-medium transition-colors group-hover:text-white">
+        <!-- Oculta el texto en móviles para que no rompa el diseño si el menú es estrecho, y lo muestra en pantallas sm en adelante -->
+        <span class="hidden sm:inline font-medium text-color1-700 transition-colors group-hover:text-white">
             Cerrar Sesión
         </span>
-        </Link>
-    </div>
+    </Link>
+</div>
   </aside>
 </template>
 

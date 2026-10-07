@@ -469,6 +469,11 @@ class SolicitudController extends Controller
         // Paginación
         $solicitudes = $query->paginate(8);
 
+
+        // Log::info($request->all(), $totalesEstatusQuery);
+        // dd($totalesEstatusQuery);
+
+
         $totalSolicitudes = Solicitud::count();
 
         return Inertia::render('Solicitudes/Index', [
@@ -745,6 +750,7 @@ class SolicitudController extends Controller
                 'areasQuery' => $request->input('areasQuery'),
                 'fechaIngresoInicioQuery' => $request->input('fechaIngresoInicioQuery'),
                 'fechaIngresoFinQuery' => $request->input('fechaIngresoFinQuery'),
+                'totalesEstatusQuery' => $request->input('totalesEstatusQuery')
             ])->with([
                 'success' => 'Solicitud actualizada con éxito.',
                 'solicitud' => $solicitud

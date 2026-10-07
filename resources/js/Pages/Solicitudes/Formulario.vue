@@ -858,7 +858,8 @@ import Swal from 'sweetalert2'; // Asegúrate de tenerlo importado si es necesar
                 fechaIngresoFinQuery: props.fechaIngresoFinQuery || null,
                 paginaActual: paginaActual,
                 estatusQuery: props.estatusQuery || null,
-                areasQuery: props.areasQuery || null 
+                areasQuery: props.areasQuery || null,
+                totalesEstatusQuery: props.totalesEstatusQuery || null,
             })).post(route('solicitudes.update', form.id_solicitud), {
                 preserveScroll: true,
                 onSuccess: (page) => {
@@ -1318,7 +1319,7 @@ import Swal from 'sweetalert2'; // Asegúrate de tenerlo importado si es necesar
                                    <input
                                         type="date"
                                         v-model="form.fecha"
-                                        class="block w-full py-2 px-3 text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 shadow-sm transition-all duration-200 sm:text-sm custom-native"
+                                        class="block w-full py-2 px-3 text-gray-900 dark:text-white bg-white dark:bg-gray-800 shadow-sm transition-all duration-200 sm:text-sm custom-native"
                                         :class="{
                                             'custom-date-error': form.fecha && !fechaValida,
                                         }"

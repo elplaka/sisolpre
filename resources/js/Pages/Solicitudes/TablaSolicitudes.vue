@@ -218,6 +218,7 @@ input[type="search"]::-webkit-search-cancel-button {
         return Object.fromEntries(urlParams.entries())
     }
 
+
     function fetchSolicitudes(onMounted, polling = false) {
         const page = router.page.props.solicitudes?.current_page ?? 1
         const paramsObject = buildQueryParams(page)
@@ -238,7 +239,8 @@ input[type="search"]::-webkit-search-cancel-button {
             }
         }
 
-        const filtros = {
+        // 1. Definimos los filtros directamente como un objeto plano (JSON)
+        const filtrosData = {
             fechaIngresoInicioQuery: fechaIngresoInicioQuery.value,
             fechaIngresoFinQuery: fechaIngresoFinQuery.value,
             fechaAceptacionInicioQuery: fechaAceptacionInicioQuery.value,
@@ -252,26 +254,9 @@ input[type="search"]::-webkit-search-cancel-button {
             rangoFechasAceptacionManual: rangoFechasAceptacionManual.value,
             filtroChkSolicitudes: filtroChkSolicitudes.value,
             sortColumn: sortColumn.value,
-            sortDirection: sortDirection.value
+            sortDirection: sortDirection.value,
+            page: Number(paramsObject.page) || 1
         }
-
-        // 1. Prepara el objeto de datos de la forma de manera segura
-        const formData = new FormData()
-        for (const key in filtros) 
-        {
-            const value = filtros[key]
-            if (Array.isArray(value)) 
-            {
-                value.forEach((item, index) => {
-                    formData.append(`${key}[${index}]`, item)
-                })
-            } 
-            else 
-            {
-                formData.append(key, value ?? '')
-            }
-        }
-        formData.append('page', Number(paramsObject.page) || 1)
 
         // 2. Define las opciones base de la solicitud
         const requestOptions = {
@@ -285,14 +270,13 @@ input[type="search"]::-webkit-search-cancel-button {
                 const currentPage = router.page.props.solicitudes.current_page;
                 const lastPage = router.page.props.solicitudes.last_page;
 
-                if (currentPage > lastPage)   //Si la página actual excede al número de páginas obtenidas
+                if (currentPage > lastPage)   // Si la página actual excede al número de páginas obtenidas
                 {
                     const newFilters = { 
                         ...router.page.props.filters, 
                         page: Number(1)
                     };
 
-                    //Vuelve a cargar la página con la página #1
                     router.get(
                         router.page.url.split('?')[0],
                         newFilters,
@@ -312,10 +296,11 @@ input[type="search"]::-webkit-search-cancel-button {
 
         // 3. Añade la propiedad 'only' solo si es polling
         if (polling) {
-            requestOptions.only = ['solicitudes']
+            requestOptions.only = ['solicitudes', 'totalesEstatusQuery']
         }
 
-        router.post('/solicitudes', formData, requestOptions)
+        // 4. Enviamos el objeto plano como segundo parámetro
+        router.post('/solicitudes', filtrosData, requestOptions)
     }
 
     function onDateChange(fechaSeleccionada) {
@@ -1223,7 +1208,6 @@ input[type="search"]::-webkit-search-cancel-button {
             </div>
         </div>
 
-
         <!-- Contenedor de solicitudes -->
         <div class="bg-white dark:bg-gray-900/50 border border-gray-200 shadow-sm p-3 sm:p-4 rounded-xl">
             <!-- Grid adaptable tipo SaaS Dashboard (gap más ajustado) -->
@@ -1318,7 +1302,7 @@ input[type="search"]::-webkit-search-cancel-button {
 
                             <!-- Estatus (Se le quita el tachado explícitamente para que el badge se mantenga intacto) -->
                             <div class="flex items-center justify-between gap-3 no-underline" style="isolation: isolate;">
-                                <span :class="{ 'opacity-50 grayscale-[30%]': Number(solicitud.id_estatus) === 4 }" class="text-gray-500 dark:text-gray-400 font-medium">Estatus</span>
+                                <span :class="{ 'opacity-50 grayscale-[30%] line-through': Number(solicitud.id_estatus) === 4 }" class="text-gray-500 dark:text-gray-400 font-medium">Estatus</span>
                                 <span
                                     class="no-underline inline-flex items-center gap-1.5 rounded-md px-2.5 py-0.5 text-[11px] font-semibold tracking-wide"
                                     :style="{

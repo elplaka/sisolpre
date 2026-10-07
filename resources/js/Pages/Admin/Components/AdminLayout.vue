@@ -17,7 +17,7 @@
                 <span class="ml-2 text-gray-300">Cargando...</span>
             </div>
         </div>
-  <div class="antialiased bg-gray-50 dark:bg-gray-900">
+  <div class="antialiased bg-white dark:bg-gray-900">
     <Head title="Inicio" />
 
     <!-- <Navbar :userAuth="userAuth" /> -->

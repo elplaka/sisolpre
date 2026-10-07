@@ -11,7 +11,7 @@
         :nombreQuery ="nombreQuery"
         :fechaIngresoInicioQuery="props.fechaIngresoInicioQuery"
         :fechaIngresoFinQuery="props.fechaIngresoFinQuery"
-        :totalesEstatusQuery="props.totalesEstatusQuery"
+        :totalesEstatusQuery="totalesEstatusQuery"
         :idRangoFechasIngresoQuery="props.idRangoFechasIngresoQuery"
         :sortColumn="sortColumn"
         :sortDirection="sortDirection"
@@ -64,4 +64,5 @@ const props = defineProps({
   userAuth: { type: Object, required: true }, // Información de usuario autenticado
   periodoActual: { type: Object, required: true }
 });
+
 </script>

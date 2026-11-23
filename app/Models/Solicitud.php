@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Solicitud extends Model
 {
@@ -17,7 +18,9 @@ class Solicitud extends Model
         'id_solicitante',
         'id_area',
         'id_estatus',
+        'id_localidad_beneficiada',
         'peticion',
+        'id_tipo_apoyo',
         'cantidad_aprobada',
         'observaciones',
         'id_user',
@@ -48,5 +51,10 @@ class Solicitud extends Model
     public function area()
     {
         return $this->belongsTo(Area::class, 'id_area');
+    }
+
+    public function localidad_beneficiada(): BelongsTo
+    {
+        return $this->belongsTo(Localidad::class, 'id_localidad_beneficiada');
     }
 }

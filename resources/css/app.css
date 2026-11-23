@@ -14,19 +14,31 @@
   --color-1: #8f0030;
   --color-1-1: #b3003b;
   --color-1-2: #e8567c;
+  --color-1-40: #fcf2f5;
   --color-1-50: #ffe4ec;
   --color-1-70: #fff5f8;
   --color-1-100: #fabacb;  /* Rosa claro para bordes suaves */
   --color-1-200: #f08aa3;  /* Rosa medio */
+  --color-1-300: #e8567c;  /* Rosa medio */
   --color-1-400: #e02d59;  /* Rojo vibrante para alertas o llamados a la acción */
   --color-1-500: #cc0042;  /* Rojo quemado intermedio */
-
-  /* Tonos Profundos (Deep) */
+  --color-1-600: #b3003b;  /* Rojo quemado intermedio */
+  --color-1-700: #8f0030;  /* Rojo quemado intermedio */
   --color-1-800: #6b0026;  /* Guinda muy oscuro para textos sobre fondos claros */
   --color-1-900: #48001b;  /* Casi negro-guinda para contrastes máximos */
 
-  --color-2: #00403e;
   --color-2-1: #002724;
+  --color-2: #005350;
+  --color-2-50: #e0f6f5;
+  --color-2-100: #b3e6e2;
+  --color-2-200: #80d5cf;
+  --color-2-300: #4dc4bb;
+  --color-2-400: #26b5ad;
+  --color-2-500: #009b93;
+  --color-2-600: #007c77;
+  --color-2-700: #005d5a;
+  --color-2-800: #00403e;
+  --color-2-900: #002724;
 
   --color-gray-50: rgb(249 250 251);
   --color-gray-100: rgb(243 244 246);

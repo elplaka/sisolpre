@@ -107,17 +107,12 @@ Route::get('solicitudes/editar', function () {
 });
 Route::get('solicitudes/get-solicitud/{id}', [SolicitudController::class, 'getSolicitud'])->name('solicitudes.get-solicitud')->middleware('auth');
 Route::get('solicitudes/get-persona/{curp}', [SolicitudController::class, 'getPersona'])->name('solicitudes.get-persona')->middleware('auth');
-Route::get('solicitudes/get-propiedad/{claveCatastral}', [SolicitudController::class, 'getPropiedad'])->name('solicitudes.get-propiedad')->middleware('auth');
-Route::get('solicitudes/get-propiedad-solicitud/{idSolicitud}', [SolicitudController::class, 'getPropiedadSolicitud'])->name('solicitudes.get-propiedad-solicitud')->middleware('auth');
 Route::get('solicitudes/get-colonias', [SolicitudController::class, 'getColonias'])->name('solicitudes.get-colonias')->middleware('auth');
 Route::get('solicitudes/get-localidades', [SolicitudController::class, 'getLocalidades'])->name('solicitudes.get-localidades')->middleware('auth');
 Route::get('solicitudes/get-personas', [SolicitudController::class, 'getPersonas'])->name('solicitudes.get-personas')->middleware('auth');
-Route::get('solicitudes/get-requisitos', [SolicitudController::class, 'getRequisitos'])->name('solicitudes.get-requisitos')->middleware('auth');
 Route::post('solicitudes/store', [SolicitudController::class, 'store'])->name('solicitudes.store')->middleware('auth');
 Route::post('solicitudes/update/{id}', [SolicitudController::class, 'update'])->name('solicitudes.update')->middleware('auth');
 Route::post('solicitudes/valida', [SolicitudController::class, 'valida'])->name('solicitudes.valida')->middleware('auth');
-Route::post('solicitudes/upload-croquis/{id}', [SolicitudController::class, 'uploadCroquis'])->name('solicitudes.upload-croquis')->middleware('auth');
-Route::post('solicitudes/delete-croquis/{id}', [SolicitudController::class, 'deleteCroquis'])->name('solicitudes.delete-croquis')->middleware('auth');
 Route::get('solicitudes/print-pdf/{id}', [SolicitudController::class, 'printPDF'])->name('solicitudes.print-pdf')->middleware(['auth', 'checkSolicitudStatus']);
 Route::get('solicitudes/print-preview-pdf/{id}', [SolicitudController::class, 'printPreviewPDF'])->name('solicitudes.print-preview-pdf')->middleware('auth');
 Route::post('solicitudes/print-pdf/{id}', [SolicitudController::class, 'printPDFPrepare'])->name('solicitudes.print-pdf.prepare')->middleware(['auth', 'checkSolicitudStatus']);
@@ -126,9 +121,16 @@ Route::get('solicitudes/view/{folio_digital}', [SolicitudController::class, 'vie
 Route::match(['get', 'post'], 'solicitudes/{solicitud}/enviar-email', [SolicitudController::class, 'enviarSolicitudPorEmail'])->middleware('auth');
 Route::post('solicitudes/update-estatus/{id}/{idEstatus}', [SolicitudController::class, 'updateEstatus'])->name('solicitudes.update-estatus')->middleware('auth');
 Route::get('solicitudes/buscar-solicitante', [SolicitudController::class, 'buscarSolicitante'])->name('solicitudes.buscar.solicitante');
+Route::get(
+    'solicitudes/rango-fechas',
+    [SolicitudController::class, 'rangoFechasUsuario']
+)->name('solicitudes.rango-fechas')
+    ->middleware('auth');
 
 
-Route::match(['get', 'post'], 'estadisticas', [EstadisticasController::class, 'index'])->name('estadisticas')->middleware('auth');
+Route::match(['get', 'post'], 'estadisticas', [EstadisticasController::class, 'index'])
+    ->name('estadisticas')
+    ->middleware(['auth', 'role:ADMINISTRADOR|AUDITOR|DIRECTOR']);
 
 Route::post('localidades/store', [LocalidadController::class, 'store'])->name('localidades.store')->middleware('auth');
 

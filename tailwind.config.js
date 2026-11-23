@@ -10,11 +10,15 @@ import forms from '@tailwindcss/forms';
       'orange',
       'tomato',
       'mediumseagreen',
+      'color1',
+      'color2',
+      'color3',
+      'color4'
       // Añade cualquier otro nombre de color base que uses en estatus.color
     ];
 
     const shadesToSafelist = [ // Tonos que quieres generar
-      '50', '100', '200', '300', '400', '500', '600', '700', '800', '900',
+      '40', '50', '100', '200', '300', '400', '500', '600', '700', '800', '900',
     ];
 
     const prefixesToSafelist = [ // Utilidades que quieres que tengan estos colores

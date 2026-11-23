@@ -1,174 +1,208 @@
 <template>
-  <div class="bg-white p-0 m-0 min-h-[200px] sm:min-h-[200px] md:min-h-[200px]">
-    <h3 class="text-lg font-semibold text-center md:text-left">Solicitudes por Localidad en  {{ currentYear }}</h3>
+    <div class="bg-white dark:bg-gray-800 px-1 pb-0 m-0 flex flex-col justify-between h-full">
+        
+        <!-- Cabecera -->
+        <div class="flex items-center justify-between mb-1 px-1">
+            <span class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">
+                Top 5 Localidades
+            </span>
+            
+            <div class="p-1.5 rounded-lg bg-color1-50 dark:bg-color1-950/50 text-color1-700 dark:text-color1-300">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+            </div>
+        </div>
 
-    <div v-if="chartData.labels.length > 0" class="m-0 px-0 h-[130px] sm:h-[160px] flex items-stretch">
-      <Radar :data="chartData" :options="chartOptions" class="block p-0 m-0" />
+        <!-- Contenedor del Gráfico Chart.js -->
+        <div class="relative w-full flex-grow min-h-[160px] sm:min-h-[140px]">
+            <template v-if="panelData && panelData.length > 0">
+                <Bar :data="chartData" :options="chartOptions" />
+            </template>
+
+            <!-- Estado Vacío -->
+            <div v-else class="flex items-center justify-center h-full text-center text-gray-400 py-4 text-xs italic">
+                Sin datos suficientes para mostrar.
+            </div>
+        </div>
+
     </div>
-    <div v-else class="text-center text-gray-500 py-8 px-6 pb-6 flex-grow">
-      No hay datos disponibles.
-    </div>
-  </div>  
 </template>
 
-
 <script setup>
-    import { defineProps, ref, computed, onMounted } from 'vue';
-    import { Radar } from 'vue-chartjs'; // 👈 ESTE ES EL COMPONENTE CORRECTO
-
-    import {
+import { Bar } from 'vue-chartjs';
+import {
     Chart as ChartJS,
-    RadialLinearScale,
-    PointElement,
-    LineElement,
-    Filler,
-    Tooltip,
-    Legend,
-    Title
-    } from 'chart.js';
+    Title, Tooltip, Legend,
+    BarElement,
+    CategoryScale, LinearScale,
+} from 'chart.js';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
+import { defineProps, ref, computed, onMounted, onUnmounted } from 'vue';
 
-    import ChartDataLabels from 'chartjs-plugin-datalabels';
-
-    const currentYear = new Date().getFullYear();
-
-    ChartJS.register(
-    RadialLinearScale,
-    PointElement,
-    LineElement,
-    Filler,
-    Tooltip,
-    Legend,
-    Title,
+ChartJS.register(
+    Title, Tooltip, Legend,
+    BarElement,
+    CategoryScale, LinearScale,
     ChartDataLabels
-    );
+);
 
-    ChartJS.defaults.font.family = 'Figtree, sans-serif';
+ChartJS.defaults.font.family = 'Figtree, sans-serif';
 
-    const props = defineProps({
-        panelData: {
-            type: Array,
-            required: true,
-        },
-    });
+const props = defineProps({
+    panelData: {
+        type: Array,
+        required: true,
+        default: () => []
+    },
+});
 
-    // Definimos lineColor como un ref
-    const lineColor = ref('#0284c7'); // Color por defecto o de fallback
+const barColors = ref([]);
+const isMobile = ref(false);
 
-    // --- FUNCIÓN PARA OBTENER COLORES DE TAILWIND ---
-    const getTailwindColor = (className) => {
-        if (typeof document === 'undefined') {
-            return lineColor.value; // Retorna el color por defecto si no estamos en un entorno de navegador
+const checkScreenSize = () => {
+    isMobile.value = window.innerWidth < 640;
+};
+
+onMounted(() => {
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+
+    barColors.value = [
+        getTailwindColor('color1-900'),
+        getTailwindColor('color1-800'),
+        getTailwindColor('color1-700'),
+        getTailwindColor('color1-600'),
+        getTailwindColor('color1-500'),
+
+    ];
+});
+
+onUnmounted(() => {
+    window.removeEventListener('resize', checkScreenSize);
+});
+
+const getTailwindColor = (className) => {
+    if (typeof document === 'undefined') {
+        return '#000000';
+    }
+    const div = document.createElement('div');
+    div.className = `bg-${className} hidden`;
+    document.body.appendChild(div);
+    const color = getComputedStyle(div).backgroundColor;
+    document.body.removeChild(div);
+    return color;
+};
+
+const chartData = computed(() => {
+    const labels = [];
+    const totals = [];
+    const backgroundColors = [];
+
+    const sortedData = [...props.panelData].sort((a, b) => b.total - a.total);
+
+    sortedData.forEach((data, index) => {
+        let nombre = data.localidad_nombre || data.nombre_abreviado || 'N/D';
+        
+        // 👈 Truncamiento adaptativo:
+        // En celular (barras horizontales), el espacio lateral es más reducido, cortamos a 12 caracteres.
+        // En computadora (barras verticales), hay un poco más de margen horizontal, permitimos hasta 15 caracteres.
+        const maxLength = isMobile.value ? 8 : 15;
+        if (nombre.length > maxLength) {
+            nombre = nombre.substring(0, maxLength - 2) + '...';
         }
-        const div = document.createElement('div');
-        div.className = `bg-${className} hidden`; // Crea un div oculto con la clase de Tailwind
-        document.body.appendChild(div);
-        const color = getComputedStyle(div).backgroundColor; // Obtiene el color de fondo computado
-        document.body.removeChild(div); // Elimina el div
-        return color; // Retorna el color en formato rgb(...)
+
+        labels.push(nombre);
+        totals.push(data.total);
+        backgroundColors.push(barColors.value[index % barColors.value.length]);
+    });
+
+    return {
+        labels: labels,
+        datasets: [{
+            label: 'Solicitudes',
+            data: totals,
+            backgroundColor: backgroundColors,
+            borderRadius: 4
+        }]
     };
-    // -------------------------------------------------
+});
 
-    // Ejecutamos la función cuando el componente está montado para asegurar que Tailwind CSS esté cargado
-    onMounted(() => {
-        lineColor.value = getTailwindColor('gray-800'); // Un solo color para la línea
-    });
-
-    const chartData = computed(() => {
-        const labels = [];
-        const totals = [];
-
-        const sortedData = [...props.panelData].sort((a, b) => {
-            if (a.year === b.year) {
-                return a.month - b.month;
-            }
-            return a.year - b.year;
-        });
-
-        sortedData.forEach((data) => {
-            // Truncar localidad_nombre si es necesario
-            let truncatedLocalidad = data.localidad_nombre;
-            if (truncatedLocalidad.length > 12) {
-                truncatedLocalidad = truncatedLocalidad.substring(0, 12) + '...';
-            }
-            labels.push(`${truncatedLocalidad} (${data.total})`);
-            totals.push(data.total);
-        });
-
-        return {
-            labels: labels,
-            datasets: [
-                {
-                    label: 'Total de Solicitudes',
-                    data: totals,
-                    borderColor: lineColor.value, // Usamos el color de la línea
-                    pointBackgroundColor: [ // Array con color por punto
-                        '#ef4444', // rojo
-                        '#f59e0b', // amarillo
-                        '#10b981', // verde
-                        '#3b82f6', // azul
-                        '#8b5cf6', // morado
-                        '#ec4899'  // rosa
-                    ],
-                    pointRadius: 4,
-                    pointHoverRadius: 4,
-                    backgroundColor: 'rgba(2,132,199,0.2)', // Fondo para el área bajo la línea
-                    fill: false, // <--- Aquí quitas el relleno
-                    tension: 0, // Suaviza la línea
-                    pointBorderColor: 'transparent',
-                    pointHoverBorderColor: 'transparent'
+const chartOptions = computed(() => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    indexAxis: isMobile.value ? 'y' : 'x',
+    layout: {
+        padding: { 
+            top: isMobile.value ? 8 : 20, 
+            right: isMobile.value ? 35 : 50, // Margen derecho extra en móvil para que el número al final de la barra no se corte
+            bottom: 0 
+        }
+    },
+    plugins: {
+        legend: { display: false },
+        title: { display: false },
+        tooltip: {
+            enabled: true,
+            callbacks: {
+                // 💡 Nota útil: Si el usuario pasa el cursor/tap sobre la barra truncada, 
+                // el tooltip muestra el nombre completo original gracias a los datos de 'panelData'.
+                title: function(context) {
+                    const index = context[0].dataIndex;
+                    const originalItem = [...props.panelData].sort((a, b) => b.total - a.total)[index];
+                    return originalItem.localidad_nombre || originalItem.nombre_abreviado || 'N/D';
                 },
-            ],
-        };
-    });
-
-    const chartOptions = ref({
-        responsive: true,
-        maintainAspectRatio: false,
-        layout: {
-            padding: {
-                top: 10,
-                bottom: 0
-            }
-        },
-        plugins: {
-            legend: {
-                display: false,
-            },
-            title: {
-                display: false,
-            },
-            tooltip: {
-                enabled: true,
-                callbacks: {
-                    label: function (context) {
-                    const label = context.dataset.label || '';
-                    const value = context.raw;
-                    return `${label}: ${value}`;
-                    },
-                },
-            },
-              datalabels: {
-                    display: false  // <--- Esto oculta los valores encima de cada punto
+                label: function (context) {
+                    let label = context.dataset.label || '';
+                    if (label) label += ': ';
+                    const value = isMobile.value ? context.parsed.x : context.parsed.y;
+                    if (value !== null) {
+                        label += new Intl.NumberFormat('es-MX').format(value);
+                    }
+                    return label;
                 }
+            }
         },
-        scales: {
-            r: {
+        datalabels: {
+            color: '#6b7280',
+            font: { weight: 'bold', size: 9 },
+            formatter: value => new Intl.NumberFormat('es-MX').format(value),
+            anchor: 'end',
+            align: isMobile.value ? 'right' : 'top',
+            offset: 2
+        }
+    },
+    scales: {
+        x: {
+            grid: { display: false, drawBorder: false },
             ticks: {
-                display: false, // <-- Oculta los valores numéricos en los anillos
+                display: !isMobile.value,
+                color: '#6b7280',
+                font: { size: 9 },
+                padding: 2,
+                autoSkip: false,
+                maxRotation: 0,
             },
-            grid: {
-                color: '#e5e7eb', // puedes cambiar el color si quieres mantener las líneas de la cuadrícula
+            beginAtZero: true,
+            border: { display: false }
+        },
+       y: {
+            grid: { display: false, drawBorder: false },
+            ticks: {
+                display: false,
+                color: '#6b7280',
+                font: { size: 9 },
+                autoSkip: false,
+                precision: 0,
+                stepSize: 1,
+                callback: function(value) {
+                    return Number.isInteger(Number(value)) ? value : '';
+                }
             },
-            angleLines: {
-                color: '#e5e7eb', // color de las líneas radiales
-            },
-            pointLabels: {
-                font: {
-                size: 11,              
-                },
-                color: '#000000',
-            },
-            },
-        },      
-    });
+            beginAtZero: true,
+            border: { display: false }
+        }
+    }
+}));
 </script>

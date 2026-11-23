@@ -62,6 +62,8 @@
             showSpinner.value = false
         }
         bgImage.src = '/img/imagen_wallpaper.jpg'
+
+        document.getElementById('initial-loader')?.remove();
     })
 </script>
 

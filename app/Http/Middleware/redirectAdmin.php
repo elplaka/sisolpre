@@ -14,14 +14,14 @@ class redirectAdmin
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
-    public function handle(Request $request, Closure $next , $guard = null): Response
+    public function handle(Request $request, Closure $next, $guard = null): Response
     {
         if ($request->routeIs('admin.register') || $request->routeIs('admin.register.post')) {
             return $next($request);
         }
 
         if (Auth::guard($guard)->check()) {
-            return redirect()->route('admin.dashboard');
+            return redirect()->route('dashboard');
         }
 
         return $next($request);

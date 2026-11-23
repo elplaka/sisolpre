@@ -1,5 +1,5 @@
 <style>
-    .solicitante-bloqueado {
+    .el-select-bloqueado {
         background-color: #f9fafc !important;
         color: rgba(17, 24, 39, 0.7) !important; /* Tu color deseado */
         cursor: not-allowed !important;
@@ -7,12 +7,12 @@
     }
 
     /* Truco definitivo: Ponemos un pseudo-elemento transparente encima que absorba los clics (bloquea el select) pero deje ver los estilos y el cursor */
-    .solicitante-bloqueado {
+    .el-select-bloqueado {
         position: relative;
     }
 
     /* Creamos una capa invisible que bloquea el clic */
-    .solicitante-bloqueado::after {
+    .el-select-bloqueado::after {
         content: '';
         position: absolute;
         inset: 0;
@@ -20,13 +20,7 @@
         z-index: 10;
     }
 
-    /* Soporte para modo oscuro */
-    .dark .solicitante-bloqueado {
-        background-color: rgba(31, 41, 55, 0.7) !important;
-        color: rgba(199, 199, 199, 0.7) !important;
-    }
-
-   /* Color clarito permanente únicamente para la opción de "SELECCIONE UN ÁREA" */
+/* Color clarito permanente únicamente para la opción de "SELECCIONE UN ÁREA" */
     .option-placeholder {
         color: #9ca3af !important; /* text-gray-400 */
     }
@@ -49,11 +43,24 @@
     }
 </style>
 
+<style scoped>
+:deep(.el-select-bloqueado-gris .el-select__selection .el-select__selected-item),
+:deep(.el-select-bloqueado-gris .el-select__selection .el-select__selected-item span) {
+    color: #4B5563 !important;
+}
+
+.dark :deep(.el-select-bloqueado-gris .el-select__selection .el-select__selected-item),
+.dark :deep(.el-select-bloqueado-gris .el-select__selection .el-select__selected-item span) {
+    color: #4B5563 !important;
+}
+</style>
+
 <script setup>
 import { useForm, router, usePage } from '@inertiajs/vue3';
 import { computed, watch, ref, onMounted } from 'vue';
 import axios from 'axios';
 import Swal from 'sweetalert2'; // Asegúrate de tenerlo importado si es necesario
+import { formatDate } from 'date-fns';
 
     const emit = defineEmits(['update:solicitud', 'saved', 'close']);
 
@@ -112,8 +119,12 @@ import Swal from 'sweetalert2'; // Asegúrate de tenerlo importado si es necesar
                     curp: '', 
                     numero_telefonico: '', 
                     id_localidad: 1, 
-                    localidad: 'CONCORDIA' 
-                }; 
+                    localidad: 'CONCORDIA',
+                    id_localidad_beneficiada: 1, 
+                    localidad_beneficiada: 'CONCORDIA',
+                };
+                form.id_tipo_apoyo = null
+                mismaLocalidad.value = true
                 mostrarObservaciones.value = false;
             }
         });
@@ -136,6 +147,7 @@ import Swal from 'sweetalert2'; // Asegúrate de tenerlo importado si es necesar
         searchQuery: String,
         estatusQuery: String,
         areasQuery: Array,
+        sortCriteriaQuery: String,
         page: Number
     });
 
@@ -172,9 +184,12 @@ import Swal from 'sweetalert2'; // Asegúrate de tenerlo importado si es necesar
         solicitante_numero_telefonico: props.solicitud?.solicitante?.numero_telefonico || '',
         solicitante_localidad: props.solicitud?.solicitante?.localidad?.nombre || 'CONCORDIA',
         solicitante_id_localidad: props.solicitud?.solicitante?.id_localidad || 1,
+        solicitante_localidad_beneficiada: props.solicitud?.solicitante?.localidad_beneficiada?.nombre || 'CONCORDIA',
+        solicitante_id_localidad_beneficiada: props.solicitud?.solicitante?.id_localidad_beneficiada || 1,
+        id_tipo_apoyo: props.solicitud?.id_tipo_apoyo || null,
         id_area: props.solicitud?.id_area || '',
         id_estatus: props.solicitud?.id_estatus || '1', 
-        fecha_resolucion: null,
+        fecha_resolucion: props.solicitud?.fecha_resolucion || null,
         peticion: props.solicitud?.peticion || '',
         cantidad_aprobada: props.solicitud?.cantidad_aprobada || '',
         observaciones: props.solicitud?.observaciones || '',
@@ -191,7 +206,9 @@ import Swal from 'sweetalert2'; // Asegúrate de tenerlo importado si es necesar
         curp: '',
         numero_telefonico: '',
         id_localidad: 1,
-        localidad: 'CONCORDIA'
+        localidad: 'CONCORDIA',
+        id_localidad_beneficiada: 1,
+        localidad_beneficiada: 'CONCORDIA'
     });
 
     watch(() => props.solicitud, (newVal) => {
@@ -212,7 +229,8 @@ import Swal from 'sweetalert2'; // Asegúrate de tenerlo importado si es necesar
         form.solicitante_numero_telefonico = newVal.solicitante?.numero_telefonico || '';
         form.solicitante_localidad = newVal.solicitante?.localidad?.nombre || 'CONCORDIA';
         form.solicitante_id_localidad = newVal.solicitante?.id_localidad || 1;
-
+        form.solicitante_localidad_beneficiada = newVal.localidad_beneficiada?.localidad?.nombre || 'CONCORDIA';
+        form.solicitante_id_localidad_beneficiada = newVal.id_localidad_beneficiada || 1
         solicitanteSeleccionado.value = true
         solicitanteCargadoSolicitudes.value = true
 
@@ -223,7 +241,9 @@ import Swal from 'sweetalert2'; // Asegúrate de tenerlo importado si es necesar
             apellidos: newVal.solicitante?.apellidos || '',
             numero_telefonico: newVal.solicitante?.numero_telefonico || '',
             id_localidad: newVal.solicitante?.id_localidad || 1,
-            localidad: newVal.solicitante?.localidad?.nombre || 'CONCORDIA'
+            localidad: newVal.solicitante?.localidad?.nombre || 'CONCORDIA',
+            id_localidad_beneficiada: newVal.id_localidad_beneficiada || 1,
+            localidad_beneficiada: newVal.localidad_beneficiada?.localidad?.nombre || 'CONCORDIA'
         };
     } else {
         // Limpiar si es nueva solicitud
@@ -234,7 +254,9 @@ import Swal from 'sweetalert2'; // Asegúrate de tenerlo importado si es necesar
             curp: '',
             numero_telefonico: '',
             id_localidad: 1,
-            localidad: 'CONCORDIA'
+            localidad: 'CONCORDIA',
+            id_localidad_beneficiada: 1,
+            localidad_beneficiada: 'CONCORDIA'
         };
     }
 }, { immediate: true, deep: true });
@@ -249,7 +271,8 @@ import Swal from 'sweetalert2'; // Asegúrate de tenerlo importado si es necesar
             formBusquedaSolicitante.nombre = solicitud.solicitante.nombre;
             formBusquedaSolicitante.apellidos = solicitud.solicitante.apellidos;
             formBusquedaSolicitante.numero_telefonico = solicitud.solicitante.numero_telefonico;
-            formBusquedaSolicitante.id_localidad = solicitud.solicitante.id_localidad;    
+            formBusquedaSolicitante.id_localidad = solicitud.solicitante.id_localidad;
+            formBusquedaSolicitante.id_localidad_beneficiada = solicitud.id_localidad_beneficiada;  
         }
         if (form.cantidad_aprobada) {
             form.cantidad_aprobada = aplicarFormatoInicial(form.cantidad_aprobada);
@@ -479,6 +502,8 @@ import Swal from 'sweetalert2'; // Asegúrate de tenerlo importado si es necesar
     }
 
     const solicitanteBloqueado = computed(() => {
+        if (soloLectura.value) return false;
+
         return solicitanteSeleccionado.value && !editandoSolicitante.value;
     });
 
@@ -545,8 +570,10 @@ import Swal from 'sweetalert2'; // Asegúrate de tenerlo importado si es necesar
             nombre: '',
             apellidos: '',
             numero_telefonico: '',
-            id_localidad: '1',
-            localidad: 'CONCORDIA'
+            id_localidad: 1,
+            localidad: 'CONCORDIA',
+            id_localidad_beneficiada: 1,
+            localidad_beneficiada: 'CONCORDIA'
         };
 
         // 2. Limpiar las propiedades del formulario principal relacionadas al solicitante
@@ -556,7 +583,8 @@ import Swal from 'sweetalert2'; // Asegúrate de tenerlo importado si es necesar
             form.solicitante_nombre = '';
             form.solicitante_apellidos = '';
             form.solicitante_numero_telefonico = '';
-            form.solicitante_id_localidad = 1; 
+            form.solicitante_id_localidad = 1;
+            form.solicitante_id_localidad_beneficiada = 1; 
             form.peticion = ''          
         }
 
@@ -580,6 +608,12 @@ import Swal from 'sweetalert2'; // Asegúrate de tenerlo importado si es necesar
         if (encontrada) {
             formBusquedaSolicitante.value.localidad = encontrada.nombre;
         }
+
+        if (mismaLocalidad.value)
+        {
+            formBusquedaSolicitante.value.localidad_beneficiada = formBusquedaSolicitante.value.localidad
+            formBusquedaSolicitante.value.id_localidad_beneficiada = formBusquedaSolicitante.value.id_localidad
+        }   
 
         buscarSolicitante();
     }
@@ -829,6 +863,12 @@ import Swal from 'sweetalert2'; // Asegúrate de tenerlo importado si es necesar
         form.solicitante_apellidos = formBusquedaSolicitante.value.apellidos
         form.solicitante_numero_telefonico = formBusquedaSolicitante.value.numero_telefonico
         form.solicitante_id_localidad = formBusquedaSolicitante.value.id_localidad
+        form.solicitante_id_localidad_beneficiada = formBusquedaSolicitante.value.id_localidad_beneficiada
+
+        if (mismaLocalidad)
+        {
+            form.solicitante_id_localidad_beneficiada = formBusquedaSolicitante.value.id_localidad
+        }
 
         const page = usePage();
 
@@ -859,6 +899,7 @@ import Swal from 'sweetalert2'; // Asegúrate de tenerlo importado si es necesar
                 paginaActual: paginaActual,
                 estatusQuery: props.estatusQuery || null,
                 areasQuery: props.areasQuery || null,
+                sortCriteriaQuery: props.sortCriteriaQuery || null,
                 totalesEstatusQuery: props.totalesEstatusQuery || null,
             })).post(route('solicitudes.update', form.id_solicitud), {
                 preserveScroll: true,
@@ -899,7 +940,8 @@ import Swal from 'sweetalert2'; // Asegúrate de tenerlo importado si es necesar
                 fechaIngresoFinQuery: props.fechaIngresoFinQuery || null,
                 paginaActual: paginaActual,
                 estatusQuery: props.estatusQuery || null,
-                areasQuery: props.areasQuery || null 
+                areasQuery: props.areasQuery || null,
+                sortCriteriaQuery: props.sortCriteriaQuery || null
             })).post(route('solicitudes.store'), {
                 preserveScroll: true,
                 onSuccess: (page) => {
@@ -997,6 +1039,7 @@ import Swal from 'sweetalert2'; // Asegúrate de tenerlo importado si es necesar
         if (!formBusquedaSolicitante.value.apellidos || formBusquedaSolicitante.value.apellidos.trim() === '') faltantes.push('Apellidos (Solicitante)');
         if (!formBusquedaSolicitante.value.id_localidad) faltantes.push('Localidad (Solicitante)');
         
+        if (!form.id_tipo_apoyo) faltantes.push('Tipo de Apoyo')
         // Validación de la petición (vive en tu form principal - cambia 'peticion' por el nombre real de tu campo)
         if (!form.peticion || form.peticion.trim() === '') faltantes.push('Petición');
         
@@ -1217,871 +1260,1045 @@ import Swal from 'sweetalert2'; // Asegúrate de tenerlo importado si es necesar
     // Si viene un hex o rgb directo, lo respeta; si viene una palabra, la busca; si no hay nada, usa gris por defecto.
     return colors[colorKey] || colorKey || '#9CA3AF';
 };
+
+const soloLectura = computed(() => Number(props.solicitud?.id_estatus) === 3);
+
+ const verMasSolicitudes = () => {
+      router.visit(route('solicitudes'));
+    };
+
+    const mismaLocalidad = ref(
+        formBusquedaSolicitante.value.id_localidad != null &&
+        formBusquedaSolicitante.value.id_localidad_beneficiada != null &&
+        Number(formBusquedaSolicitante.value.id_localidad) ===
+        Number(formBusquedaSolicitante.value.id_localidad_beneficiada)
+
+        
+    );
+
+    const sincronizarLocalidades = () => {
+        if (mismaLocalidad.value) {
+            formBusquedaSolicitante.value.id_localidad_beneficiada =
+                formBusquedaSolicitante.value.id_localidad;
+        }
+    };
+
+    function formatFechaLarga(fechaStr) {
+        if (!fechaStr) return '—';
+        const [fecha] = String(fechaStr).trim().split(' '); // "2026-11-22"
+        const [anio, mes, dia] = fecha.split('-');
+        if (!anio || !mes || !dia) return fechaStr;
+        return `${dia.padStart(2, '0')}/${mes.padStart(2, '0')}/${anio}`;
+    }
 </script>
 
 <template>
-        <div v-if="form.processing" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-600/60 backdrop-blur-xs transition-all duration-300">
-            <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-2xl max-w-sm w-full mx-4 text-center space-y-4 border border-gray-100 dark:border-gray-700 animate-in fade-in zoom-in duration-200">
-                <!-- Estado 1: Procesando -->
-                <div class="space-y-3">
-                    <div class="w-12 h-12 rounded-full bg-color1-50 dark:bg-color1-950/50 text-color1 flex items-center justify-center mx-auto">
-                        <svg class="animate-spin h-6 w-6 text-color1-600 dark:text-color1-400" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                    </div>
-                    <h4 class="text-base font-bold text-gray-900 dark:text-white">{{ nuevaSolicitud ? 'Guardando solicitud...': 'Actualizando solicitud...' }}</h4>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Por favor espera un momento mientras registramos la información.</p>
+    <div v-if="form.processing" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-600/60 backdrop-blur-xs transition-all duration-300">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-2xl max-w-sm w-full mx-4 text-center space-y-4 border border-gray-100 dark:border-gray-700 animate-in fade-in zoom-in duration-200">
+            <!-- Estado 1: Procesando -->
+            <div class="space-y-3">
+                <div class="w-12 h-12 rounded-full bg-color1-50 dark:bg-color1-950/50 text-color1 flex items-center justify-center mx-auto">
+                    <svg class="animate-spin h-6 w-6 text-color1-600 dark:text-color1-400" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
                 </div>
+                <h4 class="text-base font-bold text-gray-900 dark:text-white">{{ nuevaSolicitud ? 'Guardando solicitud...': 'Actualizando solicitud...' }}</h4>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Por favor espera un momento mientras registramos la información.</p>
             </div>
         </div>
+    </div>
 
-        <div :class="isPage ? 'max-w-8xl mx-auto py-0 px-2 sm:px-4 lg:px-6' : 'w-full px-0 pt-1'">
-            <!-- SaaS Header / Breadcrumbs Style -->
-            <div v-if="isPage" class="mb-4 sm:items-center sm:justify-between gap-4">
-                <div class="pl-2 pt-3 pr-2">
-                    <!-- Breadcrumb -->
-                    <div class="flex items-center flex-wrap gap-1.5 text-[12px] font-semibold uppercase tracking-wider text-color1-700 dark:text-color1-400 mb-0.5">
-                            <span>Módulo de Gestión</span>
-                            <span class="text-gray-400">/</span>
-                            <span>Solicitudes</span>
+    <div :class="isPage ? 'max-w-8xl mx-auto py-0 px-2 sm:px-4 lg:px-6' : 'w-full px-0 pt-1'">
+    <!-- SaaS Header / Breadcrumbs Style -->
+    <div v-if="isPage" class="mb-4 sm:items-center sm:justify-between gap-4">
+            <div class="pl-2 pt-3 pr-2">
+                <!-- Breadcrumb -->
+                <div class="flex items-center flex-wrap gap-1.5 text-[12px] font-semibold uppercase tracking-wider text-color1-700 dark:text-color1-400 mb-0.5">
+                        <span>Módulo de Gestión</span>
+                        <span class="text-gray-400">/</span>
+                        <span>Solicitudes</span>
+                </div>
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-5">
+                    <div class="min-w-0">
+                        <h2 class="text-xl font-semibold tracking-tight text-gray-900 dark:text-white leading-tight truncate">
+                            {{ soloLectura
+                                ? 'Consulta de Solicitud'
+                                : (!nuevaSolicitud ? 'Editar Solicitud' : 'Nueva Solicitud') }}
+                        </h2>
                     </div>
-                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5">
-                        <!-- Lado Izquierdo: Título Limpio -->
-                        <div>
-                            <h2 class="text-xl font-semibold tracking-tight text-gray-900 dark:text-white leading-tight">
-                                {{ !nuevaSolicitud ? 'Editar Solicitud' : 'Nueva Solicitud' }}
-                            </h2>
-                        </div>
 
-                        <!-- Lado Derecho: Badge de Estado + Folio Juntos -->
-                        <div class="flex items-center gap-3 flex-wrap self-start sm:self-center">
-                            
-                            <!-- Badge de Estado (Captura / Edición) -->
-                            <span 
-                                class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ring-1 ring-inset"
-                                :class="nuevaSolicitud 
-                                    ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400 ring-amber-600/25' 
-                                    : 'bg-color1-50 text-color1-700 dark:bg-color1-950/50 dark:text-color1-400 ring-color1-600/25'"
-                            >
-                                {{ nuevaSolicitud ? 'Modo Captura' : 'Modo Edición' }}
+                    <div class="flex items-center gap-3 flex-wrap sm:flex-nowrap shrink-0">
+                        <button
+                            v-if="isPage"
+                            type="button"
+                            @click="verMasSolicitudes"
+                            class="inline-flex items-center mr-6 justify-center gap-1.5 h-8 px-3.5 shrink-0
+                                text-[13px] font-semibold text-white dark:text-gray-200
+                                bg-color1 hover:bg-color1-900 dark:bg-gray-800 dark:hover:bg-gray-700
+                                dark:border-gray-700 rounded-full
+                                shadow-2xs hover:shadow-xs transition-all duration-200 cursor-pointer">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-white dark:text-gray-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect width="18" height="18" x="3" y="3" rx="2"/>
+                                <path d="M3 9h18"/>
+                                <path d="M3 15h18"/>
+                                <path d="M9 3v18"/>
+                            </svg>
+
+                            <span>Ver Solicitudes</span>
+                        </button>
+                        <span
+                            v-if="soloLectura"
+                            class="inline-flex items-center h-8 px-2.5 rounded-lg text-xs font-medium ring-1 ring-inset shrink-0 bg-color1-50 text-color1-700 dark:bg-color1-950/50 dark:text-color1-400 ring-color1-600/25">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 mr-1.5 shrink-0 text-color1-700 dark:text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <rect x="3" y="11" width="18" height="11" rx="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                            Solo lectura
+                        </span>
+
+                        <span
+                            v-else
+                            class="inline-flex items-center h-8 px-2.5 rounded-lg text-xs font-medium ring-1 ring-inset shrink-0"
+                            :class="nuevaSolicitud
+                                ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400 ring-amber-600/25'
+                                : 'bg-color1-50 text-color1-700 dark:bg-color1-950/50 dark:text-color1-400 ring-color1-600/25'">
+                            {{ nuevaSolicitud ? 'Modo Captura' : 'Modo Edición' }}
+                        </span>
+
+                        <!-- Bloque de Folio (Solo si existe ID) -->
+                        <div
+                            v-if="!nuevaSolicitud"
+                            class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 shrink-0">
+                            <span class="text-gray-400 dark:text-gray-500 uppercase tracking-wider font-medium">
+                                Folio:
                             </span>
+                            <span class="inline-flex items-center h-8 font-medium text-color1-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-md px-2.5 ring-1 ring-inset ring-gray-200 dark:ring-gray-700">
+                                #{{ String(form?.id_solicitud).slice(-5).padStart(6, '0') }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+        </div>
+    </div>
+    <!-- SaaS High-Density Card Form -->
+    <form @submit.prevent="submit" class="space-y-6 pb-4">
+        <div class="bg-white dark:bg-gray-900 shadow-sm ring-1 ring-gray-950/5 dark:ring-white/10 rounded-xl overflow-hidden">
+            <div class="p-6 md:px-8 md:py-6 space-y-6">              
+                <!-- Sección 1: Datos Generales / Metadatos de la Solicitud -->
+                <div class="mb-6">
+                    <!-- Encabezado de la sección -->
+                    <div class="mb-4">
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-gray-900 dark:text-white flex items-center gap-2">
+                            <!-- <svg class="w-4 h-4 text-color1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012-2m-6 9l2 2 4-4" />
+                            </svg> -->
+                            <svg class="w-3.5 h-4 text-color1" fill="none" stroke="currentColor" viewBox="0 0 24 24"  stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16 4h2a2 2 0 0 1 2 2v2"/><path d="M21.34 15.664a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/><path d="M8 22H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/>
+                            </svg>
+                            Datos Generales de la Solicitud
+                        </h3>
+                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                            {{
+                                soloLectura
+                                    ? 'Información general registrada de la solicitud.'
+                                    : nuevaSolicitud
+                                        ? 'Define la fecha de registro y el área responsable.'
+                                        : 'Define la fecha de registro, el área responsable y el estatus operativo.'
+                            }}
+                        </p>
+                    </div>
+                    <!-- Fila de Campos (Fecha, Área y Estatus) -->
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-6">
+                        <!-- Fecha -->
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5">
+                                Fecha *
+                            </label>
+                            <input
+                                type="date"
+                                v-model="form.fecha"
+                                class="block disabled:cursor-not-allowed w-full py-2 px-3 text-gray-900 dark:text-white bg-white dark:bg-gray-800 shadow-sm transition-all duration-200 sm:text-sm custom-native"
+                                :class="{
+                                    'custom-date-error': form.fecha && !fechaValida,
+                                }"
+                                style="border-radius: 9999px !important;"
+                                :disabled="soloLectura"/>
+                            <div
+                                v-if="form.fecha && !fechaValida"
+                                class="text-red-500 text-xs mt-1">
+                                La fecha no es válida.
+                            </div>
 
-                            <!-- Bloque de Folio (Solo si existe ID) -->
-                            <div 
-                                v-if="!nuevaSolicitud"
-                                class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400"
-                            >
-                                <span class="text-gray-400 dark:text-gray-500 uppercase tracking-wider font-medium">
-                                    Folio:
-                                </span>
-                                <span class="font-medium text-color1-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-md px-2.5 py-1 ring-1 ring-inset ring-gray-200 dark:ring-gray-700">
-                                    #{{ String(form?.id_solicitud).slice(-5).padStart(6, '0') }}
-                                </span>
+                            <div
+                                v-if="form.errors.fecha"
+                                class="text-red-500 text-xs mt-1">
+                                {{ form.errors.fecha }}
+                            </div>
+                        </div>
+                        <!-- Área ID (Combo) -->
+                        <div class="sm:col-span-4">
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5">Área Destino</label>
+                                <el-select
+                                v-model="form.id_area"
+                                class="custom-select-gray w-full"
+                                :class="{ 'el-select-bloqueado': soloLectura }"
+                                collapse-tags
+                                collapse-tags-tooltip
+                                :max-collapse-tags="1"
+                                placeholder="Selecciona un área"
+                                value-key="value">                        
+                                    <el-option 
+                                        v-for="area in areasList" 
+                                        :key="area.id" 
+                                        :label="area.nombre"
+                                        :value="area.id">                            
+                                        <div class="flex items-center">
+                                            <span class="w-4 h-5 mr-2">
+                                            </span>
+                                            <span class="text-xs">{{ area.nombre }}</span>
+                                        </div>                            
+                                    </el-option>formatFechaLarga
+                                </el-select>
+                            <div v-if="form.errors.id_area" class="text-red-500 text-xs mt-1">{{ form.errors.id_area }}</div>
+                        </div>
+                        <!-- Estatus Inicial -->
+                        <div v-if="!nuevaSolicitud"
+                        :class="soloLectura ? 'col-span-4' : 'sm:col-span-6'">
+                            <label class="block mb-1.5 text-xs font-semibold tracking-wider text-gray-600 uppercase dark:text-gray-400">
+                                Estatus *
+                            </label>
+                            <!-- MODO SOLO LECTURA: LÍNEA LATERAL DE ACENTO -->
+                            <div v-if="soloLectura" 
+                                class="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-2.5 rounded-r-2xl border-l-4 border-y border-r border-gray-200 dark:border-gray-800 select-none"
+                                :style="{
+                                    borderLeftColor: getStatusColor(estatusList?.find(e => Number(e.id) === Number(form.id_estatus))?.color),
+                                    borderColor: `${getStatusColor(estatusList?.find(e => Number(e.id) === Number(form.id_estatus))?.color)}80`,
+                                    backgroundColor: `${getStatusColor(estatusList?.find(e => Number(e.id) === Number(form.id_estatus))?.color)}7`
+                                }">                                
+                                <!-- Nombre y punto -->
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <span class="text-[13px] font-bold tracking-widest uppercase"
+                                        :style="{ color: getStatusColor(estatusList?.find(e => Number(e.id) === Number(form.id_estatus))?.color) }">
+                                        {{ estatusList?.find(e => Number(e.id) === Number(form.id_estatus))?.nombre || 'Sin estatus' }}
+                                    </span>
+                                </div>
+                                <!-- Descripción -->
+                                <p class="text-[13px] text-gray-600 dark:text-gray-400 sm:text-right flex-1 min-w-0 italic">
+                                    {{ estatusList?.find(estatus => Number(estatus.id) === Number(form.id_estatus))?.descripcion || 'Sin descripción disponible.' }}
+                                </p>
+                            </div>
+                    
+                            <div v-else class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                                <label
+                                    v-for="estatus in estatusList"
+                                    :key="estatus.id"
+                                    class="relative grid grid-cols-[1.5rem_1fr_1.5rem] items-center h-9 border rounded-full cursor-pointer overflow-hidden px-3 group select-none transition-all duration-200 active:scale-95"
+                                    :title="estatus.nombre"
+                                    :style="{
+                                        '--status-color': getStatusColor(estatus.color),
+                                        backgroundColor: Number(form.id_estatus) === Number(estatus.id) ? getStatusColor(estatus.color) + '15' : '#ffffff'
+                                    }"
+                                    :class="
+                                        Number(form.id_estatus) === Number(estatus.id)
+                                            ? 'border-[var(--status-color)] ring-1 ring-[var(--status-color)] shadow-sm'
+                                            : 'border-gray-300 bg-gray-100 hover:bg-gray-200 hover:border-[color-mix(in_srgb,var(--status-color)_25%,white)] dark:border-gray-700 dark:bg-gray-800 dark:hover:border-[var(--status-color)]'
+                                    "
+                                    @mouseenter="
+                                        $event.currentTarget.style.backgroundColor =
+                                            Number(form.id_estatus) !== Number(estatus.id)
+                                                ? '#e5e7eb'
+                                                : getStatusColor(estatus.color) + '15'
+                                    "
+
+                                    @mouseleave="$event.currentTarget.style.backgroundColor = Number(form.id_estatus) === Number(estatus.id) ? getStatusColor(estatus.color) + '15' : '#ffffff'">
+                                    
+                                    <!-- Radio -->
+                                    <input
+                                        type="radio"
+                                        v-model="form.id_estatus"
+                                        :value="estatus.id"
+                                        class="sr-only"/>
+                                    <!-- 1. COLUMNA IZQUIERDA: Check -->
+                                    <div class="flex items-center justify-start">
+                                        <span
+                                            v-if="Number(form.id_estatus) === Number(estatus.id)"
+                                            class="flex items-center justify-center w-4 h-4 bg-[var(--status-color)] text-white rounded-full text-[9px] font-bold shadow-xs">
+                                            ✓
+                                        </span>
+                                    </div>
+                                    <!-- 2. COLUMNA CENTRAL: Nombre -->
+                                    <span class="text-[13px] font-bold leading-tight tracking-wide text-gray-600 uppercase dark:text-gray-100 text-center truncate">
+                                        {{ estatus.nombre }}
+                                    </span>
+                                    <!-- 3. COLUMNA DERECHA -->
+                                    <div></div>
+                                </label>
+                            </div>
+                            <!-- Descripción -->
+                            <p
+                                v-if="estatusList?.find(estatus => Number(estatus.id) === Number(form.id_estatus))?.descripcion && !soloLectura"
+                                class="mt-1 text-[11px] text-gray-500 truncate dark:text-gray-400">
+                                {{ estatusList?.find(estatus => Number(estatus.id) === Number(form.id_estatus))?.descripcion }}
+                            </p>
+                            <!-- Error -->
+                            <div v-if="form.errors.id_estatus" class="mt-1 text-xs text-red-500">
+                                {{ form.errors.id_estatus }}
+                            </div>
+                        </div>
+                        <div v-if="soloLectura" class="col-span-2">
+                            <label class="block mb-1.5 text-xs font-semibold tracking-wider text-gray-600 uppercase dark:text-gray-400">
+                                Fecha de Resolución *
+                            </label>
+                            <div v-if="soloLectura" 
+                                class="w-full text-sm cursor-not-allowed flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-2 rounded-full border border-gray-300 text-gray-800 dark:border-gray-800 select-none"> 
+                                {{ formatFechaLarga(form.fecha_resolucion) }}
                             </div>
                         </div>
                     </div>
-            </div>
-        </div>
-                
-
-            <!-- SaaS High-Density Card Form -->
-          <form @submit.prevent="submit" class="space-y-6">
-                <div class="bg-white dark:bg-gray-900 shadow-sm ring-1 ring-gray-950/5 dark:ring-white/10 rounded-xl overflow-hidden">
-                    <div class="p-6 md:px-8 md:py-6 space-y-6">              
-                        <!-- Sección 1: Datos Generales / Metadatos de la Solicitud -->
-                        <div class="mb-6">
-                            <!-- Encabezado de la sección -->
-                            <div class="mb-4">
-                                <h3 class="text-sm font-bold uppercase tracking-wider text-gray-900 dark:text-white flex items-center gap-2">
-                                    <svg class="w-4 h-4 text-color1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012-2m-6 9l2 2 4-4" />
+                </div>
+                <!-- Bloque: Información del Solicitante -->
+                <div class="mt-6 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <!-- Encabezado de la sección -->
+                    <div class="mb-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                        <!-- Columna izquierda: Título, Botón y Descripción -->
+                        <div class="space-y-1">
+                            <div class="flex flex-wrap items-end gap-2 sm:gap-3">
+                                <h3 class="text-sm font-bold uppercase tracking-wider text-gray-900 dark:text-white flex items-end gap-2 leading-none">
+                                    <svg class="w-4 h-4 text-color1 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                     </svg>
-                                    Datos Generales de la Solicitud
+                                    Información del Solicitante
                                 </h3>
-                                <p v-if="nuevaSolicitud" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                    Define la fecha de registro y el área responsable.
-                                </p>
-                                 <p v-else class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                    Define la fecha de registro, el área responsable y el estatus operativo.
-                                </p>
-                            </div>
-
-                            <!-- Fila de Campos (Fecha, Área y Estatus) -->
-                            <div class="grid grid-cols-1 gap-6 sm:grid-cols-6">
-                                
-                                <!-- Fecha -->
-                               <div class="sm:col-span-2">
-                                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5">
-                                        Fecha *
-                                    </label>
-
-                                   <input
-                                        type="date"
-                                        v-model="form.fecha"
-                                        class="block w-full py-2 px-3 text-gray-900 dark:text-white bg-white dark:bg-gray-800 shadow-sm transition-all duration-200 sm:text-sm custom-native"
-                                        :class="{
-                                            'custom-date-error': form.fecha && !fechaValida,
-                                        }"
-                                        style="border-radius: 9999px !important;"
-                                    />
-
-                                    <div
-                                        v-if="form.fecha && !fechaValida"
-                                        class="text-red-500 text-xs mt-1">
-                                        La fecha no es válida.
-                                    </div>
-
-                                    <div
-                                        v-if="form.errors.fecha"
-                                        class="text-red-500 text-xs mt-1">
-                                        {{ form.errors.fecha }}
-                                    </div>
-                                </div>
-
-                                <!-- Área ID (Combo) -->
-                                <div class="sm:col-span-4">
-                                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5">Área Destino</label>
-                                       <el-select
-                                        v-model="form.id_area"
-                                        class="custom-select-gray w-full"
-                                        collapse-tags
-                                        collapse-tags-tooltip
-                                        :max-collapse-tags="1"
-                                        placeholder="Selecciona un área"
-                                        value-key="value"
-                                        >                        
-                                        <el-option 
-                                            v-for="area in areasList" 
-                                            :key="area.id" 
-                                            :label="area.nombre"
-                                            :value="area.id">                            
-                                            <div class="flex items-center">
-                                                <span class="w-4 h-5 mr-2">
-                                                </span>
-                                                <span class="text-xs">{{ area.nombre }}</span>
-                                            </div>                            
-                                        </el-option>
-                                    </el-select>
-                                    <div v-if="form.errors.id_area" class="text-red-500 text-xs mt-1">{{ form.errors.id_area }}</div>
-                                </div>
-
-                                <!-- Estatus Inicial -->
-                                <div v-if="!nuevaSolicitud" class="sm:col-span-6">
-                                    <label class="block mb-1.5 text-xs font-semibold tracking-wider text-gray-600 uppercase dark:text-gray-400">
-                                        Estatus *
-                                    </label>
-
-                                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                                        <label
-                                            v-for="estatus in estatusList"
-                                            :key="estatus.id"
-                                            class="relative grid grid-cols-[1.5rem_1fr_1.5rem] items-center h-9 border rounded-full cursor-pointer overflow-hidden px-3 group select-none transition-all duration-200 active:scale-95"
-                                            :title="estatus.nombre"
-                                            :style="{
-                                                '--status-color': getStatusColor(estatus.color),
-                                                backgroundColor: Number(form.id_estatus) === Number(estatus.id) ? getStatusColor(estatus.color) + '15' : undefined
-                                            }"
-                                            :class="
-                                                Number(form.id_estatus) === Number(estatus.id)
-                                                    ? 'border-[var(--status-color)] ring-1 ring-[var(--status-color)] shadow-sm'
-                                                    : 'border-gray-300 bg-gray-100 hover:border-[var(--status-color)] dark:border-gray-700 dark:bg-gray-800 dark:hover:border-[var(--status-color)]'
-                                            "
-                                            @mouseenter="$event.currentTarget.style.backgroundColor = getStatusColor(estatus.color) + '15'"
-                                            @mouseleave="$event.currentTarget.style.backgroundColor = Number(form.id_estatus) === Number(estatus.id) ? getStatusColor(estatus.color) + '15' : ''">
-
-                                            <!-- Radio -->
-                                            <input
-                                                type="radio"
-                                                v-model="form.id_estatus"
-                                                :value="estatus.id"
-                                                class="sr-only"
-                                            />
-
-                                            <!-- 1. COLUMNA IZQUIERDA: Check -->
-                                            <div class="flex items-center justify-start">
-                                                <span
-                                                    v-if="Number(form.id_estatus) === Number(estatus.id)"
-                                                    class="flex items-center justify-center w-4 h-4 bg-[var(--status-color)] text-white rounded-full text-[9px] font-bold shadow-xs">
-                                                    ✓
-                                                </span>
-                                            </div>
-
-                                            <!-- 2. COLUMNA CENTRAL: Nombre -->
-                                            <span class="text-[13px] font-bold leading-tight tracking-wide text-gray-600 uppercase dark:text-gray-100 text-center truncate">
-                                                {{ estatus.nombre }}
-                                            </span>
-
-                                            <!-- 3. COLUMNA DERECHA -->
-                                            <div></div>
-
-                                        </label>
-                                    </div>
-
-                                    <!-- Descripción -->
-                                    <p
-                                        v-if="estatusList?.find(estatus => Number(estatus.id) === Number(form.id_estatus))?.descripcion"
-                                        class="mt-1 text-[11px] text-gray-500 truncate dark:text-gray-400">
-                                        {{ estatusList?.find(estatus => Number(estatus.id) === Number(form.id_estatus))?.descripcion }}
-                                    </p>
-
-                                    <!-- Error -->
-                                    <div v-if="form.errors.id_estatus" class="mt-1 text-xs text-red-500">
-                                        {{ form.errors.id_estatus }}
-                                    </div>
-                                </div>
-
-                            </div>
-                        </div>
-
-                        <!-- Bloque: Información del Solicitante -->
-                        <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                            <!-- Encabezado de la sección -->
-                           <div class="mb-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                                <!-- Columna izquierda: Título, Botón y Descripción -->
-                                <div class="space-y-1">
-                                    <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-                                        <h3 class="text-sm font-bold uppercase tracking-wider text-gray-900 dark:text-white flex items-center gap-2">
-                                            <svg class="w-4 h-4 text-color1 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                            </svg>
-                                            Información del Solicitante
-                                        </h3>
-
-                                        <span
-                                            v-if="solicitanteSeleccionado && solicitanteSeleccionadoId"
-                                            class="inline-flex items-center gap-1.5 px-3 py-1 text-[8pt] font-semibold
-                                                text-color4-700 bg-color4-50 rounded-md
-                                                dark:bg-color4-900/40 dark:text-color4-300">
-                                            <i class="fas fa-user-check"></i>
-                                            SOLICITANTE REGISTRADO #{{ String(solicitanteSeleccionadoId).padStart(5, '0') }}
-                                        </span>
-                                            <!-- Estado -->
-                                            <span
-                                                v-if="solicitanteSeleccionado && !editandoSolicitante && !solicitanteCargadoSolicitudes"
-                                                class="inline-flex items-center px-3 py-1 text-[8pt] font-semibold
-                                                    text-color2-700 bg-color2-100 rounded-md
-                                                    dark:bg-color2-900/40 dark:text-color2-300"
-                                            >
-                                                SOLICITANTE EXISTENTE
-                                            </span>
-
-                                            <span
-                                                v-if="editandoSolicitante"
-                                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md
-                                                    text-[11px] font-semibold
-                                                    bg-color1-50 text-color1-700
-                                                    dark:bg-color1-900/30 dark:text-color1-400">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" />
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                                </svg>
-
-                                                EDITANDO DATOS
-                                            </span>
-                                            <div class="flex flex-wrap items-center gap-2">
-
-                                                <!-- EDITAR -->
-                                                <button
-                                                    v-if="solicitanteSeleccionado && !editandoSolicitante"
-                                                    type="button"
-                                                    @click="iniciarEdicionSolicitante"
-                                                    class="inline-flex items-center gap-1.5 px-3 py-1
-                                                        text-xs font-semibold
-                                                        text-color1-40 dark:text-color1-300
-                                                        bg-color1-700 dark:bg-color1-900/20
-                                                        border border-color1-800 dark:border-color1-800
-                                                        rounded-full
-                                                        hover:bg-color1-500 hover:border-color1-600 dark:hover:bg-color1-900/40
-                                                        transition-colors">
-                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" />
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                            d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                                    </svg>
-
-                                                    Editar
-                                                </button>
-
-                                                <!-- CANCELAR EDICIÓN -->
-                                                <button
-                                                    v-if="editandoSolicitante"
-                                                    type="button"
-                                                    @click="cancelarEdicionSolicitante"
-                                                    class="inline-flex items-center gap-1.5 px-3 py-1
-                                                        text-xs
-                                                        text-white dark:text-gray-300
-                                                        bg-gray-400 dark:bg-gray-800
-                                                        border border-gray-400 dark:border-gray-600
-                                                        rounded-full
-                                                        hover:bg-gray-500 dark:hover:bg-gray-700
-                                                        transition-colors">
-                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                            d="M6 18L18 6M6 6l12 12" />
-                                                    </svg>
-
-                                                    Cancelar edición
-                                                </button>
-
-                                                <!-- LIMPIAR -->
-                                                <button
-                                                    v-if="!editandoSolicitante"
-                                                    type="button"
-                                                    @click="limpiarSolicitante"
-                                                    class="group inline-flex items-center px-2 py-1
-                                                        text-xs font-medium
-                                                        bg-gray-500
-                                                        text-white
-                                                        border border-gray-600 rounded-full shadow-sm
-                                                        hover:bg-gray-400 hover:border-gray-500
-                                                        dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600
-                                                        dark:hover:bg-gray-700
-                                                        transition-colors">
-                                                    <svg class="w-3.5 h-3.5 mr-1 mx-0.5 text-white"
-                                                        fill="none"
-                                                        viewBox="0 0 24 24"
-                                                        stroke="currentColor">
-                                                        <path stroke-linecap="round"
-                                                            stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                                    </svg>
-                                                    Limpiar
-                                                </button>
-                                            </div>
-                                    </div>
-
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">
-                                        Proporciona los datos de contacto y generales de la persona que realiza la petición.
-                                    </p>
-                                </div>
-
-                                <!-- Columna derecha: Indicativo de NUEVO (Color Verde) -->
-                                <div v-if="esSolicitanteNuevo && !editandoSolicitante && !solicitanteSeleccionado" class="flex items-center self-start sm:self-auto">
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 shadow-sm animate-pulse">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                                        NUEVO SOLICITANTE
-                                    </span>
-                                </div>
-                            </div>
-
-                            <!-- Fila 2: CURP, Nombre y Apellidos (1 Renglón) -->
-                           <div class="relative sm:col-span-9">
-                                <!-- Fila de Inputs (CURP, Nombre, Apellidos) -->
-                                <div class="grid grid-cols-1 gap-6 sm:grid-cols-9 pt-0.5">
-                                    <!-- CURP -->
-                                    <div class="sm:col-span-2">
-                                        <!-- Etiqueta con el contenedor flexible para alinear el título a la izquierda y el check a la derecha -->
-                                        <div class="flex items-center justify-between mb-1.5">
-                                            <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">CURP</label>
-                                            
-                                            <!-- SVG de Éxito (A un lado del label) -->
-                                            <div v-if="!esCurpInvalida && formBusquedaSolicitante.curp?.length === 18 && !solicitanteBloqueado" class="flex items-center text-color2-600 dark:text-color2-400">
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
-                                                </svg>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Contenedor relativo de los inputs (ya sin el pr-10 forzado porque el icono ya no va dentro) -->
-                                        <div class="relative">
-                                            <!-- Input Móvil -->
-                                            <input 
-                                                type="text" 
-                                                v-model="formBusquedaSolicitante.curp" 
-                                                @input="alEscribirCurp"
-                                                @blur="validarCurp"
-                                                :disabled="solicitanteBloqueado"
-                                                maxlength="18"
-                                                placeholder="Ej. ABCD010101..."
-                                                class="block placeholder:text-gray-400 placeholder:opacity-80 dark:placeholder:text-gray-500 w-full sm:hidden placeholder:normal-case rounded-lg border-0 py-2 px-3 text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 focus:ring-2 focus:ring-inset focus:ring-color1 sm:text-sm uppercase custom-native"
-                                                :class="{
-                                                    'opacity-70 cursor-not-allowed bg-gray-100 dark:bg-gray-800/70': solicitanteBloqueado,
-                                                    'ring-red-500 focus:ring-red-500': esCurpInvalida,
-                                                }"
-                                                style="border-radius: 9999px!important"
-                                            />
-
-                                            <!-- Input para Escritorio y Tablets -->
-                                            <input
-                                                type="text"
-                                                v-model="formBusquedaSolicitante.curp"
-                                                @input="alEscribirCurp"
-                                                @blur="validarCurp"
-                                                :disabled="solicitanteBloqueado"
-                                                maxlength="18"
-                                                :placeholder="solicitanteSeleccionado && !editandoSolicitante ? '' : 'Ej. ABCD010101HMC1111'"
-                                                class="hidden custom-native sm:block placeholder:text-gray-400 placeholder:opacity-80 dark:placeholder:text-gray-500 placeholder:normal-case rounded-lg border-0 py-2 px-3 text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 focus:ring-2 focus:ring-inset focus:ring-color1 sm:text-sm uppercase w-full"
-                                                :class="{
-                                                    'opacity-70 cursor-not-allowed bg-gray-100 dark:bg-gray-800/70': solicitanteBloqueado,
-                                                    'ring-red-500 focus:ring-red-500': esCurpInvalida,
-                                                }"
-                                                style="border-radius: 16px!important"
-                                            />
-                                        </div>
-                                        
-                                        <div v-if="!form.errors.solicitante_curp && esCurpInvalida" class="text-red-500 text-xs mt-1">
-                                            La estructura de la CURP no es válida.
-                                        </div>
-
-                                        <span v-if="solicitanteBloqueado && !formBusquedaSolicitante.curp" class="text-xs text-gray-400 dark:text-gray-500 italic mt-1 block">
-                                            Sin CURP registrada
-                                        </span>
-
-                                        <!-- Mensaje de Error del Backend -->
-                                        <div v-if="form.errors.solicitante_curp" class="text-red-500 text-xs mt-1">
-                                            {{ form.errors.solicitante_curp }}
-                                        </div>
-                                    </div>
-                                    <!-- Nombre(s) -->
-                                    <div class="sm:col-span-3">
-                                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5">Nombre *</label>
-                                        <input 
-                                            type="text" 
-                                            v-model="formBusquedaSolicitante.nombre" 
-                                            @input="buscarSolicitante"
-                                            :disabled="solicitanteBloqueado"
-                                            maxlength="35"
-                                            placeholder="Ej. JUAN"
-                                            class="block custom-native placeholder:text-gray-400 placeholder:opacity-80 dark:placeholder:text-gray-500 w-full placeholder:normal-case rounded-lg border-0 py-2 px-3 text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 focus:ring-2 focus:ring-inset focus:ring-color1 sm:text-sm uppercase",
-                                            :class="{
-                                                'opacity-70 cursor-not-allowed bg-gray-100 dark:bg-gray-800/70':
-                                                    solicitanteBloqueado
-                                            }"
-                                            style="border-radius: 16px!important"
-                                        />
-                                        <div v-if="form.errors.solicitante_nombre" class="text-red-500 text-xs mt-1">{{ form.errors.solicitante_nombre }}</div>
-                                    </div>
-
-                                    <!-- Apellidos -->
-                                    <div class="sm:col-span-4">
-                                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5">Apellido(s) *</label>
-                                        <input 
-                                            type="text" 
-                                            v-model="formBusquedaSolicitante.apellidos" 
-                                            @input="buscarSolicitante"
-                                            :disabled="solicitanteBloqueado"
-                                            maxlength="60"
-                                            placeholder="Ej. PÉREZ"
-                                            class="block custom-native placeholder:text-gray-400 placeholder:opacity-80 dark:placeholder:text-gray-500 w-full placeholder:normal-case rounded-lg border-0 py-2 px-3 text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 focus:ring-2 focus:ring-inset focus:ring-color1 sm:text-sm uppercase"
-                                            :class="{
-                                                'opacity-70 cursor-not-allowed bg-gray-100 dark:bg-gray-800/70':
-                                                    solicitanteBloqueado
-                                            }"
-                                            style="border-radius: 16px!important"
-                                            />
-                                        <div v-if="form.errors.solicitante_apellidos" class="text-red-500 text-xs mt-1">{{ form.errors.solicitante_apellidos }}</div>
-                                    </div>
-                                </div>
-
-                                <!-- Panel Flotante de Sugerencias de Búsqueda -->
-                                <div 
-                                    v-if="mostrarResultadosSolicitante && (cargandoSolicitantes || resultadosBusquedaSolicitante.length > 0)" 
-                                    class="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 max-h-60 overflow-y-auto transition-opacity duration-200"
-                                    :class="{ 'opacity-80 pointer-events-none': cargandoSolicitantes }">
-                                    <!-- 1. ESTADO DE CARGA (Spinner) -->
-                                    <div v-if="cargandoSolicitantes" class="p-6 text-center flex items-center justify-center gap-2 text-gray-500 dark:text-gray-400 text-xs">
-                                        <svg class="animate-spin h-4 w-4 text-color1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        <span>Buscando solicitantes...</span>
-                                    </div>
-
-                                    <!-- 2. RESULTADOS ENCONTRADOS -->
-                                    <template v-else-if="resultadosBusquedaSolicitante.length > 0">
-                                        <div class="p-2.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase border-b border-gray-100 dark:border-gray-700 flex items-center justify-between gap-2 bg-gray-50 dark:bg-gray-800">
-                                            <span class="truncate">
-                                                <span v-if="resultadosBusquedaSolicitante.length > 1">
-                                                    {{ resultadosBusquedaSolicitante.length }} solicitantes encontrados
-                                                </span>
-                                                <span v-else>
-                                                    1 solicitante encontrado
-                                                </span>
-                                            </span>
-
-                                            <button 
-                                                type="button" 
-                                                @click="cerrarResultadosSolicitante"
-                                                class="inline-flex items-center gap-1 text-[11px] text-gray-400 hover:text-color1-600 dark:hover:text-color1-400 bg-white dark:bg-gray-700 px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-600 transition-colors normal-case font-normal"
-                                                title="Cerrar lista">
-                                                <span>Cerrar</span>
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
-                                            </button>
-                                        </div>
-
-                                        <ul>
-                                            <li 
-                                                v-for="s in resultadosBusquedaSolicitante" 
-                                                :key="s.id"
-                                                @click="seleccionarSolicitante(s)"
-                                                class="px-3 sm:px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer text-xs text-gray-700 dark:text-gray-200 border-b border-gray-50 dark:border-gray-700/50 last:border-none flex justify-between items-center gap-2 sm:gap-4">
-                                                
-                                                <div class="space-y-1 min-w-0 flex-1">
-                                                    <div class="font-bold text-gray-900 dark:text-white uppercase text-sm truncate">
-                                                        {{ s.nombre }} {{ s.apellidos }}
-                                                    </div>
-                                                    
-                                                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-gray-500 dark:text-gray-400 text-xs min-w-0">
-                                                        
-                                                        <!-- CURP -->
-                                                        <span class="inline-flex items-center gap-1 min-w-0">
-                                                            <svg class="w-3.5 h-3.5 text-color1 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
-                                                            </svg>
-                                                            <strong class="text-gray-700 dark:text-gray-300 font-medium truncate">{{ s.curp || 'S/N' }}</strong>
-                                                        </span>
-
-                                                        <!-- TELÉFONO -->
-                                                        <span class="inline-flex items-center gap-1 min-w-0">
-                                                            <svg class="w-3.5 h-3.5 text-color1 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                                                            </svg>
-                                                            <strong class="text-gray-700 dark:text-gray-300 font-medium truncate">{{ s.numero_telefonico || 'S/N' }}</strong>
-                                                        </span>
-
-                                                        <!-- LOCALIDAD -->
-                                                        <span class="inline-flex items-center gap-1 min-w-0">
-                                                            <svg class="w-3.5 h-3.5 text-color1 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                            </svg>
-                                                            <strong class="text-gray-700 dark:text-gray-300 font-medium truncate uppercase">{{ s.localidad?.nombre || 'S/N' }}</strong>
-                                                        </span>
-
-                                                    </div>
-                                                </div>
-
-                                                <div class="hidden sm:block shrink-0">
-                                                    <span class="text-[10px] bg-color1-50 text-color1 px-2.5 py-1.5 rounded-full font-medium uppercase">
-                                                        Seleccionar
-                                                    </span>
-                                                </div>
-                                            </li>
-                                        </ul>
-                                    </template>
-                                </div>
-                            </div>
-
-                            <!-- Fila 3: Teléfono y Localidad (Siguiente Renglón) -->
-                            <div class="grid grid-cols-1 gap-6 sm:grid-cols-4 pt-4 mt-2 dark:border-gray-800">
-                                
-                                <div class="sm:col-span-1">
-                                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5">
-                                        Núm. Telefónico
-                                    </label>
-                                    <input 
-                                        type="text" 
-                                        v-model="formBusquedaSolicitante.numero_telefonico" 
-                                        @input="formatearTelefono; telefonoValidado = false"
-                                        @blur="validarTelefono"
-                                        :disabled="solicitanteBloqueado"
-                                        @paste="handlePasteTelefono"
-                                        maxlength="10"
-                                        :placeholder="solicitanteSeleccionado && !editandoSolicitante ? '' : 'Ej. 6690000000'"
-                                        class="block custom-native placeholder:text-gray-400 placeholder:opacity-80 dark:placeholder:text-gray-500 w-full placeholder:normal-case rounded-lg border-0 py-2 px-3 text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 focus:ring-2 focus:ring-inset focus:ring-color1 sm:text-sm"
-                                        :class="{
-                                            'opacity-70 cursor-not-allowed bg-gray-100 dark:bg-gray-800/70':
-                                                solicitanteBloqueado,
-
-                                            'ring-red-500 focus:ring-red-500':
-                                                esTelefonoInvalido && telefonoValidado,                                            
-                                        }"
-                                        style="border-radius: 16px!important"
-                                    />
-                                    <div 
-                                        v-if="esTelefonoInvalido" class="text-red-500 text-xs mt-1">
-                                        El núm. telefónico debe tener 10 dígitos.
-                                    </div>
-
-                                    <span v-if="solicitanteBloqueado && !formBusquedaSolicitante.numero_telefonico" class="text-xs text-gray-400 dark:text-gray-500 italic mt-1 block">
-                                            Sin número registrado
-                                    </span>
-
-                                    <div 
-                                        v-if="form.errors.solicitante_numero_telefonico" 
-                                        class="text-red-500 text-xs mt-1">
-                                        {{ form.errors.solicitante_numero_telefonico }}
-                                    </div>
-                                </div>
-
-                                <div class="sm:col-span-3">
-                                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5">
-                                        Localidad *  
-                                    </label>
-
-                                    <!-- <select
-                                        v-model="formBusquedaSolicitante.id_localidad"
-                                        @mousedown="(e) => { if (solicitanteBloqueado) e.preventDefault(); }"
-                                        @change="solicitanteBloqueado ? null : actualizarLocalidad($event)"
-                                        class="block w-full rounded-lg border-0 py-2 px-3 text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 focus:ring-2 focus:ring-inset focus:ring-color1 sm:text-sm"
-                                        :class="{
-                                            'solicitante-bloqueado': solicitanteBloqueado
-                                        }"
-                                        style="border-radius: 9999px!important">
-                                        <option value="" disabled>
-                                            SELECCIONA UNA LOCALIDAD...
-                                        </option>
-
-                                        <option
-                                            v-for="localidad in localidadesList"
-                                            :key="localidad.id"
-                                            :value="localidad.id">
-                                            {{ localidad.nombre }}
-                                        </option>
-                                    </select> -->
-                                    <el-select
-                                        v-model="formBusquedaSolicitante.id_localidad"
-                                        placeholder="Selecciona una localidad..."
-                                        class="custom-select-gray w-full"
-                                        :class="{ 'solicitante-bloqueado': solicitanteBloqueado }"
-                                        @mousedown="(e) => { if (solicitanteBloqueado) e.preventDefault(); }"
-                                        @change="solicitanteBloqueado ? null : actualizarLocalidad($event)"
-                                        style="border-radius: 16px !important;"
-                                    >
-                                        <el-option
-                                            v-for="localidad in localidadesList"
-                                            :key="localidad.id"
-                                            :label="localidad.nombre"
-                                            :value="localidad.id"
-                                        />
-                                    </el-select>
-
-                                    <div
-                                        v-if="form.errors.id_solicitante_localidad"
-                                        class="text-red-500 text-xs mt-1">
-                                        {{ form.errors.id_solicitante_localidad }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Sección: Detalle de la Petición y Asignación -->
-                        <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                            <!-- Encabezado de la sección -->
-                            <div class="mb-4">
-                                <h3 class="text-sm font-bold uppercase tracking-wider text-gray-900 dark:text-white flex items-center gap-2">
-                                    <svg class="w-4 h-4 text-color1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                <span
+                                    v-if="solicitanteSeleccionado && solicitanteSeleccionadoId"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1 text-[8pt] font-semibold
+                                        text-color4-700 bg-color4-50 rounded-md
+                                        dark:bg-color4-900/40 dark:text-color4-300">
+                                    <i class="fas fa-user-check"></i>
+                                    Solicitante Registrado #{{ String(solicitanteSeleccionadoId).padStart(5, '0') }}
+                                </span>
+                                <span
+                                    v-if="solicitanteSeleccionado && !editandoSolicitante && !solicitanteCargadoSolicitudes"
+                                    class="inline-flex items-center px-3 py-1 text-[8pt] font-semibold
+                                        text-color2-700 bg-color2-100 rounded-md
+                                        dark:bg-color2-900/40 dark:text-color2-300">
+                                    Solicitante Existente
+                                </span>
+                                <span
+                                    v-if="editandoSolicitante"
+                                    class="inline-flex items-center gap-1.5 px-2.5 py-0 rounded-md
+                                        text-[11px] font-semibold leading-4
+                                        bg-color1-50 text-color1-700
+                                        dark:bg-color1-900/30 dark:text-color1-400">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
                                     </svg>
-                                    Detalles de la Petición y Asignación
-                                </h3>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                    Especifica la descripción de la solicitud ciudadana y el monto o recurso autorizado.
-                                </p>
-                            </div>
-
-                            <!-- Contenido (Textarea + Cantidad Aprobada) -->
-                            <div class="grid grid-cols-1 gap-6 sm:grid-cols-3 pt-2">
-                                
-                                <!-- Petición (Textarea extendido) -->
-                                <div class="sm:col-span-2">
-                                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5">Petición / Descripción detallada *</label>
-                                    <textarea 
-                                        v-model="form.peticion" 
-                                        rows="4"
-                                        maxlength="255"
-                                        placeholder="ESCRIBE LA PETICIÓN..."
-                                        class="block placeholder:text-gray-400 placeholder:opacity-80 dark:placeholder:text-gray-500 w-full rounded-xl border-0 py-2 px-3 text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 focus:ring-2 focus:ring-inset focus:ring-color1 sm:text-sm uppercase"
-                                    ></textarea>
-                                      <div class="flex justify-between items-center mt-1">
-                                        <div v-if="form.errors.peticion" class="text-red-500 text-xs">{{ form.errors.peticion }}</div>
-                                        <span class="text-[10px] text-gray-400 ml-auto">{{ form.peticion ? form.peticion.length : 0 }}/255</span>
-                                    </div>
-                                </div>
-
-                                 <!-- ANDO AGREGANDO ESTA VALIDACIÓN AL BUTTON DE GUARDAR Y SU MENSAJE DE LADO -->
-                                <div>
-                                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5">Cantidad Aprobada</label>
-                                    <div class="relative rounded-lg shadow-sm">
-                                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                            <span class="text-gray-500 sm:text-sm">$</span>
-                                        </div>
-                                        <input
-                                            type="text"
-                                            inputmode="decimal"
-                                            :value="form.cantidad_aprobada"
-                                            @input="formatearCantidadAprobada"
-                                            @blur="validarCantidadAprobada"
-                                            placeholder="0.00"
-                                            class="block custom-native w-full rounded-lg border-0 py-2 pl-7 pr-3 text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 focus:ring-2 focus:ring-inset focus:ring-color1 sm:text-sm"
-                                            :class="{
-                                                'ring-red-500 focus:ring-red-500': esCantidadAprobadaInvalida
-                                            }"
-                                            style="border-radius: 16px!important"
-                                        />
-                                    </div>
-                                    <div v-if="form.errors.cantidad_aprobada" class="text-red-500 text-xs mt-1">{{ form.errors.cantidad_aprobada }}</div>
-                                    <div 
-                                        v-if="esCantidadAprobadaInvalida" 
-                                        class="text-red-500 text-xs mt-1">
-                                        <template v-if="Number(String(form.cantidad_aprobada).replace(/,/g, '')) > MAX_CANTIDAD_APROBADA">
-                                            La cantidad aprobada no puede ser mayor a $99,999,999.99.
-                                        </template>
-
-                                        <template v-else-if="Number(String(form.cantidad_aprobada).replace(/,/g, '')) <= 0">
-                                            La cantidad aprobada debe ser mayor a $0.00.
-                                        </template>
-
-                                        <template v-else>
-                                            La cantidad aprobada no tiene un formato válido.
-                                        </template>
-                                    </div>
-                                    <p class="text-[11px] text-gray-400 mt-1">Monto total en moneda nacional (MXN)</p>
-                                </div>
-                            </div>
-
-                            <!-- SECCIÓN RETRÁCTIL DE OBSERVACIONES -->
-                            <div class="mt-6">
-                                <!-- Botón para desplegar / Ocultar (Solo se muestra si está cerrado y no hay texto escrito) -->
-                                <div v-if="!mostrarObservaciones && !form.observaciones">
-                                    <button 
+                                    Editando Datos
+                                </span>
+                                <div v-if="!soloLectura" class="flex flex-wrap items-end gap-2">
+                                    <!-- EDITAR -->
+                                    <button
+                                        v-if="solicitanteSeleccionado && !editandoSolicitante"
                                         type="button"
-                                        @click="mostrarObservaciones = true"
-                                        class="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-color1 dark:text-gray-400 dark:hover:text-color1 transition-colors group"
-                                    >
-                                        <span class="flex items-center justify-center w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-800 group-hover:bg-color1-50 dark:group-hover:bg-gray-700 transition-colors">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                                            </svg>
-                                        </span>
-                                        Añadir observaciones adicionales
+                                        @click="iniciarEdicionSolicitante"
+                                        class="inline-flex items-center gap-1 px-2 py-0 text-xs font-semibold leading-4 text-color1-700 hover:bg-color1-50/50 rounded-full transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                        </svg>
+                                        Editar
+                                    </button>
+                                    <!-- CANCELAR EDICIÓN -->
+                                    <button
+                                        v-if="editandoSolicitante"
+                                        type="button"
+                                        @click="cancelarEdicionSolicitante"
+                                        class="inline-flex items-center gap-1 px-2 py-0 text-xs font-semibold leading-4 text-color1-900 hover:bg-color1-900/5 rounded-full transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+
+                                        Cancelar edición
+                                    </button>
+                                    <!-- LIMPIAR -->
+                                    <button
+                                        v-if="!editandoSolicitante"
+                                        type="button"
+                                        @click="limpiarSolicitante"
+                                        class="inline-flex items-center gap-1 px-2 py-0 text-xs font-semibold leading-4 text-gray-700 hover:bg-gray-100 rounded-full transition-colors">
+                                        <svg class="w-3.5 h-3.5"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor">
+                                            <path stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        Limpiar
                                     </button>
                                 </div>
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                                {{
+                                    soloLectura
+                                        ? 'Consulta los datos generales y de contacto de la persona solicitante.'
+                                        : 'Proporciona los datos de contacto y generales de la persona que realiza la petición.'
+                                }}
+                            </p>
+                        </div>
+                        <!-- Columna derecha: Indicativo de NUEVO (Color Verde) -->
+                        <div v-if="esSolicitanteNuevo && !editandoSolicitante && !solicitanteSeleccionado" class="flex items-center self-start sm:self-auto">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 shadow-sm animate-pulse">
+                                <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                Nuevo Solicitante
+                            </span>
+                        </div>
+                    </div>
+                    <!-- Fila 2: CURP, Nombre y Apellidos (1 Renglón) -->
+                    <div class="relative sm:col-span-9">
+                        <!-- Fila de Inputs (CURP, Nombre, Apellidos) -->
+                        <div class="grid grid-cols-1 gap-6 sm:grid-cols-9 pt-0.5">
+                            <!-- CURP -->
+                            <div class="sm:col-span-2">
+                                <!-- Etiqueta con el contenedor flexible para alinear el título a la izquierda y el check a la derecha -->
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">CURP</label>
+                                    <!-- SVG de Éxito (A un lado del label) -->
+                                    <div v-if="!esCurpInvalida && formBusquedaSolicitante.curp?.length === 18 && !solicitanteBloqueado && !soloLectura" class="flex items-center text-color2-600 dark:text-color2-400">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <!-- Contenedor relativo de los inputs (ya sin el pr-10 forzado porque el icono ya no va dentro) -->
+                                <div class="relative">
+                                    <!-- Input Móvil -->
+                                    <input 
+                                        type="text" 
+                                        v-model="formBusquedaSolicitante.curp" 
+                                        @input="alEscribirCurp"
+                                        @blur="validarCurp"
+                                        :disabled="solicitanteBloqueado || soloLectura"
+                                        maxlength="18"
+                                        placeholder="Ej. ABCD010101..."
+                                        class="block placeholder:text-gray-400 placeholder:opacity-80 dark:placeholder:text-gray-500 w-full sm:hidden placeholder:normal-case rounded-lg border-0 py-2 px-3 text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 focus:ring-2 focus:ring-inset focus:ring-color1 sm:text-sm uppercase custom-native"
+                                        :class="{
+                                            'cursor-not-allowed bg-gray-100 dark:bg-gray-800/70': solicitanteBloqueado || soloLectura,
+                                            'opacity-70': solicitanteBloqueado && !soloLectura,
+                                            'ring-red-500 focus:ring-red-500': esCurpInvalida,
+                                        }"
+                                        style="border-radius: 9999px!important"/>
 
-                                <!-- Contenedor desplegable del Textarea de Observaciones -->
-                                <div v-show="mostrarObservaciones || form.observaciones" class="transition-all duration-300 ease-in-out">
-                                    <div class="flex justify-between items-center mb-1.5">
-                                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">
-                                            Observaciones
-                                        </label>
-                                        <!-- Botón sutil para cerrar/ocultar si el usuario se arrepiente y el campo está vacío -->
-                                        <button 
-                                            v-if="!form.observaciones"
-                                            type="button" 
-                                            @click="mostrarObservaciones = false"
-                                            class="text-[11px] text-gray-400 hover:text-red-500 transition-colors">
-                                            Ocultar campo
-                                        </button>
-                                    </div>
-                                    
-                                    <textarea 
-                                        v-model="form.observaciones" 
-                                        rows="2" 
-                                        maxlength="255"
-                                        placeholder="Escribe alguna nota aclaratoria u observación relevante..."
-                                        class="block w-full rounded-xl border-0 py-2 px-3 text-gray-900 dark:text-white 
-                                        bg-gray-50 dark:bg-gray-800 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 
-                                        focus:ring-2 focus:ring-inset focus:ring-color1 sm:text-sm uppercase
-                                        placeholder:text-gray-400 dark:placeholder:text-gray-500"
-                                    ></textarea>
-                                    
-                                    <div class="flex justify-between items-center mt-1">
-                                        <div v-if="form.errors.observaciones" class="text-red-500 text-xs">{{ form.errors.observaciones }}</div>
-                                        <span class="text-[10px] text-gray-400 ml-auto">{{ form.observaciones ? form.observaciones.length : 0 }}/255</span>
-                                    </div>
+                                    <!-- Input para Escritorio y Tablets -->
+                                    <input
+                                        type="text"
+                                        v-model="formBusquedaSolicitante.curp"
+                                        @input="alEscribirCurp"
+                                        @blur="validarCurp"
+                                        :disabled="solicitanteBloqueado || soloLectura"
+                                        tabindex="-1"
+                                        maxlength="18"
+                                        :placeholder="solicitanteSeleccionado && !editandoSolicitante ? '' : 'Ej. ABCD010101HMC1111'"
+                                        class="hidden custom-native sm:block placeholder:text-gray-400 placeholder:opacity-80 dark:placeholder:text-gray-500 placeholder:normal-case rounded-lg border-0 py-2 px-3 text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 shadow-sm dark:ring-gray-700 focus:ring-2 focus:ring-inset focus:ring-color1 sm:text-sm uppercase w-full"
+                                        :class="{
+                                            'cursor-not-allowed bg-gray-100 dark:bg-gray-800/70 caret-transparent select-none': solicitanteBloqueado || soloLectura,
+                                            'opacity-70': solicitanteBloqueado && !soloLectura,
+                                            'ring-red-500 focus:ring-red-500': esCurpInvalida,
+                                        }"
+                                        style="border-radius: 16px!important"/>
+                                </div>                                
+                                <div v-if="!form.errors.solicitante_curp && esCurpInvalida" class="text-red-500 text-xs mt-1">
+                                    La estructura de la CURP no es válida.
+                                </div>
+                                <span v-if="solicitanteBloqueado && !formBusquedaSolicitante.curp" class="text-xs text-gray-400 dark:text-gray-500 italic mt-1 block">
+                                    Sin CURP registrada
+                                </span>
+                                <!-- Mensaje de Error del Backend -->
+                                <div v-if="form.errors.solicitante_curp" class="text-red-500 text-xs mt-1">
+                                    {{ form.errors.solicitante_curp }}
+                                </div>
+                            </div>
+                            <!-- Nombre(s) -->
+                            <div class="sm:col-span-3">
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5">Nombre *</label>
+                                <input 
+                                    type="text" 
+                                    v-model="formBusquedaSolicitante.nombre" 
+                                    @input="buscarSolicitante"
+                                    :disabled="solicitanteBloqueado || soloLectura"
+                                    maxlength="35"
+                                    placeholder="Ej. JUAN"
+                                    class="block custom-native placeholder:text-gray-400 placeholder:opacity-80 dark:placeholder:text-gray-500 w-full placeholder:normal-case rounded-lg border-0 py-2 px-3 text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 shadow-sm dark:ring-gray-700 focus:ring-2 focus:ring-inset focus:ring-color1 sm:text-sm uppercase",
+                                    :class="{
+                                            'cursor-not-allowed bg-gray-100 dark:bg-gray-800/70 caret-transparent select-none': solicitanteBloqueado || soloLectura,
+                                            'opacity-70': solicitanteBloqueado && !soloLectura,
+                                            'ring-red-500 focus:ring-red-500': esCurpInvalida,
+                                        }"
+                                    style="border-radius: 16px!important"
+                                />
+                                <div v-if="form.errors.solicitante_nombre" class="text-red-500 text-xs mt-1">{{ form.errors.solicitante_nombre }}</div>
+                            </div>
+
+                            <!-- Apellidos -->
+                            <div class="sm:col-span-4">
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5">Apellido(s) *</label>
+                                <input 
+                                    type="text" 
+                                    v-model="formBusquedaSolicitante.apellidos" 
+                                    @input="buscarSolicitante"
+                                    :disabled="solicitanteBloqueado || soloLectura"
+                                    maxlength="60"
+                                    placeholder="Ej. PÉREZ"
+                                    class="block custom-native placeholder:text-gray-400 placeholder:opacity-80 dark:placeholder:text-gray-500 w-full placeholder:normal-case rounded-lg border-0 py-2 px-3 text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 shadow-sm dark:ring-gray-700 focus:ring-2 focus:ring-inset focus:ring-color1 sm:text-sm uppercase"
+                                    :class="{
+                                        'cursor-not-allowed bg-gray-100 dark:bg-gray-800/70 caret-transparent select-none': solicitanteBloqueado || soloLectura,
+                                        'opacity-70': solicitanteBloqueado && !soloLectura,
+                                        'ring-red-500 focus:ring-red-500': esCurpInvalida,
+                                    }"
+                                    style="border-radius: 16px!important"/>
+                                <div v-if="form.errors.solicitante_apellidos" class="text-red-500 text-xs mt-1">{{ form.errors.solicitante_apellidos }}</div>
+                            </div>
+                        </div>
+
+                        <!-- Panel Flotante de Sugerencias de Búsqueda -->
+                        <div 
+                            v-if="mostrarResultadosSolicitante && (cargandoSolicitantes || resultadosBusquedaSolicitante.length > 0)" 
+                            class="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 max-h-60 overflow-y-auto transition-opacity duration-200"
+                            :class="{ 'opacity-80 pointer-events-none': cargandoSolicitantes }">
+                            <!-- 1. ESTADO DE CARGA (Spinner) -->
+                            <div v-if="cargandoSolicitantes" class="p-6 text-center flex items-center justify-center gap-2 text-gray-500 dark:text-gray-400 text-xs">
+                                <svg class="animate-spin h-4 w-4 text-color1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span>Buscando solicitantes...</span>
+                            </div>
+
+                            <!-- 2. RESULTADOS ENCONTRADOS -->
+                            <template v-else-if="resultadosBusquedaSolicitante.length > 0">
+                                <div class="p-2.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase border-b border-gray-100 dark:border-gray-700 flex items-center justify-between gap-2 bg-gray-50 dark:bg-gray-800">
+                                    <span class="truncate">
+                                        <span v-if="resultadosBusquedaSolicitante.length > 1">
+                                            {{ resultadosBusquedaSolicitante.length }} solicitantes encontrados
+                                        </span>
+                                        <span v-else>
+                                            1 solicitante encontrado
+                                        </span>
+                                    </span>
+                                    <button 
+                                        type="button" 
+                                        @click="cerrarResultadosSolicitante"
+                                        class="inline-flex items-center gap-1 text-[11px] text-gray-400 hover:text-color1-600 dark:hover:text-color1-400 bg-white dark:bg-gray-700 px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-600 transition-colors normal-case font-normal"
+                                        title="Cerrar lista">
+                                        <span>Cerrar</span>
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <ul>
+                                    <li 
+                                        v-for="s in resultadosBusquedaSolicitante" 
+                                        :key="s.id"
+                                        @click="seleccionarSolicitante(s)"
+                                        class="px-3 sm:px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer text-xs text-gray-700 dark:text-gray-200 border-b border-gray-50 dark:border-gray-700/50 last:border-none flex justify-between items-center gap-2 sm:gap-4">                                        
+                                        <div class="space-y-1 min-w-0 flex-1">
+                                            <div class="font-bold text-gray-900 dark:text-white uppercase text-sm truncate">
+                                                {{ s.nombre }} {{ s.apellidos }}
+                                            </div>                                            
+                                            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-gray-500 dark:text-gray-400 text-xs min-w-0">                                                
+                                                <!-- CURP -->
+                                                <span class="inline-flex items-center gap-1 min-w-0">
+                                                    <svg class="w-3.5 h-3.5 text-color1 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                                                    </svg>
+                                                    <strong class="text-gray-700 dark:text-gray-300 font-medium truncate">{{ s.curp || 'S/N' }}</strong>
+                                                </span>
+                                                <!-- TELÉFONO -->
+                                                <span class="inline-flex items-center gap-1 min-w-0">
+                                                    <svg class="w-3.5 h-3.5 text-color1 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                                    </svg>
+                                                    <strong class="text-gray-700 dark:text-gray-300 font-medium truncate">{{ s.numero_telefonico || 'S/N' }}</strong>
+                                                </span>
+                                                <!-- LOCALIDAD -->
+                                                <span class="inline-flex items-center gap-1 min-w-0">
+                                                    <svg class="w-3.5 h-3.5 text-color1 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    </svg>
+                                                    <strong class="text-gray-700 dark:text-gray-300 font-medium truncate uppercase">{{ s.localidad?.nombre || 'S/N' }}</strong>
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="hidden sm:block shrink-0">
+                                            <span class="text-[10px] bg-color1-50 text-color1 px-2.5 py-1.5 rounded-full font-medium uppercase">
+                                                Seleccionar
+                                            </span>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </template>
+                        </div>
+                    </div>
+                    <!-- Fila 3: Teléfono y Localidad (Siguiente Renglón) -->
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-9 pt-4 mt-2 dark:border-gray-800">                        
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5">
+                                Núm. Telefónico
+                            </label>
+                            <input 
+                                type="text" 
+                                v-model="formBusquedaSolicitante.numero_telefonico" 
+                                @input="formatearTelefono; telefonoValidado = false"
+                                @blur="validarTelefono"
+                                :disabled="solicitanteBloqueado || soloLectura"
+                                @paste="handlePasteTelefono"
+                                maxlength="10"
+                                :placeholder="solicitanteSeleccionado && !editandoSolicitante ? '' : 'Ej. 6690000000'"
+                                class="block custom-native placeholder:text-gray-400 placeholder:opacity-80 dark:placeholder:text-gray-500 w-full placeholder:normal-case rounded-lg border-0 py-2 px-3 text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 shadow-sm dark:ring-gray-700 focus:ring-2 focus:ring-inset focus:ring-color1 sm:text-sm"
+                                :class="{
+                                    'cursor-not-allowed bg-gray-100 dark:bg-gray-800/70 caret-transparent select-none': solicitanteBloqueado || soloLectura,
+                                    'opacity-70': solicitanteBloqueado && !soloLectura,
+                                    'ring-red-500 focus:ring-red-500': esCurpInvalida,
+                                }"
+                                style="border-radius: 16px!important"/>
+                            <div 
+                                v-if="esTelefonoInvalido" class="text-red-500 text-xs mt-1">
+                                El núm. telefónico debe tener 10 dígitos.
+                            </div>
+                            <span v-if="solicitanteBloqueado && !formBusquedaSolicitante.numero_telefonico" class="text-xs text-gray-400 dark:text-gray-500 italic mt-1 block">
+                                    Sin número registrado
+                            </span>
+                            <div 
+                                v-if="form.errors.solicitante_numero_telefonico" 
+                                class="text-red-500 text-xs mt-1">
+                                {{ form.errors.solicitante_numero_telefonico }}
+                            </div>
+                        </div>
+                        <div class="sm:col-span-3">
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5">
+                                Localidad *  
+                            </label>             
+                            <el-select
+                                v-model="formBusquedaSolicitante.id_localidad"
+                                placeholder="Selecciona una localidad..."
+                                class="custom-select-gray w-full"
+                                :class="{
+                                    'el-select-bloqueado': solicitanteBloqueado || soloLectura,
+                                    'el-select-bloqueado-gris': solicitanteBloqueado
+                                }"
+                                @mousedown="(e) => { if (solicitanteBloqueado) e.preventDefault(); }"
+                                @change="solicitanteBloqueado ? null : actualizarLocalidad($event)"
+                                style="border-radius: 16px !important;">
+                                <el-option
+                                    v-for="localidad in localidadesList"
+                                    :key="localidad.id"
+                                    :label="localidad.nombre"
+                                    :value="localidad.id"/>
+                            </el-select>
+                            <div
+                                v-if="form.errors.id_solicitante_localidad"
+                                class="text-red-500 text-xs mt-1">
+                                {{ form.errors.id_solicitante_localidad }}
+                            </div>
+                        </div>
+                       <div class="sm:col-span-4">
+                            <div class="flex items-center justify-between">
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">
+                                    Localidad Beneficiada *
+                                </label>                                
+                                <label v-if="!soloLectura" class="inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 cursor-pointer select-none">
+                                    <input type="checkbox" v-model="mismaLocalidad" @change="sincronizarLocalidades" 
+                                        class="rounded border-gray-300 text-color1-900 focus:ring-1 focus:ring-color1-800 w-3.5 h-3.5">
+                                    <span>Misma que el solicitante</span>
+                                </label>
+                            </div>
+                            <div v-if="!mismaLocalidad || soloLectura" class="transition-all duration-200">
+                                <el-select
+                                    v-model="formBusquedaSolicitante.id_localidad_beneficiada"
+                                    placeholder="Selecciona una localidad..."
+                                    class="custom-select-gray w-full mt-1.5"
+                                    :class="{
+                                        'el-select-bloqueado': soloLectura,
+                                    }"
+                                    @mousedown="(e) => { if (solicitanteBloqueado) e.preventDefault(); }"
+                                    @change="solicitanteBloqueado ? null : actualizarLocalidad($event)"
+                                    style="border-radius: 16px !important;">
+                                    <el-option
+                                        v-for="localidad in localidadesList"
+                                        :key="localidad.id"
+                                        :label="localidad.nombre"
+                                        :value="localidad.id"/>
+                                </el-select>
+                                <div v-if="form.errors.id_solicitante_localidad" class="text-red-500 text-xs mt-1">
+                                    {{ form.errors.id_solicitante_localidad }}
+                                </div>
+                            </div>
+
+                            <div v-else class="mt-1.5 flex items-center gap-3 px-3.5 py-1 rounded-[16px] bg-gray-100/80 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/60 select-none">
+                                <div class="w-6 h-6 rounded-lg bg-gray-200 dark:bg-gray-700/80 border border-gray-200/80 dark:border-gray-600 flex items-center justify-center shrink-0 shadow-2xs">
+                                    <svg class="w-3.5 h-3.5 text-gray-600 dark:text-color2-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                                    </svg>
+                                </div>
+                                <div class="text-xs leading-tight">
+                                    <p class="font-semibold text-gray-700 dark:text-gray-200">Localidad vinculada al solicitante.</p>
+                                    <p class="text-[11px] text-gray-500 dark:text-gray-400">Se utilizará automáticamente la misma localidad.</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="mt-6 pt-0 border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-                    <!-- Lado Izquierdo: Estado textual limpio -->
-                    <div class="flex items-center gap-2.5 px-3.5 py-2 rounded-lg text-sm transition-colors bg-gray-100 dark:bg-gray-800 border"
+                <!-- Sección: Detalle de la Petición y Asignación -->
+                <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                    <!-- Encabezado de la sección -->
+                    <div class="mb-4">
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-gray-900 dark:text-white flex items-center gap-2">
+                            <svg class="w-4 h-4 text-color1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Detalles de la Petición y Asignación
+                        </h3>
+                       <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                            {{
+                                soloLectura
+                                    ? 'Descripción de la petición ciudadana y detalle de los recursos o montos autorizados.'
+                                    : 'Especifica la descripción de la solicitud ciudadana y el monto o recurso autorizado.'
+                            }}
+                        </p>
+                    </div>
+
+                    <!-- Contenido (Textarea + Cantidad Aprobada) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-[minmax(0,2fr)_minmax(220px,1fr)] gap-5 pt-2 items-stretch">
+                        <!-- Petición (Textarea extendido) -->
+                        <div class="flex flex-col gap-2 min-w-0">
+                            <div class="sm:col-span-2">
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5">Petición / Descripción detallada *</label>
+                                <textarea 
+                                    v-model="form.peticion" 
+                                    rows="5"
+                                    maxlength="255"
+                                    placeholder="ESCRIBE LA PETICIÓN..."
+                                    :disabled="soloLectura"
+                                    :class="{
+                                    'bg-gray-100 dark:bg-gray-800/70 caret-transparent select-none': soloLectura,
+                                    }"
+                                    class="block disabled:cursor-not-allowed placeholder:text-gray-400 placeholder:opacity-80 dark:placeholder:text-gray-500 w-full rounded-xl border-0 py-2 px-3 text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 focus:ring-2 focus:ring-inset focus:ring-color1 sm:text-sm uppercase">
+                                </textarea>
+                                    <div class="flex justify-between items-center mt-1">
+                                    <div v-if="form.errors.peticion" class="text-red-500 text-xs">{{ form.errors.peticion }}</div>
+                                    <span v-if="!soloLectura" class="text-[10px] text-gray-400 ml-auto">{{ form.peticion ? form.peticion.length : 0 }}/255</span>
+                                </div>
+                            </div>      
+                        </div>
+                        <div class="flex flex-col min-w-0">
+                            <div class="mb-3">
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5">
+                                    Tipo de Apoyo
+                                </label>
+                                <div
+                                    v-if="soloLectura"
+                                    class="flex border border-gray-300 items-center gap-2.5 h-9 px-3 rounded-3xl cursor-not-allowed mb-2">
+                                    <svg
+                                        v-if="Number(form.id_tipo_apoyo) === 1"
+                                        class="w-4 h-4 text-color2-600 dark:text-color2-400 shrink-0"
+                                        viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="2" y="6" width="20" height="12" rx="2"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                        <path d="M6 12h.01M18 12h.01"/>
+                                    </svg>
+                                    <svg
+                                        v-else
+                                        class="w-4 h-4 text-color4-600 dark:text-color4-400 shrink-0"
+                                        viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                                        <path d="m3.3 7 8.7 5 8.7-5"/>
+                                        <path d="M12 22V12"/>
+                                    </svg>
+                                    <span
+                                        class="text-[14px] font-bold uppercase tracking-wide"
+                                        :class="Number(form.id_tipo_apoyo) === 1
+                                            ? 'text-color2-700 dark:text-color2-300'
+                                            : 'text-color4-700 dark:text-color4-300'">
+                                        {{ Number(form.id_tipo_apoyo) === 1 ? 'Efectivo' : 'En especie' }}
+                                    </span>
+                                </div>
+                                <div v-else class="inline-flex w-full mb-0 p-1 rounded-3xl bg-gray-100 dark:bg-gray-800 text-[12px] font-medium"
+                                    :class="{ 'opacity-75 cursor-not-allowed': soloLectura }">
+                                    <button
+                                        type="button"
+                                        @click="!soloLectura && (form.id_tipo_apoyo = 1)"
+                                        :disabled="soloLectura"
+                                        class="flex-1 flex items-center justify-center gap-2 h-9 px-3 rounded-2xl transition-all duration-200"
+                                        :class="Number(form.id_tipo_apoyo) === 1
+                                            ? 'bg-color2-50 dark:bg-color2-950/60 text-color2-800 dark:text-color2-300 font-bold ring-1 ring-color2-500/20'
+                                            : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'">
+                                        
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="2" y="6" width="20" height="12" rx="2"/>
+                                            <circle cx="12" cy="12" r="3"/>
+                                            <path d="M6 12h.01M18 12h.01"/>
+                                        </svg>
+                                        <span class="uppercase tracking-wide truncate">Efectivo</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        @click="!soloLectura && (form.id_tipo_apoyo = 2)"
+                                        :disabled="soloLectura"
+                                        class="flex-1 flex items-center justify-center gap-2 h-9 px-3 rounded-2xl transition-all duration-200"
+                                        :class="Number(form.id_tipo_apoyo) === 2
+                                            ? 'bg-color4-50 dark:bg-color4-950/60 text-color4-800 dark:text-color4-300 font-bold ring-1 ring-color4-500/20'
+                                            : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'">
+                                        
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                                            <path d="m3.3 7 8.7 5 8.7-5"/>
+                                            <path d="M12 22V12"/>
+                                        </svg>
+                                        <span class="uppercase tracking-wide truncate">En especie</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5">Cantidad Aprobada</label>
+                                <div class="relative rounded-lg shadow-sm">
+                                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                        <span class="sm:text-sm"
+                                          :class="{
+
+                                                'text-color2-800 font-bold':
+                                                    soloLectura && Number(form.id_tipo_apoyo) === 1,
+
+                                                'text-color4-800 font-bold':
+                                                    soloLectura && Number(form.id_tipo_apoyo) === 2,
+
+                                            }">$</span>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        inputmode="decimal"
+                                        :value="form.cantidad_aprobada"
+                                        :disabled="soloLectura"
+                                        @input="formatearCantidadAprobada"
+                                        @blur="validarCantidadAprobada"
+                                        placeholder="0.00"
+                                        class="block disabled:cursor-not-allowed custom-native w-full rounded-lg border-0  pl-7 pr-3 dark:text-white bg-gray-50 dark:bg-gray-800 shadow-sm dark:ring-gray-700 focus:ring-2 focus:ring-inset focus:ring-color1"
+                                        :class="{
+                                                'ring-red-500 focus:ring-red-500': esCantidadAprobadaInvalida && !soloLectura,
+
+                                                'font-bold text-[16px] py-1.5': soloLectura,
+
+                                                'sm:text-sm py-2' : !soloLectura,
+
+                                                'bg-color2-50 dark:bg-color2-950/40 text-color2-800 dark:text-color2-200 ring-1 ring-inset ring-color2-300 dark:ring-color2-700 caret-transparent select-none':
+                                                    soloLectura && Number(form.id_tipo_apoyo) === 1,
+
+                                                'bg-color4-50 dark:bg-color4-950/40 text-color4-800 dark:text-color4-200 ring-1 ring-inset ring-color4-300 dark:ring-color4-700 caret-transparent select-none':
+                                                    soloLectura && Number(form.id_tipo_apoyo) === 2,
+
+                                                'bg-gray-100 dark:bg-gray-800/70 caret-transparent select-none':
+                                                    soloLectura && ![1, 2].includes(Number(form.id_tipo_apoyo)),
+                                            }"
+                                        style="border-radius: 16px!important"/>
+                                </div>
+                                <div v-if="form.errors.cantidad_aprobada" class="text-red-500 text-xs mt-1">{{ form.errors.cantidad_aprobada }}</div>
+                                <div 
+                                    v-if="esCantidadAprobadaInvalida" 
+                                    class="text-red-500 text-xs mt-1">
+                                    <template v-if="Number(String(form.cantidad_aprobada).replace(/,/g, '')) > MAX_CANTIDAD_APROBADA">
+                                        La cantidad no puede ser mayor a $99,999,999.99.
+                                    </template>
+
+                                    <template v-else-if="Number(String(form.cantidad_aprobada).replace(/,/g, '')) <= 0">
+                                        La cantidad debe ser mayor a $0.00.
+                                    </template>
+
+                                    <template v-else>
+                                        La cantidad no tiene un formato válido.
+                                    </template>
+                                </div>
+                                <p v-if="!soloLectura" class="text-[11px] text-gray-400 mt-1">Monto total en moneda nacional (MXN)</p>
+                            </div>
+                        </div>  
+                    </div>
+
+                    <!-- SECCIÓN RETRÁCTIL DE OBSERVACIONES -->
+                    <div class="mt-6">
+                        <!-- Botón para desplegar / Ocultar (Solo se muestra si está cerrado y no hay texto escrito) -->
+                        <div v-if="!mostrarObservaciones && !form.observaciones && !soloLectura">
+                            <button 
+                                type="button"
+                                @click="mostrarObservaciones = true"
+                                class="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-color1 dark:text-gray-400 dark:hover:text-color1 transition-colors group">
+                                <span class="flex items-center justify-center w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-800 group-hover:bg-color1-50 dark:group-hover:bg-gray-700 transition-colors">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                </span>
+                                Añadir observaciones adicionales  {{ soloLectura }}
+                            </button>
+                        </div>
+
+                        <!-- Contenedor desplegable del Textarea de Observaciones -->
+                        <div v-show="mostrarObservaciones || form.observaciones" class="transition-all duration-300 ease-in-out">
+                            <div class="flex justify-between items-center mb-1.5">
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">
+                                    Observaciones
+                                </label>
+                                <!-- Botón sutil para cerrar/ocultar si el usuario se arrepiente y el campo está vacío -->
+                                <button 
+                                    v-if="!form.observaciones"
+                                    type="button" 
+                                    @click="mostrarObservaciones = false"
+                                    class="text-[11px] text-gray-400 hover:text-red-500 transition-colors">
+                                    Ocultar campo
+                                </button>
+                            </div>
+                            
+                            <textarea 
+                                v-model="form.observaciones" 
+                                rows="2" 
+                                maxlength="255"
+                                :disabled="soloLectura"
+                                :class="{
+                                'bg-gray-100 dark:bg-gray-800/70 caret-transparent select-none': soloLectura,
+                                }"
+                                placeholder="Escribe alguna nota aclaratoria u observación relevante..."
+                                class="block disabled:cursor-not-allowed w-full rounded-xl border-0 py-2 px-3 text-gray-900 dark:text-white 
+                                bg-gray-50 dark:bg-gray-800 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 
+                                focus:ring-2 focus:ring-inset focus:ring-color1 sm:text-sm uppercase
+                                placeholder:text-gray-400 dark:placeholder:text-gray-500"></textarea>
+                            
+                            <div class="flex justify-between items-center mt-1">
+                                <div v-if="form.errors.observaciones" class="text-red-500 text-xs">{{ form.errors.observaciones }}</div>
+                                <span v-if="!soloLectura" class="text-[10px] text-gray-400 ml-auto">{{ form.observaciones ? form.observaciones.length : 0 }}/255</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-6 pt-0 border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">    
+            <!-- Texto combinado (Muestra faltantes y errores de forma simultánea si ambos aplican) -->
+            <div v-if="!soloLectura" class="flex items-center">
+                <span class="font-medium text-gray-700 dark:text-gray-300">
+                    <div class="flex items-center gap-3 px-4 py-2 rounded-xl text-xs sm:text-sm transition-all border shadow-2xs backdrop-blur-xs"
                         :class="{
-                            'border-red-200 dark:border-red-900/50': esCurpInvalida || esTelefonoInvalido || (form.fecha && !fechaValida) || esCantidadAprobadaInvalida || Object.keys(form.errors).length > 0,
-                            'border-amber-200 dark:border-amber-900/50': (esCurpInvalida || esTelefonoInvalido || (form.fecha && !fechaValida) || esCantidadAprobadaInvalida || Object.keys(form.errors).length > 0) && estaIncompleto,
-                            'border-emerald-200 dark:border-emerald-900/50': !estaIncompleto && !esCurpInvalida && !esCurpInvalida && !esTelefonoInvalido && !(form.fecha && !fechaValida) && !esCantidadAprobadaInvalida && Object.keys(form.errors).length === 0
+                            // Fondo y borde dinámico según la prioridad (Rojo > Ámbar > Esmeralda)
+                            'bg-red-50/60 dark:bg-red-950/20 border-red-200/80 dark:border-red-900/40 text-red-900 dark:text-red-200': esCurpInvalida || esTelefonoInvalido || (form.fecha && !fechaValida) || esCantidadAprobadaInvalida || Object.keys(form.errors).length > 0,
+                            'bg-amber-50/60 dark:bg-amber-950/20 border-amber-200/80 dark:border-amber-900/40 text-amber-900 dark:text-amber-200': ((esCurpInvalida || esTelefonoInvalido || (form.fecha && !fechaValida) || esCantidadAprobadaInvalida || Object.keys(form.errors).length > 0) && estaIncompleto) || (estaIncompleto && !(esCurpInvalida || esTelefonoInvalido || (form.fecha && !fechaValida) || esCantidadAprobadaInvalida || Object.keys(form.errors).length > 0)),
+                            'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200/80 dark:border-emerald-900/40 text-emerald-900 dark:text-emerald-200': !estaIncompleto && !esCurpInvalida && !esTelefonoInvalido && !(form.fecha && !fechaValida) && !esCantidadAprobadaInvalida && Object.keys(form.errors).length === 0
                         }">
                         
-                        <!-- Ícono dinámico -->
-                        <svg v-if="esCurpInvalida || esTelefonoInvalido || (form.fecha && !fechaValida) || esCantidadAprobadaInvalida || Object.keys(form.errors).length > 0" class="w-5 h-5 text-red-600 dark:text-red-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        <svg v-else-if="estaIncompleto" class="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <svg v-else class="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
+                        <!-- Contenedor del ícono dinámico -->
+                        <div class="shrink-0 flex items-center justify-center w-6 h-6 rounded-lg"
+                            :class="{
+                                'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400': esCurpInvalida || esTelefonoInvalido || (form.fecha && !fechaValida) || esCantidadAprobadaInvalida || Object.keys(form.errors).length > 0,
+                                'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400': ((esCurpInvalida || esTelefonoInvalido || (form.fecha && !fechaValida) || esCantidadAprobadaInvalida || Object.keys(form.errors).length > 0) && estaIncompleto) || (estaIncompleto && !(esCurpInvalida || esTelefonoInvalido || (form.fecha && !fechaValida) || esCantidadAprobadaInvalida || Object.keys(form.errors).length > 0)),
+                                'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400': !estaIncompleto && !esCurpInvalida && !esTelefonoInvalido && !(form.fecha && !fechaValida) && !esCantidadAprobadaInvalida && Object.keys(form.errors).length === 0
+                            }">
+                            <!-- Íconos -->
+                            <svg v-if="esCurpInvalida || esTelefonoInvalido || (form.fecha && !fechaValida) || esCantidadAprobadaInvalida || Object.keys(form.errors).length > 0" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <svg v-else-if="estaIncompleto" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <svg v-else class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
 
-                        <!-- Texto combinado (Muestra faltantes y errores de forma simultánea si ambos aplican) -->
-                        <span class="font-medium text-gray-700 dark:text-gray-300">
-                            <!-- Caso A: Faltan datos Y ADEMÁS hay errores -->
-                            <template v-if="estaIncompleto && (esCurpInvalida || esTelefonoInvalido || (form.fecha && !fechaValida) || esCantidadAprobadaInvalida || Object.keys(form.errors).length > 0 || (form.fecha && !fechaValida))">
-
-                                <span class="text-amber-600 dark:text-amber-400">
-                                    {{ camposFaltantes.length === 1 ? 'Falta 1 dato obligatorio por capturar' : `Faltan ${camposFaltantes.length} datos obligatorios por capturar` }}
+                        <!-- Textos internos (Tus casos A, B, C, D) -->
+                        <div class="text-xs sm:text-sm leading-relaxed">
+                            <!-- Caso A -->
+                            <template v-if="estaIncompleto && (esCurpInvalida || esTelefonoInvalido || (form.fecha && !fechaValida) || esCantidadAprobadaInvalida || Object.keys(form.errors).length > 0)">
+                                <span class="font-semibold text-amber-700 dark:text-amber-300">
+                                    {{ camposFaltantes.length === 1 ? 'Falta 1 dato' : `Faltan ${camposFaltantes.length} datos` }}
                                 </span>
-                                y
-                                <span class="text-red-600 dark:text-red-400 font-semibold">
-                                    {{ cantidadErrores === 1
-                                        ? 'hay 1 error por corregir.'
-                                        : `hay ${cantidadErrores} errores por corregir.` }}
+                                <span class="text-gray-500 dark:text-gray-400"> y </span>
+                                <span class="font-semibold text-red-700 dark:text-red-300">
+                                    {{ cantidadErrores === 1 ? 'hay 1 error.' : `hay ${cantidadErrores} errores.` }}
                                 </span>
                             </template>
 
-                            <!-- Caso B: Solo hay errores -->
-                            <template v-else-if="esTelefonoInvalido || (form.fecha && !fechaValida) || esCantidadAprobadaInvalida || Object.keys(form.errors).length > 0 || (form.fecha && !fechaValida)">
-                                <span class="text-red-600 dark:text-red-400 font-semibold">
-                                    Atención:
-                                </span>
-
-                                {{ cantidadErrores === 1
-                                    ? 'Hay 1 error que corregir.'
-                                    : `Hay ${cantidadErrores} errores que corregir.` }}
-
+                            <!-- Caso B -->
+                            <template v-else-if="esTelefonoInvalido || (form.fecha && !fechaValida) || esCantidadAprobadaInvalida || Object.keys(form.errors).length > 0">
+                                <span class="font-semibold text-red-700 dark:text-red-300">Atención:</span>
+                                {{ cantidadErrores === 1 ? 'Hay 1 error que corregir.' : `Hay ${cantidadErrores} errores que corregir.` }}
                             </template>
 
-                            <!-- Caso C: Solo faltan datos -->
+                            <!-- Caso C -->
                             <template v-else-if="estaIncompleto">
                                 {{ camposFaltantes.length === 1 ? 'Falta' : 'Faltan' }}
-
-                                <strong class="text-amber-600 dark:text-amber-400 font-semibold">
-                                    {{ camposFaltantes.length }}
-                                    {{ camposFaltantes.length === 1 ? 'dato obligatorio' : 'datos obligatorios' }}
+                                <strong class="font-semibold text-amber-700 dark:text-amber-300">
+                                    {{ camposFaltantes.length }} {{ camposFaltantes.length === 1 ? 'campo obligatorio' : 'campos obligatorios' }}
                                 </strong>
                                 por capturar.
                             </template>
 
-                            <!-- Caso D: Todo correcto -->
+                            <!-- Caso D -->
                             <template v-else>
-                                <span class="text-emerald-600 dark:text-emerald-400 font-semibold">
-                                    Listo:
-                                </span>
-                               Puedes {{ nuevaSolicitud ? 'guadar': 'actualizar' }} la solicitud.
+                                <span class="font-semibold text-emerald-700 dark:text-emerald-300">Listo:</span>
+                                Puedes {{ nuevaSolicitud ? 'guardar' : 'actualizar' }} la solicitud.
                             </template>
-                        </span>
+                        </div>
                     </div>
-
-                    <!-- Lado Derecho: Botones de Acción -->
+                </span>
+            </div>
+            <div v-else class="hidden sm:block"> </div>
+            <!-- Lado Derecho: Botones de Acción -->
+            <div class="flex items-center justify-end w-full sm:w-auto">
+                <!-- Si es soloLectura -->
+                <template v-if="soloLectura">
+                    <!-- Izquierda: Cerrar la ventana modal/aside -->
+                    <button v-if = "!isPage"
+                        type="button"
+                        @click="$emit('close')"
+                        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white bg-transparent transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        <span>Cerrar ventana</span>
+                    </button>
+                </template>
+                <template v-else>
                     <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-3">
-                        <!-- Botón Limpiar -->
+                        <!-- Botón Limpiar -->           
                         <button
                             v-if="nuevaSolicitud" 
                             type="button"
                             @click="confirmarLimpiarFormulario"
                             class="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-full shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition text-center">
                             Limpiar Formulario
-                        </button>
-
+                        </button>        
                         <button
                             v-if="!nuevaSolicitud && isPage"
                             @click="abrirNuevaSolicitud"
                             type="button"
                             class="inline-flex items-center justify-center gap-2
-                                    rounded-full bg-color1-800 hover:bg-color1-700
+                                    rounded-full bg-gray-500 hover:bg-gray-600
                                     text-white text-sm font-semibold px-4 py-2.5
-                                    shadow-lg transition-colors
+                                    transition-colors
                                     focus:outline-none focus:ring-2
-                                    focus:ring-color1-500 focus:ring-offset-2
+                                    focus:ring-gray-500 focus:ring-offset-2
                                     w-full sm:w-auto">
 
                             <svg class="w-4 h-4" fill="none" stroke="currentColor"
@@ -2091,9 +2308,8 @@ import Swal from 'sweetalert2'; // Asegúrate de tenerlo importado si es necesar
                                         stroke-width="2"
                                         d="M12 4v16m8-8H4" />
                             </svg>
-
                             Nueva Solicitud
-                        </button>
+                        </button>                          
 
                         <!-- Botón Guardar con Tooltip / Popover integrado al hacer hover si está incompleto -->
                         <div class="relative group">
@@ -2152,15 +2368,13 @@ import Swal from 'sweetalert2'; // Asegúrate de tenerlo importado si es necesar
 
                             <!-- Botón de Envío -->
                             <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
-
                                 <!-- Botón 1: Guardar y Continuar (Solo si es nueva solicitud) -->
                                 <button 
                                     v-if="nuevaSolicitud"
                                     type="button"
                                     @click.prevent="handleSubmit(true, false)"
                                     :disabled="enviando || form.processing || (form.fecha && !fechaValida) || estaIncompleto || form.hasErrors || esCurpInvalida || esTelefonoInvalido || esCantidadAprobadaInvalida"
-                                    class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 text-sm font-semibold text-white bg-color2-700 hover:bg-color2-800 rounded-full shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed text-center"
-                                >
+                                    class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 text-sm font-semibold text-white bg-color2-700 hover:bg-color2-800 rounded-full shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed text-center">
                                     Guardar y Continuar
                                 </button>
 
@@ -2170,8 +2384,7 @@ import Swal from 'sweetalert2'; // Asegúrate de tenerlo importado si es necesar
                                     type="button"
                                     @click.prevent="handleSubmit(false, false)" 
                                     :disabled="enviando || form.processing || (form.fecha && !fechaValida) || estaIncompleto || form.hasErrors || esCurpInvalida || esTelefonoInvalido || esCantidadAprobadaInvalida"
-                                    class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 text-sm font-semibold text-white bg-color1-700 hover:bg-color1-800 rounded-full shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed text-center"
-                                >
+                                    class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 text-sm font-semibold text-white bg-color1-700 hover:bg-color1-800 rounded-full shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed text-center">
                                     Guardar y Salir
                                 </button>
                                 <button
@@ -2179,14 +2392,15 @@ import Swal from 'sweetalert2'; // Asegúrate de tenerlo importado si es necesar
                                     type="button"
                                     @click.prevent="handleSubmit(false, true)" 
                                     :disabled="enviando || form.processing || (form.fecha && !fechaValida) || estaIncompleto || form.hasErrors || esCurpInvalida || esTelefonoInvalido || esCantidadAprobadaInvalida"
-                                    class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 text-sm font-semibold text-white bg-color1-700 hover:bg-color1-800 rounded-full shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed text-center"
-                                >
+                                    class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 text-sm font-semibold text-white bg-color1-700 hover:bg-color1-800 rounded-full shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed text-center">
                                     Actualizar Solicitud
-                                </button>
+                                </button>                               
                             </div>
                         </div>
                     </div>
-                </div>
-          </form>
+                </template>
+            </div>
         </div>
+    </form>
+    </div>
 </template>

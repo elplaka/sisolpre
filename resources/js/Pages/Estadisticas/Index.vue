@@ -11,12 +11,20 @@
       :solicitudesPorPeriodo="solicitudes"
       :totalSolicitudesPorPeriodo="totalSolicitudes"
       :agruparPorDia="agruparPorDia"
-      :tramitesMasSolicitados="tramitesMasSolicitados"
-      :totalTramitesMasSolicitados="totalTramitesMasSolicitados"
       :elementosRanking="elementosRanking"
-      :tiposPropiedad="tiposPropiedad"
+      :estadisticaSeleccionada="estadisticaSeleccionada"
       :localidadesMasSolicitadas="localidadesMasSolicitadas"
-      :vieneDeDashboard="vieneDeDashboard">
+      :rawDataFromBackend="rawDataFromBackend"
+      :rawDataLocalidades="rawDataLocalidades"
+      :rawDataAreas="rawDataAreas"
+      :rawDataEstatus="rawDataEstatus"
+      :distribucionDiasSemana="distribucionDiasSemana"
+      :kpisAtencionCiudadana="kpisAtencionCiudadana"
+      :kpisSolicitudes="kpisSolicitudes"
+      :promedioDineroPersona="promedioDineroPersona"
+      :kpisRecursosPublicos="kpisRecursosPublicos"
+      :vieneDeDashboard="vieneDeDashboard"
+      :idTipoApoyo="idTipoApoyo">
       </GraficosEstadisticas>
     </AdminLayout>
   </template>
@@ -27,6 +35,9 @@ import AdminLayout from '../Admin/Components/AdminLayout.vue';
 import GraficosEstadisticas from './GraficosEstadisticas.vue';
 import { Head } from '@inertiajs/vue3'; // Componente Head para Inertia.js
 
+import { watchEffect } from 'vue';
+
+
 const props = defineProps({
     userAuth: { type: Object, required: true }, // Información de usuario autenticado
     periodoActual: { type: Object, required: true },
@@ -35,14 +46,33 @@ const props = defineProps({
     fechaInicioQuery: { type: String },
     fechaFinQuery: { type: String },
     solicitudes: Object,
+    rawDataFromBackend: Array,
+    rawDataLocalidades: Array,
+    rawDataAreas: Array,
+    rawDataEstatus: Array,
+    kpisAtencionCiudadana: Object,
+    kpisSolicitudes: Object,
+    distribucionDiasSemana: Object,
     totalSolicitudes: Number,
     agruparPorDia: Boolean,
-    tramitesMasSolicitados: Object,
-    totalTramitesMasSolicitados: Number,
+    solicitudesPorPeriodo: Object,
     elementosRanking: Number,
-    tiposPropiedad: Object,
+    estadisticaSeleccionada: String,
     localidadesMasSolicitadas: Object,
-    vieneDeDashboard: Boolean
+    promedioDineroPersona: [Number, String],
+    kpisRecursosPublicos: Object,
+    vieneDeDashboard: Boolean,
+    idTipoApoyo: [String, Number]
  });
+
+ watchEffect(() => {
+    console.log('=== ESTADISTICAS INDEX ===');
+    console.log('solicitudes:', props.solicitudes);
+    console.log('rawDataFromBackend:', props.rawDataFromBackend);
+    console.log('rawDataLocalidades:', props.rawDataLocalidades);
+    console.log('rawDataAreas:', props.rawDataAreas);
+    console.log('rawDataEstatus:', props.rawDataEstatus);
+    console.log('kpisRecursosPublicos:', props.kpisRecursosPublicos);
+});
 
 </script>

@@ -32,6 +32,30 @@ use Throwable;
 
 class SolicitudController extends Controller
 {
+
+    public function rangoFechasUsuario()
+    {
+        $idUser = auth()->id();
+
+        $configuracionUsuario = ConfiguracionUsuario::where(
+            'id_user',
+            $idUser
+        )->first();
+
+        $idRangoFechasIngreso = $configuracionUsuario?->id_rango_fecha_busqueda ?? 2;
+
+        [$fechaInicio, $fechaFin] = $this->regresaRangoFecha(
+            (int) $idRangoFechasIngreso
+        );
+
+        return response()->json([
+            'success' => true,
+            'idRangoFecha' => (int) $idRangoFechasIngreso,
+            'fechaIngresoInicio' => $fechaInicio,
+            'fechaIngresoFin' => $fechaFin,
+        ]);
+    }
+
     public function nueva()
     {
         $userAuth = Auth::user();
@@ -113,65 +137,74 @@ class SolicitudController extends Controller
     }
 
 
-    public function regresaRangoFecha($idRangoFecha)
+    public function regresaRangoFecha(int $idRangoFecha)
     {
         // --- Definir los rangos de fechas predefinidos ---
         // Estas funciones anónimas encapsulan la lógica de cálculo para cada rango.
         // Los IDs y su lógica DEBEN coincidir con tus shortcuts del frontend y los datos del seeder.
+
+        $periodoId = SettingsHelper::get('periodo_actual');
+
+        // Usar el ID para buscar el objeto completo
+        $periodoActual = Periodo::find($periodoId);
+
+        // dd($idRangoFecha);
+
         $predefinedRanges = [
             1 => function () { // Hoy
                 return [Carbon::today(), Carbon::today()];
             },
-            2 => function () { // Semana Actual (Lunes a Hoy)
-                $today = Carbon::today();
-                $start = $today->copy()->startOfWeek(Carbon::MONDAY);
-                // Ajuste para el caso en que Carbon's startOfWeek pueda dar una fecha futura
-                if ($start->isFuture() && !$start->isSameDay($today)) {
-                    $start->subWeek();
-                }
-                return [$start, $today];
+            2 => function () { // Año Calendario Actual (1 de enero a 31 de diciembre)
+                return [Carbon::today()->startOfYear(), Carbon::today()->endOfYear()];
             },
-            3 => function () { // Mes Actual (Primer día del mes a Hoy)
-                return [Carbon::today()->startOfMonth(), Carbon::today()];
-            },
-            4 => function () { // Año Actual (Primer día del año a Hoy)
-                return [Carbon::today()->startOfYear(), Carbon::today()];
-            },
-            5 => function () { // Semana Pasada (Lunes a Domingo de la semana anterior)
-                $lastWeekEnd = Carbon::today()->startOfWeek(Carbon::MONDAY)->subDay(); // Domingo de la semana pasada
-                $lastWeekStart = $lastWeekEnd->copy()->subDays(6); // Lunes de la semana pasada
-                return [$lastWeekStart, $lastWeekEnd];
-            },
-            6 => function () { // Mes Pasado (Todo el mes anterior)
-                return [Carbon::today()->subMonth()->startOfMonth(), Carbon::today()->subMonth()->endOfMonth()];
-            },
-            7 => function () { // Año Pasado (Todo el año anterior)
+            3 => function () { // Año Calendario Anterior (Todo el año pasado)
                 return [Carbon::today()->subYear()->startOfYear(), Carbon::today()->subYear()->endOfYear()];
             },
-            8 => function () { // Últ. Semana (Últimos 7 días incluyendo hoy)
-                $end = Carbon::today();
-                $start = $end->copy()->subDays(6); // 6 días atrás para incluir hoy (total de 7 días)
+            4 => function () use ($periodoActual) { // Año de Gobierno Actual (Dinámico basado en el periodo)
+                $today = Carbon::today();
+                list($baseYear, $baseMonth, $baseDay) = explode('-', $periodoActual->inicio);
+
+                $currentYear = $today->year;
+                // Si el día de hoy aún no alcanza el mes/día de inicio de gobierno en este año, restamos uno
+                if ($today->month < (int)$baseMonth || ($today->month === (int)$baseMonth && $today->day < (int)$baseDay)) {
+                    $currentYear--;
+                }
+
+                $start = Carbon::createFromDate($currentYear, (int)$baseMonth, (int)$baseDay);
+                $end = (clone $start)->addYear()->subDay(); // Termina el 31 de octubre
+
                 return [$start, $end];
             },
-            9 => function () { // Últ. Mes (Últimos 30 días incluyendo hoy)
-                $end = Carbon::today();
-                $start = $end->copy()->subMonthsNoOverflow(1); // 1 mes atrás, manteniendo el día si es posible
+            5 => function () use ($periodoActual) { // Año de Gobierno Anterior
+                $today = Carbon::today();
+                list($baseYear, $baseMonth, $baseDay) = explode('-', $periodoActual->inicio);
+
+                $currentYear = $today->year;
+                if ($today->month < (int)$baseMonth || ($today->month === (int)$baseMonth && $today->day < (int)$baseDay)) {
+                    $currentYear--;
+                }
+
+                // Retrocedemos un año adicional respecto al año de gobierno actual
+                $prevYear = $currentYear - 1;
+
+                $start = Carbon::createFromDate($prevYear, (int)$baseMonth, (int)$baseDay);
+                $end = (clone $start)->addYear()->subDay();
+
                 return [$start, $end];
             },
-            10 => function () { // Últ. Año (Últimos 365 días incluyendo hoy)
-                $end = Carbon::today();
-                $start = $end->copy()->subYearsNoOverflow(1);
-                return [$start, $end];
+            6 => function () { // Semana Actual
+                return [Carbon::today()->startOfWeek(), Carbon::today()->endOfWeek()];
             },
-            // El rango 'Custom' (ID 99) no tiene una lógica de cálculo fija aquí,
-            // ya que sus fechas se definirían explícitamente por el usuario.
-            // Esta función solo se ocupa de los rangos predefinidos.
-            // Para el ID 99, podrías retornar un rango por defecto o indicar que no es un rango fijo.
+            7 => function () { // Semana Anterior
+                return [Carbon::today()->subWeek()->startOfWeek(), Carbon::today()->subWeek()->endOfWeek()];
+            },
+            8 => function () { // Mes Actual
+                return [Carbon::today()->startOfMonth(), Carbon::today()->endOfMonth()];
+            },
+            9 => function () { // Mes Anterior
+                return [Carbon::today()->subMonth()->startOfMonth(), Carbon::today()->subMonth()->endOfMonth()];
+            },
             99 => function () { // Custom
-                // Si 'Custom' se selecciona, podrías necesitar otras entradas del usuario
-                // o un rango muy amplio por defecto si no hay fechas específicas.
-                // Aquí, devolveremos el "Mes Actual" como un fallback lógico para "Custom" si se busca así
-                // y no hay fechas específicas en la petición.
                 return [Carbon::today()->startOfMonth(), Carbon::today()];
             },
         ];
@@ -208,9 +241,28 @@ class SolicitudController extends Controller
             });
     }
 
+    private function obtenerDatosRangoFechasUsuario()
+    {
+        $idUser = auth()->id();
+
+        $configuracionUsuario = ConfiguracionUsuario::where('id_user', $idUser)->first();
+
+        $idRangoFechasIngreso = $configuracionUsuario?->id_rango_fecha_busqueda ?? 3;
+
+        [$fechaInicio, $fechaFin] = $this->regresaRangoFecha((int) $idRangoFechasIngreso);
+
+        return [
+            'success' => true,
+            'idRangoFecha' => (int) $idRangoFechasIngreso,
+            'fechaIngresoInicio' => $fechaInicio,
+            'fechaIngresoFin' => $fechaFin,
+        ];
+    }
+
 
     public function index(Request $request)
     {
+        // dd($request->all());
 
         $localidades = Localidad::orderBy('nombre', 'asc')->get();
         $userAuth = Auth::user();
@@ -222,59 +274,72 @@ class SolicitudController extends Controller
         $fechaIngresoFinQuery =  $request->input('fechaIngresoFinQuery');
         $fechaAceptacionInicioQuery = $request->input('fechaAceptacionInicioQuery');
         $fechaAceptacionFinQuery =  $request->input('fechaAceptacionFinQuery');
-        $estatusQuery = $request->input('estatusQuery');
+        $estatusQuery = $request->input('estatusQuery') ? $request->input('estatusQuery') : "todas";
         $page = (int) $request->input('page', 1);
+        $sortCriteriaQuery = $request->input('sortCriteriaQuery') ? $request->input('sortCriteriaQuery') : 'fecha_asc';
+        $desdeSideBar = filter_var($request->input('desdeSideBar'), FILTER_VALIDATE_BOOLEAN);
 
         if ($config) {
-            $rangoFechasIngresoManual = filter_var($request->input('rangoFechasIngresoManual'), FILTER_VALIDATE_BOOLEAN);
+            if ($request->boolean('desdeSideBar')) {
 
-            if ($rangoFechasIngresoManual) {
-                if (empty($fechaAceptacionInicioQuery) || is_null($fechaAceptacionInicioQuery)) {
-                    $idRangoFechasIngresoQuery = 99;
+                // Llamamos directamente a tu método interno
+                $datosRango = $this->obtenerDatosRangoFechasUsuario();
 
-                    $config->id_rango_fecha_busqueda = $idRangoFechasIngresoQuery;
-                    $config->save();
-                } else {
-                    $fechaIngresoInicioQuery =  null;
-                    $fechaIngresoFinQuery =  null;
-                }
+                $fechaIngresoInicioQuery = $datosRango['fechaIngresoInicio'];
+                $fechaIngresoFinQuery = $datosRango['fechaIngresoFin'];
+                $idRangoFechasIngresoQuery = $datosRango['idRangoFecha'];
             } else {
-                if (empty($fechaAceptacionInicioQuery) || is_null($fechaAceptacionInicioQuery)) {
-                    $idRangoFechasIngresoQuery = $request->input('idRangoFechasIngresoQuery') ?
-                        $request->input('idRangoFechasIngresoQuery') :
-                        $config->id_rango_fecha_busqueda;
+                $rangoFechasIngresoManual = filter_var($request->input('rangoFechasIngresoManual'), FILTER_VALIDATE_BOOLEAN);
 
-                    $rangoFechaIngreso = $this->regresaRangoFecha($idRangoFechasIngresoQuery);
+                // dd($rangoFechasIngresoManual);
+                if ($rangoFechasIngresoManual) {
+                    if (empty($fechaAceptacionInicioQuery) || is_null($fechaAceptacionInicioQuery) || !$fechaAceptacionInicioQuery) {
+                        $idRangoFechasIngresoQuery = 99;
 
-                    $fechaIngresoInicioQuery = $rangoFechaIngreso[0];
-                    $fechaIngresoFinQuery = $rangoFechaIngreso[1];
-
-                    $config->id_rango_fecha_busqueda = $idRangoFechasIngresoQuery;
-                    $config->save();
+                        $config->id_rango_fecha_busqueda = $idRangoFechasIngresoQuery;
+                        $config->save();
+                    } else {
+                        $fechaIngresoInicioQuery =  null;
+                        $fechaIngresoFinQuery =  null;
+                    }
                 } else {
-                    $fechaIngresoInicioQuery =  null;
-                    $fechaIngresoFinQuery =  null;
+                    if (empty($fechaAceptacionInicioQuery) || is_null($fechaAceptacionInicioQuery || !$fechaAceptacionInicioQuery)) {
+                        $idRangoFechasIngresoQuery = $request->input('idRangoFechasIngresoQuery') ?
+                            $request->input('idRangoFechasIngresoQuery') :
+                            $config->id_rango_fecha_busqueda;
+
+                        $rangoFechaIngreso = $this->regresaRangoFecha($idRangoFechasIngresoQuery);
+
+                        $fechaIngresoInicioQuery = $rangoFechaIngreso[0];
+                        $fechaIngresoFinQuery = $rangoFechaIngreso[1];
+
+                        $config->id_rango_fecha_busqueda = $idRangoFechasIngresoQuery;
+                        $config->save();
+                    } else {
+                        $fechaIngresoInicioQuery =  null;
+                        $fechaIngresoFinQuery =  null;
+                    }
                 }
-            }
 
-            if (empty($fechaIngresoInicioQuery) || is_null($fechaIngresoInicioQuery)) {
-                $rangoFechasAceptacionManual = filter_var($request->input('rangoFechasAceptacionManual'), FILTER_VALIDATE_BOOLEAN);
+                if (empty($fechaIngresoInicioQuery) || is_null($fechaIngresoInicioQuery)) {
+                    $rangoFechasAceptacionManual = filter_var($request->input('rangoFechasAceptacionManual'), FILTER_VALIDATE_BOOLEAN);
 
-                if ($rangoFechasAceptacionManual) {
-                    $fechaAceptacionInicioQuery =  $request->input('fechaAceptacionInicioQuery');
-                    $fechaAceptacionFinQuery =  $request->input('fechaAceptacionFinQuery');
-                    $idRangoFechasAceptacionQuery = 99;
-                    $config->id_rango_fecha_busqueda = $idRangoFechasAceptacionQuery;
-                    $config->save();
-                } else {
-                    $idRangoFechasAceptacionQuery = $request->input('idRangoFechasAceptacionQuery') ?
-                        $request->input('idRangoFechasAceptacionQuery') :
-                        $config->id_rango_fecha_busqueda;
-                    $rangoFechaAceptacion = $this->regresaRangoFecha($idRangoFechasAceptacionQuery);
-                    $fechaAceptacionInicioQuery = $rangoFechaAceptacion[0];
-                    $fechaAceptacionFinQuery = $rangoFechaAceptacion[1];
-                    $config->id_rango_fecha_busqueda = $idRangoFechasAceptacionQuery;
-                    $config->save();
+                    if ($rangoFechasAceptacionManual) {
+                        $fechaAceptacionInicioQuery =  $request->input('fechaAceptacionInicioQuery');
+                        $fechaAceptacionFinQuery =  $request->input('fechaAceptacionFinQuery');
+                        $idRangoFechasAceptacionQuery = 99;
+                        $config->id_rango_fecha_busqueda = $idRangoFechasAceptacionQuery;
+                        $config->save();
+                    } else {
+                        $idRangoFechasAceptacionQuery = $request->input('idRangoFechasAceptacionQuery') ?
+                            $request->input('idRangoFechasAceptacionQuery') :
+                            $config->id_rango_fecha_busqueda;
+                        $rangoFechaAceptacion = $this->regresaRangoFecha($idRangoFechasAceptacionQuery);
+                        $fechaAceptacionInicioQuery = $rangoFechaAceptacion[0];
+                        $fechaAceptacionFinQuery = $rangoFechaAceptacion[1];
+                        $config->id_rango_fecha_busqueda = $idRangoFechasAceptacionQuery;
+                        $config->save();
+                    }
                 }
             }
         } else {
@@ -300,13 +365,13 @@ class SolicitudController extends Controller
         // Usar el ID para buscar el objeto completo
         $periodoActual = Periodo::find($periodoId);
 
-        $query = Solicitud::with('solicitante', 'area', 'estatus', 'user', 'solicitante.localidad');
+        $query = Solicitud::with('solicitante', 'localidad_beneficiada', 'area', 'estatus', 'user', 'solicitante.localidad');
 
-        // Filtro por rango de fecha de ingreso
-        if ($request->filled('fechaIngresoInicioQuery') && $request->filled('fechaIngresoFinQuery')) {
-            $query->whereBetween('fecha', [ // Cambia 'fecha' por el nombre de tu columna en la base de datos
-                $request->input('fechaIngresoInicioQuery'),
-                $request->input('fechaIngresoFinQuery')
+        // Si viene del sidebar o si los campos de fecha están llenos, aplicamos el filtro de rango
+        if ($desdeSideBar || ($request->filled('fechaIngresoInicioQuery') && $request->filled('fechaIngresoFinQuery'))) {
+            $query->whereBetween('fecha', [
+                $fechaIngresoInicioQuery,
+                $fechaIngresoFinQuery
             ]);
         }
 
@@ -335,7 +400,7 @@ class SolicitudController extends Controller
                 WHEN id = ? THEN 0
                 WHEN id LIKE ? THEN 1
                 ELSE 2
-            END ASC',
+                END ASC',
                     [
                         (int) $texto,
                         "{$texto}%",
@@ -423,8 +488,6 @@ class SolicitudController extends Controller
             }
         }
 
-
-
         if (!empty($request->input('areasQuery'))) {
             $query->whereIn('id_area', $request->input('areasQuery'));
         }
@@ -451,6 +514,7 @@ class SolicitudController extends Controller
                 ->count(),
         ];
 
+
         if ($request->filled('estatusQuery') && $request->input('estatusQuery') !== 'todas') {
 
             $idStatus = match ($request->input('estatusQuery')) {
@@ -466,15 +530,57 @@ class SolicitudController extends Controller
             }
         }
 
+        switch ($sortCriteriaQuery) {
+            case 'fecha_desc':
+                $query->orderBy('solicitudes.fecha', 'desc');
+                break;
+            case 'fecha_asc':
+                $query->orderBy('solicitudes.fecha', 'asc');
+                break;
+
+            case 'solicitante_asc':
+                $query->select('solicitudes.*')
+                    ->join('solicitantes as s_sort', 's_sort.id', '=', 'solicitudes.id_solicitante')
+                    ->orderBy('s_sort.nombre', 'asc')
+                    ->orderBy('s_sort.apellidos', 'asc');
+                break;
+            case 'solicitante_desc':
+                $query->select('solicitudes.*')
+                    ->join('solicitantes as s_sort', 's_sort.id', '=', 'solicitudes.id_solicitante')
+                    ->orderBy('s_sort.nombre', 'desc')
+                    ->orderBy('s_sort.apellidos', 'desc');
+                break;
+
+            case 'area_asc':
+                $query->select('solicitudes.*')
+                    ->join('areas as a_sort', 'a_sort.id', '=', 'solicitudes.id_area')
+                    ->orderBy('a_sort.nombre', 'asc');
+                break;
+            case 'area_desc':
+                $query->select('solicitudes.*')
+                    ->join('areas as a_sort', 'a_sort.id', '=', 'solicitudes.id_area')
+                    ->orderBy('a_sort.nombre', 'desc');
+                break;
+
+            default:
+                $query->orderBy('solicitudes.created_at', 'desc');
+                break;
+        }
+
         // Paginación
         $solicitudes = $query->paginate(8);
 
-
-        // Log::info($request->all(), $totalesEstatusQuery);
-        // dd($totalesEstatusQuery);
-
-
         $totalSolicitudes = Solicitud::count();
+
+
+        // dd($fechaIngresoInicioQuery, $fechaIngresoFinQuery, $idRangoFechasIngresoQuery);
+
+        // Log::info($totalesEstatusQuery);
+        // Log::info($fechaIngresoFinQuery);
+        // Log::info((int) $idRangoFechasIngresoQuery);
+
+        //CHECKPOINT: Al actualizar el intervaloMS se cambia las fechas de filtro en SOLICITUDES
+
 
         return Inertia::render('Solicitudes/Index', [
             'userAuth' => $userAuth,
@@ -487,8 +593,13 @@ class SolicitudController extends Controller
             'searchQuery' => $request->input('searchQuery'),
             'fechaIngresoInicioQuery' => $fechaIngresoInicioQuery,
             'fechaIngresoFinQuery' => $fechaIngresoFinQuery,
+            'rangoFechasIngresoManual' => $request->boolean('rangoFechasIngresoManual'),
+            'idRangoFechasIngresoQuery' => (int) $idRangoFechasIngresoQuery,
             'estatusQuery' => $estatusQuery,
+            'areasQuery' => $request->input('areasQuery'),
+            'sortCriteriaQuery' => $request->input('sortCriteriaQuery'),
             'totalSolicitudes' => $totalSolicitudes,
+            'desdeSideBar' => $desdeSideBar,
             'page' => $page
         ]);
     }
@@ -496,8 +607,6 @@ class SolicitudController extends Controller
 
     public function store(Request $request)
     {
-        // dd($request->all());
-
         // 1. Validación de los campos entrantes
         $validatedData = $request->validate([
             'solicitante_curp' => [
@@ -560,20 +669,24 @@ class SolicitudController extends Controller
 
                 $solicitante = Solicitante::firstOrCreate($datosSolicitante);
 
+                // dd($request->all());
+
                 // 2. Creamos la solicitud
                 $nuevaSolicitud = Solicitud::create([
                     'fecha' => $request->input('fecha'),
                     'id_solicitante' => $solicitante->id,
                     'id_area' => $request->input('id_area'),
                     'id_estatus' => $request->input('id_estatus'),
+                    'id_localidad_beneficiada' => $request->input('solicitante_id_localidad_beneficiada'),
                     'peticion' => $request->input('peticion'),
+                    'id_tipo_apoyo' => $request->input('id_tipo_apoyo'),
                     'cantidad_aprobada' => $request->input('cantidad_aprobada'),
                     'observaciones' => $request->input('observaciones'),
                     'id_user' => Auth::id(),
                 ]);
 
                 // 3. Cargamos las relaciones que necesites mostrar en tu tabla o frontend
-                $nuevaSolicitud->load(['solicitante', 'solicitante.localidad', 'area', 'estatus', 'user']); // Reemplaza por los nombres reales de tus relaciones en el Modelo Solicitud
+                $nuevaSolicitud->load(['solicitante', 'solicitante.localidad', 'localidad_beneficiada', 'area', 'estatus', 'user']); // Reemplaza por los nombres reales de tus relaciones en el Modelo Solicitud
 
                 return $nuevaSolicitud;
             });
@@ -589,6 +702,7 @@ class SolicitudController extends Controller
                 'searchQuery' => $request->input('searchQuery'),
                 'estatusQuery' => $request->input('estatusQuery'),
                 'areasQuery' => $request->input('areasQuery'),
+                'sortCriteriaQuery' => $request->input('sortCriteriaQuery'),
                 'fechaIngresoInicioQuery' => $request->input('fechaIngresoInicioQuery'),
                 'fechaIngresoFinQuery' => $request->input('fechaIngresoFinQuery'),
             ])->with([
@@ -712,11 +826,15 @@ class SolicitudController extends Controller
                     $fechaResolucion = $request->input('fecha_resolucion');
                 }
 
+                // dd($request->all());
+
                 $solicitud->fecha = $request->input('fecha');
                 $solicitud->id_solicitante = $solicitante->id;
                 $solicitud->id_area = $request->input('id_area');
                 $solicitud->id_estatus = $request->input('id_estatus');
+                $solicitud->id_localidad_beneficiada = $request->input('solicitante_id_localidad_beneficiada');
                 $solicitud->peticion = mb_strtoupper(trim($request->input('peticion')));
+                $solicitud->id_tipo_apoyo = $request->input('id_tipo_apoyo');
                 $solicitud->cantidad_aprobada = $request->input('cantidad_aprobada');
                 $solicitud->observaciones = $request->input('observaciones') !== null
                     ? mb_strtoupper(trim($request->input('observaciones')))
@@ -741,13 +859,13 @@ class SolicitudController extends Controller
             //     'solicitud' => $solicitud,
             // ]);
 
-            // CHECKPOINT: Checar por qué guarda espacios en blanco en OBSERVACIONES
 
             return redirect()->route('solicitudes', [
                 'page' => $request->input('paginaActual'),
                 'searchQuery' => $request->input('searchQuery'),
                 'estatusQuery' => $request->input('estatusQuery'),
                 'areasQuery' => $request->input('areasQuery'),
+                'sortCriteriaQuery' => $request->input('sortCriteriaQuery'),
                 'fechaIngresoInicioQuery' => $request->input('fechaIngresoInicioQuery'),
                 'fechaIngresoFinQuery' => $request->input('fechaIngresoFinQuery'),
                 'totalesEstatusQuery' => $request->input('totalesEstatusQuery')

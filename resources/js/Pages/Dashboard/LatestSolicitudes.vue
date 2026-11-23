@@ -1,5 +1,6 @@
 <script setup>
     import { defineProps } from 'vue';
+    import { router } from '@inertiajs/vue3';
 
     const props = defineProps({
         panelData: Array, // Este prop contendrá los datos específicos para este panel (ej: latestSolicitudes)
@@ -25,6 +26,14 @@
         return `${day}-${month}-${year}`;
     };
 
+    function formatFechaLarga(fechaStr) {
+        if (!fechaStr) return '—';
+        const [fecha] = String(fechaStr).trim().split(' '); // "2026-11-22"
+        const [anio, mes, dia] = fecha.split('-');
+        if (!anio || !mes || !dia) return fechaStr;
+        return `${dia.padStart(2, '0')}-${mes.padStart(2, '0')}-${anio}`;
+    }
+
     // Nueva función para formatear el folio a 4 dígitos con ceros a la izquierda
     const formatFolio = (folio) => {
         if (folio === null || folio === undefined) {
@@ -34,92 +43,9 @@
         return String(Number(folio)).padStart(4, '0');
     };
 
-    // Función para obtener la clase de color del SVG basado en el estatus
-    // const getStatusSvgColorClass = (estatus) => {
-    //     if (estatus && estatus.color) { // <-- ¡Aquí asumimos 'color_name' es la columna!
-    //         return `text-${estatus.color}-500`; // Construimos la clase de Tailwind, ej: 'text-violet-500'
-    //     }
-    //     // Color por defecto si no hay estatus o color definido
-    //     return 'text-gray-500';
-    // };
-
-    // Función para obtener el color del texto del estatus
-    const getStatusTextColorClass = (estatus) => {
-        if (estatus && estatus.color) { // <-- ¡Aquí asumimos 'color_name' es la columna!
-            return `text-${estatus.color}-500`; // Construimos la clase de Tailwind, ej: 'text-violet-500'
-        }
-        return 'text-gray-600'; // Color por defecto para el texto del estatus
-    };
-
-    const formatClaveCatastral = (clave) => {
-        if (typeof clave !== 'string' || clave.length !== 18 || !/^\d+$/.test(clave)) {
-            // Si no es una cadena, no tiene 18 dígitos o no son solo números, retorna la original o un mensaje de error
-            return clave; // O 'Formato inválido' si prefieres
-        }
-
-        // Divide la cadena en grupos de 3 dígitos
-        let formattedClave = '';
-        for (let i = 0; i < clave.length; i += 3) {
-            formattedClave += clave.substring(i, i + 3) + ' ';
-        }
-
-        // Elimina el espacio extra al final y retorna
-        return formattedClave.trim();
-    };
-
-    const getDireccion = (solicitud) => {
-    // Si la propiedad es nula o no tiene datos de dirección en sus campos principales
-    if ((!solicitud.propiedad || (!solicitud.propiedad.calle 
-    && !solicitud.propiedad.numero && !solicitud.propiedad.colonia?.nombre 
-    && !solicitud.propiedad.localidad?.nombre))
-    && !solicitud.referencia.localidad) {
-        return 'SIN DOMICILIO';
-    }
-
-    let direccion = '';
-
-    if (solicitud.propiedad)
-    {
-        // Agregar calle si existe
-        if (solicitud.propiedad.calle) {
-            direccion += solicitud.propiedad.calle;
-        }
-
-        // Agregar número si existe
-        if (solicitud.propiedad.numero) {
-            // Agregar ' N° ' solo si la calle no está vacía
-            direccion += (solicitud.propiedad.calle ? ' N° ' : 'N° ') + solicitud.propiedad.numero;
-        }
-
-        // Agregar colonia si existe la relación y tiene un nombre
-        if (solicitud.propiedad.colonia?.nombre) {
-            let nombreColonia = solicitud.propiedad.colonia.nombre.toUpperCase(); // Convertir a mayúsculas para la comparación
-            let prefijo = '';
-
-            // Comprobar si el nombre de la colonia no empieza con 'FRAC' ni 'INFONAV'
-            if (!nombreColonia.startsWith('FRAC') && !nombreColonia.startsWith('INFONAV')) {
-                prefijo = 'COL. ';
-            }
-
-            direccion += (direccion ? ', ' : '') + prefijo + solicitud.propiedad.colonia.nombre;
-        }
-
-        // Agregar localidad si existe la relación y tiene un nombre
-        if (solicitud.propiedad.localidad?.nombre) {
-            direccion += (direccion ? ', ' : '') + solicitud.propiedad.localidad.nombre;
-        }
-    }
-
-    if (solicitud.referencia?.localidad)
-    {
-        direccion = solicitud.referencia.localidad.nombre
-    }
 
 
-    return direccion;
-};
-
-    const truncateText = (text, maxLength = 48) => {
+     const truncateText = (text, maxLength = 48) => {
         if (!text) {
             return '';
         }
@@ -129,6 +55,64 @@
         }
         return text;
     };
+
+    const getStatusColor = (colorKey) => {
+            const colors = {
+                success: '#10B981', // Verde
+                warning: '#F59E0B', // Amarillo / Naranja
+                danger: '#EF4444',  // Rojo
+                info: '#3B82F6',    // Azul
+                primary: '#6366F1', // Índigo / Tu color principal
+                secondary: '#6B7280' // Gris
+            };
+
+            // Si viene un hex o rgb directo, lo respeta; si viene una palabra, la busca; si no hay nada, usa gris por defecto.
+            return colors[colorKey] || colorKey || '#9CA3AF';
+        };
+
+        function timeAgo(dateString) {
+        if (!dateString) return '-';
+        
+        const date = new Date(dateString);
+        const now = new Date();
+        const seconds = Math.floor((now - date) / 1000);
+
+        let interval = Math.floor(seconds / 31536000);
+        if (interval >= 1) return `hace ${interval} año${interval === 1 ? '' : 's'}`;
+
+        interval = Math.floor(seconds / 2592000);
+        if (interval >= 1) return `hace ${interval} mes${interval === 1 ? '' : 'es'}`;
+
+        interval = Math.floor(seconds / 86400);
+        if (interval >= 1) return `hace ${interval} día${interval === 1 ? '' : 's'}`;
+
+        interval = Math.floor(seconds / 3600);
+        if (interval >= 1) return `hace ${interval} hora${interval === 1 ? '' : 's'}`;
+
+        interval = Math.floor(seconds / 60);
+        if (interval >= 1) return `hace ${interval} minuto${interval === 1 ? '' : 's'}`;
+
+        return 'hace unos momentos';
+    }
+
+    function verEditarSolicitud(id) {
+        router.put('/solicitudes/editar', {
+            id_solicitud: id
+        });
+    }
+
+    function nuevaSolicitud() {
+
+        router.get(
+            '/solicitudes/nueva',
+            {
+                onStart: () => { // <--- Inicia el estado de carga
+                },
+                onFinish: () => { // <--- Termina el estado de carga
+                }
+            }
+        )
+    }
 </script>
 
 <style>
@@ -155,79 +139,132 @@
 </style>
 
 <template>
-    <div class="bg-white p-0 m-0 min-h-[180px] sm:min-h-[180px] md:min-h-[180px]">
-        <h3 class="text-lg font-semibold mb-2 text-center md:text-left">Últimas Solicitudes</h3>
-        <div v-if="panelData && panelData.length > 0">
-            <ul class="space-y-5">
-                <li v-for="solicitud in panelData" :key="solicitud.id" class="border-b border-gray-200 last:border-b-0 last:mb-0 pb-0">
-                           <div class="flex flex-col md:flex-row md:justify-between md:items-center text-[0.75rem] gap-y-1 md:gap-y-0">
-
-                        <span class="flex items-center gap-x-4 font-medium flex-wrap md:flex-nowrap md:flex-initial">
-                            <span class="flex items-center gap-1">
-                                <svg class="w-3 h-3 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                                   <path fill-rule="evenodd" d="M11.097 1.515a.75.75 0 0 1 .589.882L10.666 7.5h4.47l1.079-5.397a.75.75 0 1 1 1.47.294L16.665 7.5h3.585a.75.75 0 0 1 0 1.5h-3.885l-1.2 6h3.585a.75.75 0 0 1 0 1.5h-3.885l-1.08 5.397a.75.75 0 1 1-1.47-.294l1.02-5.103h-4.47l-1.08 5.397a.75.75 0 1 1-1.47-.294l1.02-5.103H3.75a.75.75 0 0 1 0-1.5h3.885l1.2-6H5.25a.75.75 0 0 1 0-1.5h3.885l1.08-5.397a.75.75 0 0 1 .882-.588ZM10.365 9l-1.2 6h4.47l1.2-6h-4.47Z" clip-rule="evenodd" />
-                                </svg>
-                                <span>
-                                    {{ formatFolio(solicitud.id) }}
-                                </span>
-                            </span>
-                            <span class="flex items-center gap-1">
-                                <svg class="w-3 h-3 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                                     <path d="M12.75 12.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM7.5 15.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5ZM8.25 17.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM9.75 15.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5ZM10.5 17.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12 15.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5ZM12.75 17.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM14.25 15.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5ZM15 17.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM16.5 15.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5ZM15 12.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM16.5 13.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" />
-                                 <path fill-rule="evenodd" d="M6.75 2.25A.75.75 0 0 1 7.5 3v1.5h9V3A.75.75 0 0 1 18 3v1.5h.75a3 3 0 0 1 3 3v11.25a3 3 0 0 1-3 3H5.25a3 3 0 0 1-3-3V7.5a3 3 0 0 1 3-3H6V3a.75.75 0 0 1 .75-.75Zm13.5 9a1.5 1.5 0 0 0-1.5-1.5H5.25a1.5 1.5 0 0 0-1.5 1.5v7.5a1.5 1.5 0 0 0 1.5 1.5h13.5a1.5 1.5 0 0 0 1.5-1.5v-7.5Z" clip-rule="evenodd" />
-                                </svg>
-                                <span>
-                                    {{ formatFecha(solicitud.fecha_ingreso) }}
-                                </span>
-                            </span>
-                        </span>
-
-                        <span class="flex items-center gap-1 md:text-right md:flex-initial md:ml-auto min-w-0" :data-tooltip-target="'tooltip-propiedad-' + solicitud.id">
-                            <svg
-                                class="w-3 h-3 text-gray-500 flex-shrink-0"
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="currentColor"
-                                viewBox="0 -960 960 960">
-                                <path d="M80-120v-650l200-150 200 150v90h400v560H80Zm80-80h80v-80h-80v80Zm0-160h80v-80h-80v80Zm0-160h80v-80h-80v80Zm0-160h80v-80h-80v80Zm160 0h80v-80h-80v80Zm0 480h480v-400H320v400Zm240-240v-80h160v80H560Zm0 160v-80h160v80H560ZM400-440v-80h80v80h-80Zm0 160v-80h80v80h-80Z"/>
-                            </svg>
-                            <span class="truncate"> {{ solicitud.propiedad?.clave_catastral ? formatClaveCatastral(solicitud.propiedad.clave_catastral) : 'N/A' }}
-                            </span>
-                        </span>
-                    </div>
-
-                    <p class="text-[0.75rem] flex items-center gap-1 font-bold" :class="getStatusTextColorClass(solicitud.estatus)">
-                        <svg :class="getStatusTextColorClass(solicitud.estatus)" class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M10 0a10 10 0 1 0 10 10A10.011 10.011 0 0 0 10 0Zm0 5a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm0 13a8.949 8.949 0 0 1-4.951-1.488A3.987 3.987 0 0 1 9 13h2a3.987 3.987 0 0 1 3.951 3.512A8.949 8.949 0 0 1 10 18Z"/>
-                        </svg>
-                        <!-- {{
-                        (solicitud.contacto?.persona?.nombre + ' ' + solicitud.contacto?.persona?.apellidos || 'N/A') +
-                        (
-                            solicitud.propiedad?.contacto?.persona && solicitud.id_contacto !== solicitud.propiedad.id_contacto
-                            ? ' / ' + solicitud.propiedad.contacto.persona.nombre + ' ' + solicitud.propiedad.contacto.persona.apellidos
-                            : ''
-                        )
-                        }} -->
-                        {{
-                            truncateText(
-                                (solicitud.contacto?.persona?.nombre + ' ' + solicitud.contacto?.persona?.apellidos || 'N/A') +
-                                (
-                                    solicitud.propiedad?.contacto?.persona && solicitud.id_contacto !== solicitud.propiedad.id_contacto
-                                    ? ' / ' + solicitud.propiedad.contacto.persona.nombre + ' ' + solicitud.propiedad.contacto.persona.apellidos
-                                    : ''
-                                ),
-                                48 // Límite de caracteres
-                            )
-                        }}
-                    </p>
-                    <div :id="'tooltip-propiedad-' + solicitud.id" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-[0.625rem] font-medium text-white transition-opacity duration-300 bg-color1-500 rounded-lg shadow-xs opacity-90 tooltip dark:bg-gray-700">
-                        {{ getDireccion(solicitud) }}
-                        <div class="tooltip-arrow opacity-90" data-popper-arrow></div>
-                    </div>
-                </li>
-            </ul>
-        </div>
-        <div v-else>
-            <p class="text-gray-500">No hay solicitudes recientes.</p>
-        </div>
+<div class="bg-white p-0 m-0 min-h-[180px]">
+    <!-- Título y Botón de Nueva Solicitud en la parte superior derecha -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+        <!-- Título -->
+        <span class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 transition-colors duration-300 group-hover:text-gray-700 dark:group-hover:text-gray-300">
+            Últimas Solicitudes
+        </span>
+        
+        <!-- Botón con tipografía escalada y responsive -->
+        <button 
+            @click="nuevaSolicitud"
+            class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 bg-color1-700 hover:bg-color1-800 active:scale-95 text-white text-xs sm:text-sm font-semibold rounded-xl sm:rounded-full shadow-sm transition-all duration-150 cursor-pointer">
+            <!-- Icono adaptado al tamaño de fuente -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            <span>Nueva Solicitud</span>
+        </button>
     </div>
+
+    <div v-if="panelData && panelData.length > 0" class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="text-[0.65rem] uppercase tracking-wider font-bold text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                    <th class="py-2.5 px-3 text-center">Folio</th>
+                    <th class="py-2.5 px-3">Fechas</th>
+                    <th class="py-2.5 px-3">Solicitante / Petición</th>
+                    <th class="py-2.5 px-3 text-center">Estatus</th>
+                    <th class="py-2.5 px-3  text-right">Monto</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-gray-800 text-[0.7rem]">
+                <tr v-for="solicitud in panelData" :key="solicitud.id" 
+                    @click="(solicitud.id_estatus !== 4) ? verEditarSolicitud(solicitud.id) : null" 
+                    :class="[
+                        'transition-colors',
+                        (solicitud.id_estatus === 4) 
+                            ? 'bg-gray-50/70 dark:bg-gray-800/40 cursor-not-allowed select-none' 
+                            : 'hover:bg-gray-50 dark:hover:bg-gray-700/40 cursor-pointer'
+                    ]">
+                    
+                    <!-- Folio con pequeño badge integrado -->
+                    <td class="py-3 px-1 text-center">
+                        <span :class="[
+                            'font-bold px-2 py-1 rounded-md text-[0.65rem] inline-flex items-center gap-1',
+                            (solicitud.id_estatus === 4)
+                                ? 'bg-gray-200/70 text-gray-600 dark:bg-gray-700 dark:text-gray-400' 
+                                : 'bg-color1-40 dark:bg-color1-950/40 text-color1-700 dark:text-color1-300'
+                        ]">
+                            <svg v-if="solicitud.id_estatus === 4" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            {{ formatFolio(solicitud.id) }}
+                        </span>
+                    </td>
+
+                    <!-- Fechas agrupadas -->
+                    <td class="py-3 px-3 text-gray-500 text-[0.65rem] max-w-[130px]">
+                        <div class="truncate">Ingreso: {{ formatFecha(solicitud.fecha) }}</div>
+                        <div v-if="solicitud.id_estatus === 3" class="text-gray-400 truncate">Cierre: {{ formatFechaLarga(solicitud.fecha_resolucion)  }}</div>
+                        <div v-else class="text-gray-400 truncate">Modif. {{ timeAgo(solicitud.updated_at) }}</div>
+
+                    </td>
+
+                    <!-- Solicitante y Petición -->
+                    <td class="py-3 px-3 max-w-[210px]">
+                        <div class="font-bold text-gray-600 truncate dark:text-gray-200">
+                            {{ solicitud.solicitante?.nombre + ' ' + solicitud.solicitante?.apellidos }}
+                        </div>
+                        <div class="text-gray-500 dark:text-gray-400 truncate text-[0.65rem]">
+                            {{ solicitud.peticion }}
+                        </div>
+                    </td>           
+
+                    <td class="py-3 px-3 text-center whitespace-nowrap">
+                        <span class="inline-block font-semibold text-[0.65rem] px-3 py-1 rounded"
+                            :style="{ 
+                                color: getStatusColor(solicitud.estatus.color), 
+                                backgroundColor: getStatusColor(solicitud.estatus.color) + '15' 
+                            }">
+                            {{ solicitud.estatus.nombre }}
+                        </span>
+                    </td>
+
+                    <td class="py-3 px-3 text-right whitespace-nowrap font-bold text-gray-600 dark:text-gray-200">
+                        <div class="inline-flex items-center justify-end gap-1.5">
+                            <span
+                                class="inline-flex items-center gap-1.5 px-0.5 py-0.5 rounded-lg text-[11px] font-medium"
+                                :class="solicitud.id_tipo_apoyo === 1 ? 'bg-color2-50/80' : 'bg-color4-50/80'">
+                                <svg v-if="solicitud.id_tipo_apoyo === 1"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="w-4 h-3.5 text-color2-800 transition-transform duration-200 group-hover:scale-110"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <rect width="20" height="12" x="2" y="6" rx="2"/>
+                                    <circle cx="12" cy="12" r="2"/>
+                                    <path d="M6 12h.01M18 12h.01"/>
+                                </svg>
+                                <svg v-else
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="w-3.5 h-3 text-color4-800 transition-transform duration-200 group-hover:scale-110"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                                    <path d="m3.3 7 8.7 5 8.7-5"/>
+                                    <path d="M12 22V12"/>
+                                </svg>
+                            </span>
+                            <span v-if="solicitud.cantidad_aprobada">$ {{ Number(solicitud.cantidad_aprobada).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} 
+                            </span>
+                            
+                            <span v-else class="text-gray-400 font-normal">—</span>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <div v-else class="text-center py-6 text-gray-400 text-xs">Sin registros recientes.</div>
+</div>
 </template>

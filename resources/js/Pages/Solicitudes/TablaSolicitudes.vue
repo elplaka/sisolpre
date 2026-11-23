@@ -2,6 +2,56 @@
 input[type="search"]::-webkit-search-cancel-button {
     cursor: pointer;
 }
+
+    .sin-solicitudes {
+        background-color: #f9fafc !important;
+        color: rgba(17, 24, 39, 0.7) !important; /* Tu color deseado */
+        cursor: not-allowed !important;
+        opacity: 40%;
+        /* Usamos position relative para poner una capa invisible que bloquee los clics pero conserve los estilos */
+    }
+
+    /* Truco definitivo: Ponemos un pseudo-elemento transparente encima que absorba los clics (bloquea el select) pero deje ver los estilos y el cursor */
+    .sin-solicitudes {
+        position: relative;
+    }
+
+    /* Creamos una capa invisible que bloquea el clic */
+    .sin-solicitudes::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        cursor: not-allowed !important;
+        z-index: 10;
+    }
+
+    /* Soporte para modo oscuro */
+    .dark .sin-solicitudes {
+        background-color: rgba(31, 41, 55, 0.7) !important;
+        color: rgba(199, 199, 199, 0.7) !important;
+    }
+
+   /* Color clarito permanente únicamente para la opción de "SELECCIONE UN ÁREA" */
+    .option-placeholder {
+        color: #9ca3af !important; /* text-gray-400 */
+    }
+
+    /* Control del select cuando está en su estado inicial vacío */
+    .select-placeholder-activo {
+        color: #9ca3af !important;
+    }
+
+    /* Aseguramos que las demás opciones tengan su color normal al desplegar */
+    select option:not(.option-placeholder) {
+        color: #111827 !important; /* text-gray-900 */
+        background-color: #ffffff !important;
+    }
+
+    /* Soporte para modo oscuro */
+    .dark select option:not(.option-placeholder) {
+        color: #ffffff !important;
+        background-color: #1f2937 !important;
+    }
 </style>
 
 
@@ -22,9 +72,9 @@ input[type="search"]::-webkit-search-cancel-button {
     const searchQueryConfirmado = ref('');
     const estatusQuery =  ref('todas')
     const areasQuery = ref(null)
+    const sortCriteriaQuery = ref('fecha_asc');  // 'asc' o 'desc'
 
     const realizarBusqueda = () => {
-        
         router.post(
             route('solicitudes'), // O la ruta específica de tu backend, ej: route('tu.ruta.index')
             {
@@ -33,6 +83,7 @@ input[type="search"]::-webkit-search-cancel-button {
                 fechaIngresoFinQuery: rangoFechasIngresoQuery.value?.[1] || null,
                 estatusQuery: estatusQuery.value,
                 areasQuery: areasQuery.value,
+                sortCriteriaQuery: sortCriteriaQuery.value,
                 page: 1, // Reiniciar a la página 1
             },
             {
@@ -49,35 +100,34 @@ input[type="search"]::-webkit-search-cancel-button {
         pagination: Object,
         localidadesList: Array,
         localidadesQuery: Array,
-        numQuery: String,
-        nombreQuery: String,
         fechaIngresoInicioQuery: String,
         fechaIngresoFinQuery: String,
         fechaAceptacionInicioQuery: String,
         fechaAceptacionFinQuery: String,
         idRangoFechasIngresoQuery: Number,
         idRangoFechasAceptacionQuery: Number,
+        rangoFechasIngresoManual: Boolean,
+        estatusQuery: String,
         totalesEstatusQuery: Object,
         areasList: Array,
         estatusList: Array,
         totalSolicitudes: Number,
         isPage: Boolean,
-        filtroChkSolicitudes: [Number, String],
-        sortDirection: String,
-        sortColumn: String,
         periodoActual: Object,
+        desdeSideBar: {
+            type: Boolean,
+            default: false
+        },
         page: {
             type: [Number, String],
             default: 1
         }
     })
 
-   
     const intervalo = ref(null)
-    const intervaloMs = 30000 // 👈 ajusta aquí la frecuencia del polling
+    const intervaloMs = 10000 // 👈 ajusta aquí la frecuencia del polling
 
     //Parámetros para filtrar
-    const numQuery = ref('')
     const folioQuery = ref('')
     const nombreQuery = ref('')
     const fechaIngresoInicioQuery = ref('')
@@ -87,22 +137,14 @@ input[type="search"]::-webkit-search-cancel-button {
     const claveCatastralQuery = ref('')
     const rangoFechasIngresoQuery = ref([])
     const rangoFechasAceptacionQuery = ref([])
-    const tiposTramitesQuery = ref([])
-    const tramitesQuery = ref([])
-    const localidadesQueryFiltradas = ref([])
-    const localidadesSelectQuery = ref([])
-    const filtroChkSolicitudes = ref(0)
     const rangoFechasIngresoManual = ref(false)
     const rangoFechasAceptacionManual = ref(false)
     const rangoFechasShortcut = ref(false)
     const rangoFechasAceptacionShortcut = ref(false)
-    const idRangoFechasIngresoQuery = ref(99)
+    const idRangoFechasIngresoQuery = ref(null)
     const idRangoFechasAceptacionQuery = ref(99)
-    const pickerWrapper = ref(null)
     const periodoActual = ref(props.periodoActual || {})
 
-    const sortColumn = ref(props.sortColumn || 'fecha_ingreso');
-    const sortDirection = ref(props.sortDirection || 'asc');
     const dropdownVisible = ref(null)
 
     const isLoading = ref(false)
@@ -113,8 +155,15 @@ input[type="search"]::-webkit-search-cancel-button {
         showModal.value = true;
     }
 
+    const soloLectura = ref(false);
+
     const abreModalEditarSolicitud = async (solicitud) => {
         solicitudSeleccionada.value = solicitud;
+        if (solicitud.id_estatus === 3)
+        {
+            soloLectura.value = true
+        }
+            
         showModal.value = true;
     }
 
@@ -131,52 +180,50 @@ input[type="search"]::-webkit-search-cancel-button {
         }
     };
 
+    // Función para limpiar/detener el intervalo
+    const detenerIntervalo = () => {
+        if (intervalo.value) {
+            clearInterval(intervalo.value);
+            intervalo.value = null;
+        }
+    };
+
+    // Vigilar el estado de la ventana modal
+    watch(() => showModal.value, (isOpen) => {
+        if (isOpen) {
+            // Si el modal se ABRE, detenemos las peticiones automáticas
+            detenerIntervalo();
+        } else {
+            // Si el modal se CIERRA, volvemos a arrancar el intervalo
+            iniciarIntervalo();
+        }
+    });
+
     onMounted(() => {
         fechaIngresoInicioQuery.value = props.fechaIngresoInicioQuery
         fechaIngresoFinQuery.value = props.fechaIngresoFinQuery
-        idRangoFechasIngresoQuery.value = props.idRangoFechasIngresoQuery
+        idRangoFechasIngresoQuery.value = Number(props.idRangoFechasIngresoQuery)
+        rangoFechasIngresoManual.value = props.rangoFechasIngresoManual
 
-        sortColumn.value = props.sortColumn || 'fecha';
-        sortDirection.value = props.sortDirection || 'asc';
-
-        busquedaIndexada.value = false;
+        estatusQuery.value = props.estatusQuery ?? 'todas'
 
         rangoFechasIngresoQuery.value = [
-            fechaIngresoInicioQuery.value, // formato 'YYYY-MM-DD'
-            fechaIngresoFinQuery.value
+            props.fechaIngresoInicioQuery,
+            props.fechaIngresoFinQuery,
         ]
 
         rangoFechasAceptacionQuery.value = [
-            fechaAceptacionInicioQuery.value, // formato 'YYYY-MM-DD'
-            fechaAceptacionFinQuery.value
+            props.fechaAceptacionInicioQuery ?? null,
+            props.fechaAceptacionFinQuery ?? null,
         ]
-
-        filtroChkSolicitudes.value = 0
 
         document.addEventListener('click', handleClickOutside)
         window.addEventListener('resize', updateSize)
 
-        nextTick(() => {
-            const inputs = pickerWrapper.value?.querySelectorAll('input')
-            if (inputs?.length === 2) {
-                inputs.forEach((input) => {
-                    input.addEventListener('input', (event) => {
-                        if (event.isTrusted) {
-                            rangoFechasIngresoManual.value = true
-                            onDateChange(rangoFechasIngresoQuery.value)
-                        }
-                    })
-                })
-            }
-        })
+        // Un solo intervalo de actualización automática.
+        iniciarIntervalo()
 
-
-        intervalo.value = setInterval(() => {
-            fetchSolicitudes(false, true)
-        }, intervaloMs)
-
-
-        iniciarIntervalo();
+        document.getElementById('initial-loader')?.remove();
     })
 
     onBeforeUnmount(() => {
@@ -213,11 +260,13 @@ input[type="search"]::-webkit-search-cancel-button {
         urlParams.set('fechaAceptacionFinQuery', fechaAceptacionFinQuery.value)
         urlParams.set('rangoFechasAceptacionManual', rangoFechasAceptacionManual.value)
 
+        urlParams.set('estatusQuery', estatusQuery.value)
+
+
         urlParams.set('page', page)
 
-        return Object.fromEntries(urlParams.entries())
+         return Object.fromEntries(urlParams.entries())
     }
-
 
     function fetchSolicitudes(onMounted, polling = false) {
         const page = router.page.props.solicitudes?.current_page ?? 1
@@ -227,8 +276,6 @@ input[type="search"]::-webkit-search-cancel-button {
 
         if (onMounted) 
         {
-            sortColumn.value = 'fecha_ingreso'
-            sortDirection.value = 'asc'
         } 
         else 
         {
@@ -242,21 +289,21 @@ input[type="search"]::-webkit-search-cancel-button {
         // 1. Definimos los filtros directamente como un objeto plano (JSON)
         const filtrosData = {
             fechaIngresoInicioQuery: fechaIngresoInicioQuery.value,
-            fechaIngresoFinQuery: fechaIngresoFinQuery.value,
+            fechaIngresoFinQuery: formatFechaLocal(fechaIngresoFinQuery.value),
             fechaAceptacionInicioQuery: fechaAceptacionInicioQuery.value,
             fechaAceptacionFinQuery: fechaAceptacionFinQuery.value,
             searchQuery: searchQueryConfirmado.value,
             estatusQuery: estatusQuery.value,
             areasQuery: areasQuery.value,
+            sortCriteriaQuery: sortCriteriaQuery.value,
             idRangoFechasIngresoQuery: idRangoFechasIngresoQuery.value,
             rangoFechasIngresoManual: rangoFechasIngresoManual.value,
             idRangoFechasAceptacionQuery: idRangoFechasAceptacionQuery.value,
             rangoFechasAceptacionManual: rangoFechasAceptacionManual.value,
-            filtroChkSolicitudes: filtroChkSolicitudes.value,
-            sortColumn: sortColumn.value,
-            sortDirection: sortDirection.value,
             page: Number(paramsObject.page) || 1
         }
+
+        console.log('FILTROS DATA', filtrosData)
 
         // 2. Define las opciones base de la solicitud
         const requestOptions = {
@@ -267,6 +314,10 @@ input[type="search"]::-webkit-search-cancel-button {
                 // Lógica común de inicio
             },
             onFinish: () => {
+                if (polling) {
+                    window.__solicitudesPolling = false;
+                }
+
                 const currentPage = router.page.props.solicitudes.current_page;
                 const lastPage = router.page.props.solicitudes.last_page;
 
@@ -277,10 +328,19 @@ input[type="search"]::-webkit-search-cancel-button {
                         page: Number(1)
                     };
 
+                    const dataPeticion = {
+                        ...newFilters,
+                        _background: true
+                    };
+
                     router.get(
                         router.page.url.split('?')[0],
-                        newFilters,
-                        { preserveState: true }
+                        dataPeticion,
+                        {
+                            preserveState: true,
+                            preserveScroll: true,
+                            showProgress: false
+                        }
                     );
                 }
 
@@ -290,7 +350,6 @@ input[type="search"]::-webkit-search-cancel-button {
                     clearTimeout(showLoaderTimeout)
                     isSearching.value = false
                 }
-                filtroChkSolicitudes.value = router.page.props.filtroChkSolicitudes
             }
         }
 
@@ -299,12 +358,16 @@ input[type="search"]::-webkit-search-cancel-button {
             requestOptions.only = ['solicitudes', 'totalesEstatusQuery']
         }
 
+        if (polling) {
+            window.__solicitudesPolling = true;
+        }
+
         // 4. Enviamos el objeto plano como segundo parámetro
         router.post('/solicitudes', filtrosData, requestOptions)
     }
 
-    function onDateChange(fechaSeleccionada) {
-      function resetToLocalMidnight(dateStringOrDate) {
+   function onDateChange(fechaSeleccionada) {
+        function resetToLocalMidnight(dateStringOrDate) {
             const d = typeof dateStringOrDate === 'string'
                 ? new Date(dateStringOrDate + 'T00:00:00') // fuerza hora local
                 : new Date(dateStringOrDate)
@@ -312,7 +375,13 @@ input[type="search"]::-webkit-search-cancel-button {
             return d
         }
 
-        const coincideConShortcut = shortcuts.some(sc => {
+        // Si el usuario limpia o borra las fechas, manejamos un caso base
+        if (!fechaSeleccionada || !fechaSeleccionada[0] || !fechaSeleccionada[1]) {
+            return;
+        }
+
+        // Buscamos si coincide exactamente con algún shortcut
+        const shortcutEncontrado = shortcuts.value.find(sc => {
             const [start, end] = sc.value()
 
             const seleccionadoStart = resetToLocalMidnight(fechaSeleccionada[0])
@@ -322,18 +391,43 @@ input[type="search"]::-webkit-search-cancel-button {
                 resetToLocalMidnight(end).getTime() === seleccionadoEnd.getTime()
         })
 
-        // Si no coincide, asumimos que fue manual
+        const coincideConShortcut = !!shortcutEncontrado
+
+        console.log('DDDD')
         rangoFechasIngresoManual.value = !coincideConShortcut
         rangoFechasShortcut.value = coincideConShortcut
 
-        if (rangoFechasIngresoManual.value)
-        {
-            fechaIngresoInicioQuery.value = rangoFechasIngresoQuery.value[0]
-            fechaIngresoFinQuery.value = rangoFechasIngresoQuery.value[1]
+        if (coincideConShortcut) {
+            // Si coincidió con un shortcut, asignamos su ID correspondiente
+            idRangoFechasIngresoQuery.value = shortcutEncontrado.id
+        } else {
+            // Si fue manual, le asignamos el ID de Custom (por ejemplo, 99)
+            idRangoFechasIngresoQuery.value = 99 
         }
 
-        estatusQuery.value = 'todas';
+        // Asignamos las fechas correctamente desde el arreglo recibido (fechaSeleccionada)
+        // Asegurándonos de formatearlas a 'YYYY-MM-DD' si vienen como objetos Date
+        fechaIngresoInicioQuery.value = formatFechaLocal(fechaSeleccionada[0])
+        fechaIngresoFinQuery.value = formatFechaLocal(fechaSeleccionada[1])
+
         fetchSolicitudes(false)
+    }
+
+    // Función auxiliar recomendada para formatear objetos Date a 'YYYY-MM-DD' sin problemas de zona horaria
+    function formatFechaLocal(date) {
+        if (!date) return '';
+
+        // Si ya es una cadena de texto en formato YYYY-MM-DD, devuélvela directamente
+        if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+            return date;
+        }
+
+        // Si por alguna razón llega un objeto Date, lo procesamos de forma segura con UTC
+        const d = new Date(date);
+        const year = d.getUTCFullYear();
+        const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(d.getUTCDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     }
 
     function onDateChangeAceptacion(fechaSeleccionada) {
@@ -345,7 +439,7 @@ input[type="search"]::-webkit-search-cancel-button {
             return d
         }
 
-        const coincideConShortcut = shortcuts.some(sc => {
+        const coincideConShortcut = shortcuts.value.some(sc => {
             const [start, end] = sc.value()
 
             const seleccionadoStart = resetToLocalMidnight(fechaSeleccionada[0])
@@ -418,272 +512,246 @@ input[type="search"]::-webkit-search-cancel-button {
         clearInterval(intervalo.value)
     })
 
-    const shortcuts = [
-        // {
-        //     id: 1,
-        //     text: 'Hoy',
-        //     value: () => {
-        //         const today = new Date()
-        //         idRangoFechasQuery.value = 1
-        //         rangoFechasShortcut.value = true
-        //         rangoFechasIngresoManual.value = false
-
-        //         return [today, today]
-        //     }
-        // },
+   const shortcuts = computed(() => [
         {
             id: 2,
-            text: 'Sem. Actual',
+            text: `Año Calendario Actual (${new Date().getFullYear()})`,
             value: () => {
-                const today = new Date()
-                const dayOfWeek = today.getDay() // 0 (domingo) - 6 (sábado)
-                const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1 // Si es domingo, retrocede 6 días; si no, retrocede (día - 1)
-                const start = new Date(today)
-                start.setDate(today.getDate() - mondayOffset)
+                const currentYear = new Date().getFullYear()
+
+                fechaIngresoInicioQuery.value = `${currentYear}-01-01`
+                fechaIngresoFinQuery.value = `${currentYear}-12-31`
                 idRangoFechasIngresoQuery.value = 2
                 idRangoFechasAceptacionQuery.value = 2
                 rangoFechasShortcut.value = true
                 rangoFechasIngresoManual.value = false
                 rangoFechasAceptacionManual.value = false
 
-                return [start, today]
+                return [
+                    new Date(currentYear, 0, 1), 
+                    new Date(currentYear, 11, 31)
+                ]
             }
         },
         {
             id: 3,
-            text: 'Mes Actual',
+            text: `Año Calendario Anterior (${new Date().getFullYear() - 1})`,
             value: () => {
-                const today = new Date()
-                const start = new Date(today.getFullYear(), today.getMonth(), 1) // Primer día del mes actual
+                const currentYear = new Date().getFullYear() - 1
+                
                 idRangoFechasIngresoQuery.value = 3
                 idRangoFechasAceptacionQuery.value = 3
                 rangoFechasShortcut.value = true
                 rangoFechasIngresoManual.value = false
                 rangoFechasAceptacionManual.value = false
 
-                return [start, today]
+                fechaIngresoInicioQuery.value = `${currentYear}-01-01`
+                fechaIngresoFinQuery.value = `${currentYear}-12-31`
+
+                return [
+                    new Date(currentYear, 0, 1), 
+                    new Date(currentYear, 11, 31)
+                ]
             }
         },
         {
             id: 4,
-            text: 'Año Actual',
-            value: () => {
-                const today = new Date()
-                const start = new Date(today.getFullYear(), 0, 1) // 0 = enero, 1 = día 1
-                idRangoFechasIngresoQuery.value = 4
-                idRangoFechasAceptacionQuery.value = 4
-                rangoFechasShortcut.value = true
-                rangoFechasIngresoManual.value = false
-                rangoFechasAceptacionManual.value = false
+            get text() {
+                const today = new Date();
+                const [baseYear, baseMonth, baseDay] = periodoActual.value.inicio.split('-').map(Number);
+                
+                let currentYear = today.getFullYear();
+                let currentMonth = today.getMonth() + 1;
+                let currentDay = today.getDate();
 
-                return [start, today]
+                if (currentMonth < baseMonth || (currentMonth === baseMonth && currentDay < baseDay)) {
+                    currentYear -= 1;
+                }
+
+                const startYY = String(currentYear).slice(-2);
+                const endYY = String(currentYear + 1).slice(-2);
+
+                return `Año de Gob. Actual (Nov. '${startYY} - Oct. '${endYY})`;
+            },
+            value: () => {
+                const today = new Date();
+                const [baseYear, baseMonth, baseDay] = periodoActual.value.inicio.split('-').map(Number);
+                
+                let currentYear = today.getFullYear();
+                let currentMonth = today.getMonth() + 1;
+                let currentDay = today.getDate();
+
+                if (currentMonth < baseMonth || (currentMonth === baseMonth && currentDay < baseDay)) {
+                    currentYear -= 1;
+                }
+
+                const start = new Date(currentYear, baseMonth - 1, baseDay);
+                const end = new Date(currentYear + 1, baseMonth - 1, baseDay);
+                end.setDate(end.getDate() - 1); // 31 de octubre
+
+                idRangoFechasIngresoQuery.value = 4;
+                idRangoFechasAceptacionQuery.value = 4;
+                rangoFechasShortcut.value = true;
+                rangoFechasIngresoManual.value = false;
+                rangoFechasAceptacionManual.value = false;
+
+                const endYear = currentYear + 1;
+                fechaIngresoInicioQuery.value = `${currentYear}-${String(baseMonth).padStart(2, '0')}-${String(baseDay).padStart(2, '0')}`;
+                fechaIngresoFinQuery.value = `${endYear}-10-31`;
+
+                return [start, end];
             }
         },
         {
             id: 5,
-            text: 'Sem. Pasada',
+            get text() {
+                const today = new Date();
+                const [baseYear, baseMonth, baseDay] = periodoActual.value.inicio.split('-').map(Number);
+                
+                let currentYear = today.getFullYear();
+                let currentMonth = today.getMonth() + 1;
+                let currentDay = today.getDate();
+
+                if (currentMonth < baseMonth || (currentMonth === baseMonth && currentDay < baseDay)) {
+                    currentYear -= 1;
+                }
+
+                const prevYear = currentYear - 1;
+                const startYY = String(prevYear).slice(-2);
+                const endYY = String(prevYear + 1).slice(-2);
+
+                return `Año de Gob. Anterior (Nov '${startYY} - Oct '${endYY})`;
+            },
             value: () => {
-                const today = new Date()
-                const dayOfWeek = today.getDay() // 0 (domingo) - 6 (sábado)
-                const currentMondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+                const today = new Date();
+                const [baseYear, baseMonth, baseDay] = periodoActual.value.inicio.split('-').map(Number);
+                
+                let currentYear = today.getFullYear();
+                let currentMonth = today.getMonth() + 1;
+                let currentDay = today.getDate();
 
-                // Lunes pasado = lunes de esta semana - 7 días
-                const start = new Date(today)
-                start.setDate(today.getDate() - currentMondayOffset - 7)
+                if (currentMonth < baseMonth || (currentMonth === baseMonth && currentDay < baseDay)) {
+                    currentYear -= 1;
+                }
 
-                // Domingo pasado = lunes pasado + 6 días
-                const end = new Date(start)
-                end.setDate(start.getDate() + 6)
-                idRangoFechasIngresoQuery.value = 5
-                idRangoFechasAceptacionQuery.value = 5
-                rangoFechasShortcut.value = true
-                rangoFechasIngresoManual.value = false
-                rangoFechasAceptacionManual.value = false
+                const prevYear = currentYear - 1;
+                const start = new Date(prevYear, baseMonth - 1, baseDay);
+                const end = new Date(prevYear + 1, baseMonth - 1, baseDay);
+                end.setDate(end.getDate() - 1);
 
-                return [start, end]
+                idRangoFechasIngresoQuery.value = 5;
+                idRangoFechasAceptacionQuery.value = 5;
+                rangoFechasShortcut.value = true;
+                rangoFechasIngresoManual.value = false;
+                rangoFechasAceptacionManual.value = false;
+
+                const endYear = prevYear + 1;
+                fechaIngresoInicioQuery.value = `${prevYear}-${String(baseMonth).padStart(2, '0')}-${String(baseDay).padStart(2, '0')}`;
+                fechaIngresoFinQuery.value = `${endYear}-10-31`;
+
+                return [start, end];
             }
         },
         {
             id: 6,
-            text: 'Mes Pasado',
+            text: 'Semana Actual',
             value: () => {
-                const today = new Date()
+                const now = new Date();
+                const day = now.getDay();
+                // Ajuste para que la semana inicie en lunes (si es domingo, day es 0)
+                const diffToMonday = now.getDate() - day + (day === 0 ? -6 : 1);
+                
+                const start = new Date(now.setDate(diffToMonday));
+                start.setHours(0, 0, 0, 0);
+                
+                const end = new Date(start);
+                end.setDate(start.getDate() + 6);
+                end.setHours(0, 0, 0, 0);
 
-                // Primer día del mes pasado
-                const start = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+                idRangoFechasIngresoQuery.value = 6;
+                idRangoFechasAceptacionQuery.value = 6;
+                rangoFechasShortcut.value = true;
+                rangoFechasIngresoManual.value = false;
+                rangoFechasAceptacionManual.value = false;
 
-                // Último día del mes pasado
-                const end = new Date(today.getFullYear(), today.getMonth(), 0) // Día 0 del mes actual = último del anterior
-                idRangoFechasIngresoQuery.value = 6
-                idRangoFechasAceptacionQuery.value = 6
-                rangoFechasShortcut.value = true
-                rangoFechasIngresoManual.value = false
-                rangoFechasAceptacionManual.value = false
+                const formatDateStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                fechaIngresoInicioQuery.value = formatDateStr(start);
+                fechaIngresoFinQuery.value = formatDateStr(end);
 
-                return [start, end]
+                return [start, end];
             }
         },
         {
             id: 7,
-            text: 'Año Pasado',
+            text: 'Semana Anterior',
             value: () => {
-                const start = new Date(new Date().getFullYear() - 1, 0, 1) // 1 de enero del año anterior
-                const end = new Date(new Date().getFullYear() - 1, 11, 31) // 31 de diciembre del año anterior
-                idRangoFechasIngresoQuery.value = 7
-                idRangoFechasAceptacionQuery.value = 7
-                rangoFechasShortcut.value = true
-                rangoFechasIngresoManual.value = false
-                rangoFechasAceptacionManual.value = false
+                const now = new Date();
+                const day = now.getDay();
+                const diffToMonday = now.getDate() - day + (day === 0 ? -6 : 1) - 7;
+                
+                const start = new Date(now.setDate(diffToMonday));
+                start.setHours(0, 0, 0, 0);
+                
+                const end = new Date(start);
+                end.setDate(start.getDate() + 6);
+                end.setHours(0, 0, 0, 0);
 
-                return [start, end]
+                idRangoFechasIngresoQuery.value = 7;
+                idRangoFechasAceptacionQuery.value = 7;
+                rangoFechasShortcut.value = true;
+                rangoFechasIngresoManual.value = false;
+                rangoFechasAceptacionManual.value = false;
+
+                const formatDateStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                fechaIngresoInicioQuery.value = formatDateStr(start);
+                fechaIngresoFinQuery.value = formatDateStr(end);
+
+                return [start, end];
             }
         },
         {
             id: 8,
-            text: 'Últ. Semana',
+            text: 'Mes Actual',
             value: () => {
-                const end = new Date()
-                const start = new Date()
-                start.setTime(start.getTime() - 3600 * 1000 * 24 * 7)
-                idRangoFechasIngresoQuery.value = 8
-                idRangoFechasAceptacionQuery.value = 8
-                rangoFechasShortcut.value = true
-                rangoFechasIngresoManual.value = false
-                rangoFechasAceptacionManual.value = false
+                const now = new Date();
+                const start = new Date(now.getFullYear(), now.getMonth(), 1);
+                const end = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Último día del mes actual
 
-                return [start, end]
+                idRangoFechasIngresoQuery.value = 8;
+                idRangoFechasAceptacionQuery.value = 8;
+                rangoFechasShortcut.value = true;
+                rangoFechasIngresoManual.value = false;
+                rangoFechasAceptacionManual.value = false;
+
+                const formatDateStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                fechaIngresoInicioQuery.value = formatDateStr(start);
+                fechaIngresoFinQuery.value = formatDateStr(end);
+
+                return [start, end];
             }
         },
         {
             id: 9,
-            text: 'Últ. Mes',
+            text: 'Mes Anterior',
             value: () => {
-                const end = new Date()
-                const start = new Date()
-                start.setMonth(start.getMonth() - 1)
-                idRangoFechasIngresoQuery.value = 9
-                idRangoFechasAceptacionQuery.value = 9
-                rangoFechasShortcut.value = true
-                rangoFechasIngresoManual.value = false
-                rangoFechasAceptacionManual.value = false
+                const now = new Date();
+                const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                const end = new Date(now.getFullYear(), now.getMonth(), 0); // Último día del mes anterior
 
-                return [start, end]
-            }
-        },
-        {
-            id: 10,
-            text: 'Últ. Año',
-            value: () => {
-                const end = new Date()
-                const start = new Date()
-                start.setFullYear(start.getFullYear() - 1)
-                idRangoFechasIngresoQuery.value = 10
-                idRangoFechasAceptacionQuery.value = 10
-                rangoFechasShortcut.value = true
-                rangoFechasIngresoManual.value = false
-                rangoFechasAceptacionManual.value = false
-
-                return [start, end]
-            }
-        },
-        // En tu objeto de shorcuts
-        {
-            id: 11,
-            text: '1er Año Gob',
-            value: () => {
-                // Obtenemos el año de la fecha de inicio del periodo actual.
-                const startYear = new Date(periodoActual.value.inicio).getFullYear();
-                
-                // Se establece en el 1 de noviembre del año de inicio del periodo.
-                const start = periodoActual.value.inicio; 
-
-                // Creamos la fecha de fin para el 1er año de gobierno.
-                const end = new Date(startYear + 1, 9, 31); // El mes 9 es octubre (0-indexado)
-
-                idRangoFechasIngresoQuery.value = 11;
-                idRangoFechasAceptacionQuery.value = 11
+                idRangoFechasIngresoQuery.value = 9;
+                idRangoFechasAceptacionQuery.value = 9;
                 rangoFechasShortcut.value = true;
                 rangoFechasIngresoManual.value = false;
-                rangoFechasAceptacionManual.value = false
+                rangoFechasAceptacionManual.value = false;
 
-                return [start, end];
-            },
-        },
-        {
-            id: 12, 
-            text: '2do Año Gob',
-            value: () => {
-                // Agregamos 'T00:00:00' para que JavaScript interprete la fecha en la zona horaria local.
-                const inicioStringLocal = periodoActual.value.inicio + 'T00:00:00';
+                const formatDateStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                fechaIngresoInicioQuery.value = formatDateStr(start);
+                fechaIngresoFinQuery.value = formatDateStr(end);
 
-                // Creamos la fecha base a partir de la cadena de texto local.
-                const baseDate = new Date(inicioStringLocal);
-                
-                // Ahora, ajustamos el año según lo que necesites para el 2do año de gobierno
-                const startYear = baseDate.getFullYear() + 1; // 2024 + 1 = 2025
-                
-                // Creamos la fecha de inicio del segundo año
-                const start = new Date(startYear, baseDate.getMonth(), baseDate.getDate());
-                
-                // Creamos la fecha de fin (1 año después de la fecha de inicio menos un día)
-                const end = new Date(start);
-                end.setFullYear(end.getFullYear() + 1);
-                end.setDate(end.getDate() - 1); 
-
-                // Actualiza tus refs
-                idRangoFechasIngresoQuery.value = 11;
-                idRangoFechasAceptacionQuery.value = 11
-                rangoFechasShortcut.value = true;
-                rangoFechasIngresoManual.value = false;
-                rangoFechasAceptacionManual.value = false
-                
                 return [start, end];
             }
-        },
-        {
-            id: 13, 
-            text: '3er Año Gob',
-            value: () => {
-                // Agregamos 'T00:00:00' para que JavaScript interprete la fecha en la zona horaria local.
-                const inicioStringLocal = periodoActual.value.inicio + 'T00:00:00';
-
-                // Creamos la fecha base a partir de la cadena de texto local.
-                const baseDate = new Date(inicioStringLocal);
-                
-                // Ahora, ajustamos el año según lo que necesites para el 2do año de gobierno
-                const startYear = baseDate.getFullYear() + 2; // 2024 + 1 = 2025
-                
-                // Creamos la fecha de inicio del segundo año
-                const start = new Date(startYear, baseDate.getMonth(), baseDate.getDate());
-                
-                // Creamos la fecha de fin (1 año después de la fecha de inicio menos un día)
-                const end = new Date(start);
-                end.setFullYear(end.getFullYear() + 1);
-                end.setDate(end.getDate() - 1); 
-
-                // Actualiza tus refs
-                idRangoFechasIngresoQuery.value = 11;
-                idRangoFechasAceptacionQuery.value = 11
-                rangoFechasShortcut.value = true;
-                rangoFechasIngresoManual.value = false;
-                rangoFechasAceptacionManual.value = false
-                
-                return [start, end];
-            }
-        },
-    ]
-
-    watch(rangoFechasIngresoQuery, (nuevoValor) => {
-        if (Array.isArray(nuevoValor) && nuevoValor.length === 2 && nuevoValor[0] && nuevoValor[1]) {
-            fechaIngresoInicioQuery.value = nuevoValor[0]
-            fechaIngresoFinQuery.value = nuevoValor[1]
-            rangoFechasAceptacionQuery.value[0] = null
-            rangoFechasAceptacionQuery.value[1] = null
-            fechaAceptacionInicioQuery.value = null
-            fechaAceptacionFinQuery.value = null
-            onDateChange(nuevoValor)
         }
-    })
+    ])
 
     watch(rangoFechasAceptacionQuery, (nuevoValor) => {
         if (Array.isArray(nuevoValor) && nuevoValor.length === 2 && nuevoValor[0] && nuevoValor[1]) {
@@ -697,32 +765,38 @@ input[type="search"]::-webkit-search-cancel-button {
         }
     })
 
+    const fechaInicio = ref(props.fechaIngresoInicioQuery);
+    const fechaFin = ref(props.fechaIngresoFinQuery);
+
+// Watch para monitorear y comparar lo que llega por props al componente hijo
+watch(
+    () => [props.fechaIngresoInicioQuery, props.fechaIngresoFinQuery],
+    ([nuevoInicio, nuevoFin]) => {
+        // Sincronizamos con las variables internas de la tabla
+        fechaInicio.value = nuevoInicio;
+        fechaFin.value = nuevoFin;
+    },
+    { immediate: true }
+);
+
     function handlePageChange(page) {
+
         router.post('/solicitudes', {
             fechaIngresoInicioQuery: fechaIngresoInicioQuery.value,
             fechaIngresoFinQuery: fechaIngresoFinQuery.value,
             fechaAceptacionInicioQuery: fechaAceptacionInicioQuery.value,
             fechaAceptacionFinQuery: fechaAceptacionFinQuery.value,
-            numQuery: numQuery.value,
-            folioQuery: folioQuery.value,
-            nombreQuery: nombreQuery.value,
-            claveCatastralQuery: claveCatastralQuery.value,
-            tiposTramitesQuery: tiposTramitesQuery.value,
-            tramitesQuery: tramitesQuery.value,
-            localidadesQueryFiltradas: localidadesQueryFiltradas.value,
+            areasQuery: areasQuery.value,
             estatusQuery: estatusQuery.value,
-            filtroChkSolicitudes: filtroChkSolicitudes.value,
             rangoFechasIngresoManual: rangoFechasIngresoManual.value,
             rangoFechasAceptacionManual: rangoFechasAceptacionManual.value,
-            sortColumn: sortColumn.value,
-            sortDirection: sortDirection.value,
+            sortCriteriaQuery: sortCriteriaQuery.value,
             page: page
         }, {
             preserveState: true,
             replace: true,
             onFinish: () => {
                 isLoading.value = false;
-                filtroChkSolicitudes.value = router.page.props.filtroChkSolicitudes;
             }
         });
     }
@@ -731,20 +805,6 @@ input[type="search"]::-webkit-search-cancel-button {
     const CustomCalendarDown = CalendarDown; 
 
     const busquedaIndexada = ref(false); // Inicialmente en false
-
-    watch(folioQuery, (newValue) => {
-        // Si el valor cambia, activamos la bandera.
-        busquedaIndexada.value = true;
-        
-        if (newValue === '') {
-            busquedaIndexada.value = false;
-        }
-
-        if (folioQuery.value == 'n' || folioQuery.value == 'N')  //Muestra las solicitudes sin folio
-        {
-            busquedaIndexada.value = false
-        }
-    });
 
         const getStatusColor = (colorKey) => {
             const colors = {
@@ -762,7 +822,7 @@ input[type="search"]::-webkit-search-cancel-button {
 
         // En tus métodos o computed properties de Vue:
     const esTerminal = (idEstatus) => {
-        const estatusTerminales = [3, 4]; // Ajusta según los IDs reales de tu base de datos
+        const estatusTerminales = [4]; // Ajusta según los IDs reales de tu base de datos
         return estatusTerminales.includes(Number(idEstatus));
     };
 
@@ -775,6 +835,22 @@ input[type="search"]::-webkit-search-cancel-button {
         // Si está activa, abrimos el modal de edición normal
         abreModalEditarSolicitud(solicitud);
     };
+
+    const currentSortIcon = computed(() => {
+        switch (sortCriteriaQuery.value) {
+            case 'fecha_desc':
+            case 'fecha_asc':
+                return `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>`; // o el icono de flechas/calendario que prefieras para fechas
+            case 'solicitante_asc':
+            case 'solicitante_desc':
+                return `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>`;
+            case 'area_asc':
+            case 'area_desc':
+                return `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>`;
+            default:
+                return `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" /></svg>`;
+        }
+    });
 </script>
 
 <template>
@@ -810,22 +886,28 @@ input[type="search"]::-webkit-search-cancel-button {
 
                                 <!-- Lado Derecho: Badge de Estado + Folio Juntos -->
                                 <div class="flex items-center gap-3 flex-wrap self-start sm:self-center">
-                                    
+                                    <span v-if="soloLectura" class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ring-1 ring-inset bg-color1-50 text-color1-700 dark:bg-color1-950/50 dark:text-color1-400 ring-color1-600/25">
+                                        <span class="inline-flex items-center shrink-0 text-color1-700 dark:text-gray-500" title="Solo lectura">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                                <rect x="3" y="11" width="18" height="11" rx="2"/>
+                                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                            </svg>
+                                        </span>
+                                        Solo lectura
+                                    </span>
                                     <!-- Badge de Estado (Captura / Edición) -->
-                                    <span 
+                                    <span v-else
                                         class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ring-1 ring-inset"
                                         :class="!solicitudSeleccionada 
                                             ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400 ring-amber-600/25' 
-                                            : 'bg-color1-50 text-color1-700 dark:bg-color1-950/50 dark:text-color1-400 ring-color1-600/25'"
-                                    >
+                                            : 'bg-color1-50 text-color1-700 dark:bg-color1-950/50 dark:text-color1-400 ring-color1-600/25'">
                                         {{ !solicitudSeleccionada ? 'Modo Captura' : 'Modo Edición' }}
                                     </span>
 
                                     <!-- Bloque de Folio (Solo si existe ID) -->
                                     <div 
                                         v-if="solicitudSeleccionada?.id"
-                                        class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400"
-                                    >
+                                        class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
                                         <span class="text-gray-400 dark:text-gray-500 uppercase tracking-wider font-medium">
                                             Folio:
                                         </span>
@@ -852,6 +934,7 @@ input[type="search"]::-webkit-search-cancel-button {
                         :fechaIngresoFinQuery = "fechaIngresoFinQuery"
                         :estatusQuery = "estatusQuery"
                         :areasQuery = "areasQuery"
+                        :sortCriteriaQuery = "sortCriteriaQuery"
                         :page = "page"
                         @close="showModal = false"
                     />
@@ -930,6 +1013,7 @@ input[type="search"]::-webkit-search-cancel-button {
                             :searchQuery="searchQuery"
                             :estatusQuery = "estatusQuery"
                             :areasQuery = "areasQuery"
+                            :sortCriteriaQuery = "sortCriteriaQuery"
                             :fechaIngresoInicioQuery = "fechaIngresoInicioQuery"
                             :fechaIngresoFinQuery = "fechaIngresoFinQuery"
                             :page = "page"
@@ -993,10 +1077,10 @@ input[type="search"]::-webkit-search-cancel-button {
 
         <div class="mb-5 space-y-3 bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 shadow-sm p-3.5 sm:p-4 rounded-xl">
             <!-- Fila 1: Contenedor Adaptativo de Filtros -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 xl:flex xl:flex-row items-stretch xl:items-center justify-between gap-3">
-                <!-- 1. Rango de Fechas con Element Plus -->
-                <div class="space-y-1 w-full xl:w-auto z-10">
-                    <span class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Periodo de Solicitudes</span>
+            <div class="flex flex-col xl:flex-row items-stretch xl:items-center gap-3 w-full">
+                <!-- 1. Rango de Fechas (Tamaño normal/fijo en escritorio) -->
+                <div class="space-y-1 w-full xl:w-[260px] flex-shrink-0 z-10">
+                    <span class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 pl-1">Periodo de Solicitudes</span>
                     <el-date-picker
                         v-model="rangoFechasIngresoQuery"
                         type="daterange"
@@ -1005,7 +1089,7 @@ input[type="search"]::-webkit-search-cancel-button {
                         start-placeholder="-"
                         end-placeholder="-"
                         :shortcuts="shortcuts"
-                        class="custom-date-picker !w-full xl:w-[260px]"
+                        class="custom-date-picker !w-full"
                         value-format="YYYY-MM-DD"
                         format="DD/MM/YYYY"
                         @change="onDateChange"
@@ -1013,12 +1097,13 @@ input[type="search"]::-webkit-search-cancel-button {
                         :disabled="busquedaIndexada"
                         :clearable="false"
                         style="border-radius: 16px!important"
+                        popper-class="custom-date-range-popper"
                     />
                 </div>
 
-                <!-- 4. Buscador de Texto Libre (Toma el espacio restante en desktop) -->
-                <form @submit.prevent="estatusQuery = 'todas'; searchQueryConfirmado = searchQuery; realizarBusqueda();" class="space-y-1 w-full xl:flex-1">
-                    <span class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Búsqueda rápida</span>
+                <!-- 2. Buscador de Texto Libre (Ocupa el doble de espacio: flex-[2]) -->
+                <form @submit.prevent="estatusQuery = 'todas'; searchQueryConfirmado = searchQuery; realizarBusqueda();" class="space-y-1 w-full xl:flex-[2]">
+                    <span class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 pl-1">Búsqueda rápida</span>
                     <div class="relative w-full">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-700">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1028,16 +1113,53 @@ input[type="search"]::-webkit-search-cancel-button {
                         <input 
                             type="search" 
                             v-model="searchQuery"
+                            :disabled="solicitudes.length === 0 && (!searchQuery || searchQuery?.length === 0)"
                             @search="searchQueryConfirmado = searchQuery; estatusQuery = 'todas'; realizarBusqueda();"
                             placeholder="Buscar por folio, solicitante o petición..."
                             style="border-radius: 16px!important; min-height: 38px !important;"
-                            class="block  w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded-lg border border-gray-300 shadow-sm dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-color1 focus:border-transparent transition-all"
+                            class="block w-full pl-10 pr-3 py-2 text-xs sm:text-sm rounded-lg border border-gray-300 shadow-sm dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-color1 focus:border-transparent transition-all disabled:cursor-not-allowed disabled:bg-gray-100 dark:disabled:bg-gray-900 disabled:focus:ring-0 disabled:focus:border-gray-300 dark:disabled:focus:border-gray-700"
+                            :class="{ 'sin-solicitudes': (solicitudes.length === 0 && (!searchQuery || searchQuery?.length === 0)) }"
                         />
                     </div>
                 </form>
+
+                <!-- 3. Selector de Áreas (Tamaño normal/fijo en escritorio) -->
+                <div class="space-y-1 w-full xl:w-[360px] flex-shrink-0 z-10">
+                    <span class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 pl-1">
+                        Áreas
+                    </span>
+                    <el-select
+                        v-model="areasQuery"
+                        class="custom-select-gray !w-full"
+                        :class="{ 'sin-solicitudes': (solicitudes.length === 0 && (!areasQuery || areasQuery?.length === 0)) }"
+                        collapse-tags
+                        collapse-tags-tooltip
+                        :max-collapse-tags="1"
+                        multiple
+                        placeholder="Buscar por área(s)"
+                        value-key="value"
+                        @change="realizarBusqueda()">
+                        <template #prefix>
+                            <div class="hidden sm:flex items-center ml-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2 text-gray-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M11 19h-6a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2h4l3 3h7a2 2 0 0 1 2 2v2.5" />
+                                    <path d="M18 18m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
+                                    <path d="M20.2 20.2l1.8 1.8" />
+                                </svg>
+                            </div>
+                        </template>
+                        <el-option v-for="item in areasList" :key="item.id" :label="item.nombre" :value="item.id">
+                            <div class="flex items-center">
+                                <span class="w-4 h-5 mr-2"></span>
+                                <span class="text-xs">{{ item.nombre }}</span>
+                            </div>
+                        </el-option>
+                    </el-select>
+                </div>
             </div>
 
-            <div class="pt-2 pb-4 sm:pb-0 pr-1 dark:border-gray-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 overflow-x-visible sm:overflow-x-hidden">
+            <div class="pt-2 pb-4 sm:pb-0 pr-1 dark:border-gray-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6 overflow-x-visible sm:overflow-x-hidden">
                 <!-- Contenedor de las píldoras (scroll horizontal independiente si hace falta) -->
                 <div class="flex pl-1 pr-1 pt-3 items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar shrink-0">
                     <button
@@ -1052,8 +1174,7 @@ input[type="search"]::-webkit-search-cancel-button {
                                 : estatusQuery === 'todas'
                                     ? 'cursor-pointer bg-gray-800 text-white dark:bg-white dark:text-gray-900 shadow-sm font-bold border border-transparent hover:-translate-y-0.5 hover:shadow-md'
                                     : 'cursor-pointer bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-800 hover:border-gray-400 dark:hover:border-gray-600 hover:-translate-y-0.5 hover:shadow-md hover:text-gray-900 dark:hover:text-white font-semibold'
-                        ]"
-                    >
+                        ]">
                         TODAS
                         <span
                             :class="
@@ -1061,8 +1182,7 @@ input[type="search"]::-webkit-search-cancel-button {
                                     ? 'bg-black/20 text-white dark:bg-black/30'
                                     : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
                             "
-                            class="ml-1 px-1.5 py-0.5 text-[10px] rounded-full font-semibold"
-                        >
+                            class="ml-1 px-1.5 py-0.5 text-[10px] rounded-full font-semibold">
                             {{ totalesEstatusQuery.todas }}
                         </span>
                     </button>
@@ -1086,8 +1206,7 @@ input[type="search"]::-webkit-search-cancel-button {
                                 : estatusQuery === 'enTramite'
                                     ? 'cursor-pointer text-white shadow-sm font-bold border hover:-translate-y-0.5 hover:shadow-md'
                                     : 'cursor-pointer bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-800 hover:border-gray-400 dark:hover:border-gray-600 hover:-translate-y-0.5 hover:shadow-md hover:text-gray-900 dark:hover:text-white font-semibold'
-                        ]"
-                    >
+                        ]">
                         <span class="w-2 h-2 rounded-full shrink-0" :style="{ backgroundColor: estatusQuery === 'enTramite' ? '#ffffff' : getStatusColor('warning') }"></span>
                         EN TRÁMITE
                         <span :class="estatusQuery === 'enTramite' ? 'bg-black/20 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'" class="text-[10px] ml-1 px-1.5 py-0.5 rounded-full font-semibold">
@@ -1113,8 +1232,7 @@ input[type="search"]::-webkit-search-cancel-button {
                                 : estatusQuery === 'aprobadas'
                                     ? 'cursor-pointer text-white shadow-sm font-bold border hover:-translate-y-0.5 hover:shadow-md'
                                     : 'cursor-pointer bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-800 hover:border-gray-400 dark:hover:border-gray-600 hover:-translate-y-0.5 hover:shadow-md hover:text-gray-900 dark:hover:text-white font-semibold'
-                        ]"
-                    >
+                        ]">
                         <span class="w-2 h-2 rounded-full shrink-0" :style="{ backgroundColor: estatusQuery === 'aprobadas' ? '#ffffff' : getStatusColor('primary') }"></span>
                         APROBADAS
                         <span :class="estatusQuery === 'aprobadas' ? 'bg-black/20 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'" class="text-[10px] ml-1 px-1.5 py-0.5 rounded-full font-semibold">
@@ -1140,8 +1258,7 @@ input[type="search"]::-webkit-search-cancel-button {
                                 : estatusQuery === 'apoyoEntregado'
                                     ? 'cursor-pointer text-white shadow-sm font-bold border hover:-translate-y-0.5 hover:shadow-md'
                                     : 'cursor-pointer bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-800 hover:border-gray-400 dark:hover:border-gray-600 hover:-translate-y-0.5 hover:shadow-md hover:text-gray-900 dark:hover:text-white font-semibold'
-                        ]"
-                    >
+                        ]">
                         <span class="w-2 h-2 rounded-full shrink-0" :style="{ backgroundColor: estatusQuery === 'apoyoEntregado' ? '#ffffff' : getStatusColor('success') }"></span>
                         APOYO ENTREGADO
                         <span :class="estatusQuery === 'apoyoEntregado' ? 'bg-black/20 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'" class="text-[10px] ml-1 px-1.5 py-0.5 rounded-full font-semibold">
@@ -1167,44 +1284,95 @@ input[type="search"]::-webkit-search-cancel-button {
                                 : estatusQuery === 'canceladas'
                                     ? 'cursor-pointer text-white shadow-sm font-bold border hover:-translate-y-0.5 hover:shadow-md'
                                     : 'cursor-pointer bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-800 hover:border-gray-400 dark:hover:border-gray-600 hover:-translate-y-0.5 hover:shadow-md hover:text-gray-900 dark:hover:text-white font-semibold'
-                        ]"
-                    >
+                        ]">
                         <span class="w-2 h-2 rounded-full shrink-0" :style="{ backgroundColor: estatusQuery === 'canceladas' ? '#ffffff' : getStatusColor('danger') }"></span>
                         CANCELADAS
                         <span :class="estatusQuery === 'canceladas' ? 'bg-black/20 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'" class="text-[10px] ml-1 px-1.5 py-0.5 rounded-full font-semibold">
                             {{ totalesEstatusQuery.canceladas }}
                         </span>
                     </button>
+                
                 </div>
+                <div class="flex items-center pt-2 gap-2 px-0 sm:px-0 shrink-0">
+                    <el-select 
+                        v-model="sortCriteriaQuery" 
+                        placeholder="Ordenar por"
+                        class="custom-select-gray w-full sm:w-[280px]" style="width: 355px;"
+                        @change="realizarBusqueda()"
+                        :class="{ 'sin-solicitudes': solicitudes.length === 0 }">
+                        <!-- Slot prefix dinámico -->
+                        <template #prefix>
+                            <div class="flex items-center ml-1 mr-2 text-gray-600 dark:text-gray-400" v-html="currentSortIcon"></div>
+                        </template>
 
-                <!-- Select de Áreas (Abajo en móviles, a la derecha en escritorio) -->
-                <el-select
-                    v-model="areasQuery"
-                    class="custom-select-gray pt-2 w-full sm:w-auto sm:ml-12"
-                    collapse-tags
-                    collapse-tags-tooltip
-                    :max-collapse-tags="1"
-                    multiple
-                    placeholder="Buscar por área(s)"
-                    value-key="value"
-                    @change="realizarBusqueda()">
-                    <template #prefix>
-                        <div class="hidden sm:flex items-center ml-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2 text-gray-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                <path d="M11 19h-6a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2h4l3 3h7a2 2 0 0 1 2 2v2.5" />
-                                <path d="M18 18m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
-                                <path d="M20.2 20.2l1.8 1.8" />
-                            </svg>
-                        </div>
-                    </template>
-                    <el-option v-for="item in areasList" :key="item.id" :label="item.nombre" :value="item.id">
-                        <div class="flex items-center">
-                            <span class="w-4 h-5 mr-2"></span>
-                            <span class="text-xs">{{ item.nombre }}</span>
-                        </div>
-                    </el-option>
-                </el-select>
+                        <!-- Tus el-option con sus respectivos svg (igual que antes) -->
+                        <el-option value="fecha_desc" label="De las más recientes a las más antiguas">
+                            <div class="flex items-center">
+                                <span class="w-4 h-4 mr-2 text-gray-400 flex items-center justify-center">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                                    </svg>
+                                </span>
+                                <span class="text-xs">De las más recientes a las más antiguas</span>
+                            </div>
+                        </el-option>
+
+                        <el-option value="fecha_asc" label="De las más antiguas a las más recientes">
+                            <div class="flex items-center">
+                                <span class="w-4 h-4 mr-2 text-gray-400 flex items-center justify-center">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                                    </svg>
+                                </span>
+                                <span class="text-xs">De las más antiguas a las más recientes</span>
+                            </div>
+                        </el-option>
+
+                        <el-option value="solicitante_asc" label="Solicitante (A - Z)">
+                            <div class="flex items-center">
+                                <span class="w-4 h-4 mr-2 text-gray-400 flex items-center justify-center">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                </span>
+                                <span class="text-xs">Solicitante (A - Z)</span>
+                            </div>
+                        </el-option>
+
+                        <el-option value="solicitante_desc" label="Solicitante (Z - A)">
+                            <div class="flex items-center">
+                                <span class="w-4 h-4 mr-2 text-gray-400 flex items-center justify-center">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                </span>
+                                <span class="text-xs">Solicitante (Z - A)</span>
+                            </div>
+                        </el-option>
+
+                        <el-option value="area_asc" label="Área (A - Z)">
+                            <div class="flex items-center">
+                                <span class="w-4 h-4 mr-2 text-gray-400 flex items-center justify-center">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                    </svg>
+                                </span>
+                                <span class="text-xs">Área (A - Z)</span>
+                            </div>
+                        </el-option>
+
+                        <el-option value="area_desc" label="Área (Z - A)">
+                            <div class="flex items-center">
+                                <span class="w-4 h-4 mr-2 text-gray-400 flex items-center justify-center">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                    </svg>
+                                </span>
+                                <span class="text-xs">Área (Z - A)</span>
+                            </div>
+                        </el-option>
+                    </el-select>
+                </div>             
             </div>
         </div>
 
@@ -1223,8 +1391,7 @@ input[type="search"]::-webkit-search-cancel-button {
                         
                         /* Clases estáticas y sin hover si es TERMINAL */
                         'border-gray-200 dark:border-gray-800/80 cursor-default': esTerminal(solicitud.id_estatus)
-                    }"
-                >
+                    }">
                     <div class="flex items-center justify-between gap-2 px-3 py-2.5 border-b border-gray-100 dark:border-gray-700/60">
                         <!-- Badge / Pastilla Neutral -->
                         <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-gray-100 dark:bg-gray-700/60 text-gray-900 dark:text-white">
@@ -1263,10 +1430,10 @@ input[type="search"]::-webkit-search-cancel-button {
 
                                 <!-- Localidad y Teléfono -->
                                 <div class="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400 mt-0.5" :class="{ 'line-through': Number(solicitud.id_estatus) === 4 }">
-                                    <span v-if="solicitud.solicitante?.id_localidad" class="truncate">
-                                        {{ solicitud.solicitante.localidad?.nombre }}
+                                    <span v-if="solicitud.localidad_beneficiada?.id" class="truncate">
+                                        {{ solicitud.localidad_beneficiada?.nombre }}
                                     </span>
-                                    <span v-if="solicitud.solicitante?.id_localidad && solicitud.solicitante.numero_telefonico" class="text-gray-300 dark:text-gray-700">
+                                    <span v-if="solicitud.localidad_beneficiada?.id && solicitud.solicitante.numero_telefonico" class="text-gray-300 dark:text-gray-700">
                                         •
                                     </span>
                                     <span v-if="solicitud.solicitante?.numero_telefonico" class="truncate">
@@ -1311,8 +1478,7 @@ input[type="search"]::-webkit-search-cancel-button {
                                         borderColor: `${getStatusColor(solicitud.estatus.color)}30`,
                                         opacity: '1 !important'
                                     }"
-                                    style="border-width: 1px;"
-                                >
+                                    style="border-width: 1px;">
                                     <span class="w-1.5 h-1.5 rounded-full shrink-0" :style="{ backgroundColor: getStatusColor(solicitud.estatus.color) }"></span>
                                     {{ solicitud.estatus.nombre }}
                                 </span>
@@ -1321,13 +1487,45 @@ input[type="search"]::-webkit-search-cancel-button {
                             <!-- Monto aprobado -->
                             <div v-if="solicitud.cantidad_aprobada" class="flex items-center justify-between gap-3 pt-1.5 border-t border-gray-200/60 dark:border-gray-800"
                             :class="{ 'opacity-50 grayscale-[30%] line-through': Number(solicitud.id_estatus) === 4 }">
-                                <span class="text-gray-600 dark:text-gray-300 font-semibold">Cant. aprobada</span>
-                                <span class="font-bold tracking-tight text-sm" :style="{ color: getStatusColor(solicitud.estatus.color) }">
+                                <span class="text-gray-600 dark:text-gray-300 font-semibold">
+                                    <template v-if="Number(solicitud.id_tipo_apoyo) === 2">
+                                        {{ Number(solicitud.id_estatus) === 3 ? 'Inversión realizada' : 'Inversión estimada' }}
+                                    </template>
+                                    <template v-else>
+                                        {{ Number(solicitud.id_estatus) === 3 ? 'Monto ejercido' : 'Monto aprobado' }}
+                                    </template>
+                                </span>
+                                <span class="font-bold tracking-tight text-sm"
+                                :class="Number(solicitud.id_tipo_apoyo) === 2 
+                                    ? 'text-color4-600 dark:text-color4-300' 
+                                    : 'text-color2-600 dark:text-color2-300'">
                                     $ {{ Number(solicitud.cantidad_aprobada).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} 
                                     <span class="text-[10px] font-normal opacity-75 relative inline-block">
                                         MXN
                                         <span v-if="Number(solicitud.id_estatus) === 4" class="absolute inset-x-0 top-1/2 h-[1px] bg-current -translate-y-1/2"></span>
                                     </span>
+                                </span>
+                            </div>
+
+                            <!-- Tipo de apoyo (Misma estructura que Fecha y Área) -->
+                            <div class="flex items-center justify-between gap-3"
+                                :class="{ 'opacity-50 grayscale-[30%] line-through': Number(solicitud.id_estatus) === 4 }">
+                                <span class="text-gray-500 dark:text-gray-400 font-medium">Tipo de apoyo</span>
+                                <span class="inline-flex items-center gap-1.5 font-semibold text-gray-700 dark:text-gray-200 uppercase text-xs">
+                                    <!-- Ícono Billete (Efectivo) -->
+                                    <svg v-if="Number(solicitud.id_tipo_apoyo) === 1" xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-color2-600 dark:text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/>
+                                    </svg>
+                                    <!-- Ícono Caja (En especie) -->
+                                    <svg v-else-if="Number(solicitud.id_tipo_apoyo) === 2" xmlns="http://www.w3.org/2000/svg" class="w-3 h-3.5 text-color4-600 dark:text-amber-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>
+                                    </svg>
+                                    {{ Number(solicitud.id_tipo_apoyo) === 2
+                                        ? 'En especie'
+                                        : Number(solicitud.id_tipo_apoyo) === 1
+                                            ? 'Efectivo'
+                                            : 'Sin especificar'
+                                    }}
                                 </span>
                             </div>
                         </div>
@@ -1400,7 +1598,9 @@ input[type="search"]::-webkit-search-cancel-button {
                     {{ totalSolicitudes ? 'No se encontraron resultados para tu búsqueda' : 'No hay solicitudes registradas' }}
                 </p>
                 <p class="text-xs mb-6 text-gray-400 dark:text-gray-500 mt-1">
-                    {{ totalSolicitudes ? 'Intenta con otros términos o limpia los filtros.' : 'Las solicitudes que vayas agregando aparecerán aquí.' }}
+                    {{ totalSolicitudes ? 
+                      (!searchQuery && !areasQuery) ? 'Prueba con otras fechas' :
+                    'Intenta con otros términos o limpia los filtros.' : 'Las solicitudes que vayas agregando aparecerán aquí.' }}
                 </p>
                  <button
                 @click="abreModalSolicitud"
@@ -1437,5 +1637,129 @@ input[type="search"]::-webkit-search-cancel-button {
 
     </div>
 </template>
+
+<style scoped>
+:deep(.custom-select-gray .el-select__selected-item),
+:deep(.custom-select-gray .el-select__selected-item span) {
+    color: #33373d !important;
+    font-weight: 100 !important;
+}
+</style>
+
+<style>
+/* ==========================================================================
+   CONFIGURACIÓN DEFINITIVA PARA EL POPPER DEL RANGO DE FECHAS (SIDEBAR + CALENDARIO)
+   ========================================================================== */
+
+/* 1. Ancho total holgado del popper flotante para alojar sidebar y los dos meses */
+.custom-date-range-popper {
+  width: 720px !important;
+  max-width: 100vw !important;
+}
+
+/* 1. Creamos y estilizamos el título/guía en la parte superior del sidebar */
+.custom-date-range-popper .el-picker-panel__sidebar::before {
+  content: "Selecciona un periodo:" !important; /* Puedes cambiar el texto aquí */
+  display: block !important;
+  font-size: 10.5px !important;
+  font-weight: bold !important;
+  color: #606266 !important;
+  padding: 8px 10px 4px 10px !important;
+  border-bottom: 1px solid var(--el-border-color-light, #e4e7ed) !important;
+  margin-bottom: 4px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* 2. Ajustamos ligeramente el padding superior del sidebar para que el título respire bien */
+.custom-date-range-popper .el-picker-panel__sidebar {
+  padding-top: 0 !important;
+}
+
+/* 2. Forzamos al contenedor interno de Element Plus a comportarse en fila horizontal */
+.custom-date-range-popper .el-picker-panel__body-wrapper,
+.custom-date-range-popper .el-picker-panel__body {
+  display: flex !important;
+  flex-direction: row !important;
+  width: 100% !important;
+  margin-left: 0 !important;
+}
+
+/* 3. Ancho fijo y controlado para el panel lateral de los shortcuts */
+.custom-date-range-popper .el-picker-panel__sidebar {
+  width: 185px !important;
+  min-width: 185px !important;
+  max-width: 185px !important;
+  position: static !important;
+  float: none !important;
+  border-right: 1px solid var(--el-border-color-light, #e4e7ed);
+  box-sizing: border-box;
+  flex-shrink: 0 !important;
+  padding: 4px 0 !important;
+  background-color: white !important;
+  z-index: 10;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+}
+
+/* 4. Estilo ultra compacto: interlineado menor y tipografía reducida para los atajos */
+.custom-date-range-popper .el-picker-panel__sidebar .el-picker-panel__shortcut {
+  white-space: normal !important;
+  word-break: break-word !important;
+  line-height: 1.1 !important;          /* Interlineado reducido */
+  padding: 5px 8px !important;          /* Espaciado interno cómodo */
+  margin-bottom: 2px !important;
+  text-align: left !important;
+  font-size: 12px !important;           /* Tamaño de texto compacto */
+  width: 100% !important;
+  background-color: transparent !important;
+  color: #606266;
+  border-radius: 4px;
+}
+
+/* 5. Hover limpio para los atajos con tus variables */
+.custom-date-range-popper .el-picker-panel__sidebar .el-picker-panel__shortcut:hover {
+  background-color: rgb(238, 239, 240) !important;
+  color: var(--color-1-1, #409eff) !important;
+  cursor: pointer;
+}
+
+.custom-date-range-popper .el-picker-panel {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* 6. El cuerpo con los calendarios ocupa el espacio restante a la derecha de forma limpia */
+.custom-date-range-popper .el-picker-panel__body {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  width: 100% !important;
+  overflow: hidden !important;
+}
+
+.custom-date-range-popper .el-date-range-picker__content {
+  padding: 12px 16px !important;
+  box-sizing: border-box !important;
+}
+
+/* 1. Reducir ligeramente el ancho de las celdas de la tabla para que los días quepan holgados */
+.custom-date-range-popper .el-date-table th,
+.custom-date-range-popper .el-date-table td {
+  width: 28px !important;
+  padding: 2px 0 !important;
+}
+
+/* 2. Asegurar que los textos de los días (lun, mar, mié, dom) no se partan jamás */
+.custom-date-range-popper .el-date-table th {
+  white-space: nowrap !important;
+  font-size: 11px !important;
+}
+
+/* 3. Ajustar el espaciado interior de cada mes para ganar un par de pixeles libres */
+.custom-date-range-popper .el-date-range-picker__content {
+  padding: 10px 12px !important;
+  box-sizing: border-box !important;
+}
+</style>
 
 

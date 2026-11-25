@@ -303,8 +303,6 @@ input[type="search"]::-webkit-search-cancel-button {
             page: Number(paramsObject.page) || 1
         }
 
-        console.log('FILTROS DATA', filtrosData)
-
         // 2. Define las opciones base de la solicitud
         const requestOptions = {
             preserveState: true,
@@ -393,7 +391,6 @@ input[type="search"]::-webkit-search-cancel-button {
 
         const coincideConShortcut = !!shortcutEncontrado
 
-        console.log('DDDD')
         rangoFechasIngresoManual.value = !coincideConShortcut
         rangoFechasShortcut.value = coincideConShortcut
 
@@ -1404,8 +1401,13 @@ watch(
                         </div>
 
                         <!-- Botones de Acción Rápida -->
-                        <div class="flex items-center gap-1 shrink-0" @click.stop>
-                            <!-- Tus botones aquí -->
+                        <div class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 shrink-0" @click.stop>
+                            <svg class="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span class="font-medium tabular-nums text-gray-700 dark:text-gray-200">
+                                {{ formatDate(solicitud.fecha) }}
+                            </span>
                         </div>
                     </div>
 
@@ -1446,7 +1448,7 @@ watch(
                         <!-- Metadatos (Caja interna más compacta) -->
                         <div class="rounded-xl bg-gray-50/80 dark:bg-gray-900/40 p-3 space-y-2 border border-gray-100 dark:border-gray-800/80 text-xs">
                             <!-- Fecha -->
-                            <div class="flex items-center justify-between gap-3"
+                            <!-- <div class="flex items-center justify-between gap-3"
                             :class="{ 'opacity-50 grayscale-[30%] line-through': Number(solicitud.id_estatus) === 4 }">
                                 <span class="text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1.5">
                                     Fecha de solicitud
@@ -1454,7 +1456,7 @@ watch(
                                 <span class="text-gray-800 dark:text-gray-200 font-semibold">
                                     {{ formatDate(solicitud.fecha) }}
                                 </span>
-                            </div>
+                            </div> -->
 
                             <!-- Área -->
                             <div v-if="solicitud.id_area" class="flex items-center justify-between gap-3"
@@ -1485,9 +1487,12 @@ watch(
                             </div>
 
                             <!-- Monto aprobado -->
-                            <div v-if="solicitud.cantidad_aprobada" class="flex items-center justify-between gap-3 pt-1.5 border-t border-gray-200/60 dark:border-gray-800"
-                            :class="{ 'opacity-50 grayscale-[30%] line-through': Number(solicitud.id_estatus) === 4 }">
-                                <span class="text-gray-600 dark:text-gray-300 font-semibold">
+                            <div
+                                v-if="solicitud.cantidad_aprobada"
+                                class="flex items-center justify-between gap-3 pt-1.5 border-t border-gray-200/60 dark:border-gray-800"
+                                :class="{ 'opacity-50 grayscale-[30%] line-through': Number(solicitud.id_estatus) === 4 }">
+                                <!-- Etiqueta a la izquierda -->
+                                <span class="text-gray-600 dark:text-gray-300 font-semibold text-xs">
                                     <template v-if="Number(solicitud.id_tipo_apoyo) === 2">
                                         {{ Number(solicitud.id_estatus) === 3 ? 'Inversión realizada' : 'Inversión estimada' }}
                                     </template>
@@ -1495,20 +1500,60 @@ watch(
                                         {{ Number(solicitud.id_estatus) === 3 ? 'Monto ejercido' : 'Monto aprobado' }}
                                     </template>
                                 </span>
-                                <span class="font-bold tracking-tight text-sm"
-                                :class="Number(solicitud.id_tipo_apoyo) === 2 
-                                    ? 'text-color4-600 dark:text-color4-300' 
-                                    : 'text-color2-600 dark:text-color2-300'">
-                                    $ {{ Number(solicitud.cantidad_aprobada).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} 
-                                    <span class="text-[10px] font-normal opacity-75 relative inline-block">
-                                        MXN
-                                        <span v-if="Number(solicitud.id_estatus) === 4" class="absolute inset-x-0 top-1/2 h-[1px] bg-current -translate-y-1/2"></span>
+
+                                <!-- Ícono + Cifra pegados a la derecha -->
+                                <div class="flex items-center gap-1 shrink-0">
+                                    <span
+                                        v-if="Number(solicitud.id_tipo_apoyo) === 1"
+                                        class="inline-flex items-center justify-center p-0.5 rounded-md bg-color2-500/10 dark:bg-emerald-500/15 shrink-0 mr-1"
+                                        title="Efectivo">
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            class="w-3.5 h-3.5 text-color2-600 dark:text-emerald-400 shrink-0"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round">
+                                            <rect x="2" y="6" width="20" height="12" rx="2" />
+                                            <circle cx="12" cy="12" r="3" />
+                                            <path d="M6 12h.01M18 12h.01" />
+                                        </svg>
                                     </span>
-                                </span>
+
+                                    <span
+                                        v-else-if="Number(solicitud.id_tipo_apoyo) === 2"
+                                        class="inline-flex items-center justify-center p-0.5 rounded-md bg-color4-500/10 dark:bg-amber-500/15 shrink-0 mr-1"
+                                        title="En especie">
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            class="w-3.5 h-3 text-color4-600 dark:text-amber-400 shrink-0"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round">
+                                            <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+                                            <path d="m3.3 7 8.7 5 8.7-5" />
+                                            <path d="M12 22V12" />
+                                        </svg>
+                                    </span>
+
+                                    <!-- Cifra -->
+                                    <span
+                                        class="font-bold tracking-tight text-sm tabular-nums"
+                                        :class="Number(solicitud.id_tipo_apoyo) === 2
+                                            ? 'text-color4-600 dark:text-color4-300'
+                                            : 'text-color2-600 dark:text-color2-300'">
+                                        ${{ Number(solicitud.cantidad_aprobada).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+                                    </span>
+                                </div>
                             </div>
 
                             <!-- Tipo de apoyo (Misma estructura que Fecha y Área) -->
-                            <div class="flex items-center justify-between gap-3"
+                            <div v-else class="flex items-center justify-between gap-3"
                                 :class="{ 'opacity-50 grayscale-[30%] line-through': Number(solicitud.id_estatus) === 4 }">
                                 <span class="text-gray-500 dark:text-gray-400 font-medium">Tipo de apoyo</span>
                                 <span class="inline-flex items-center gap-1.5 font-semibold text-gray-700 dark:text-gray-200 uppercase text-xs">

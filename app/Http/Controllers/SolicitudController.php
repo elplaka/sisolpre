@@ -308,7 +308,11 @@ class SolicitudController extends Controller
                             $request->input('idRangoFechasIngresoQuery') :
                             $config->id_rango_fecha_busqueda;
 
+                        // dd($idRangoFechasIngresoQuery);
+
                         $rangoFechaIngreso = $this->regresaRangoFecha($idRangoFechasIngresoQuery);
+
+                        // dd($rangoFechaIngreso);
 
                         $fechaIngresoInicioQuery = $rangoFechaIngreso[0];
                         $fechaIngresoFinQuery = $rangoFechaIngreso[1];
@@ -358,6 +362,8 @@ class SolicitudController extends Controller
                 'id_rango_fecha_busqueda' => 1,
             ]);
         }
+
+        // dd($rangoFechasIngresoManual, $fechaIngresoInicioQuery, $fechaIngresoFinQuery);
 
         // Obtener el ID del periodo actual
         $periodoId = SettingsHelper::get('periodo_actual');

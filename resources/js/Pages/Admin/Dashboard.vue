@@ -28,6 +28,7 @@
         panelData: { type: Object, required: true },
         filters: { type: Object, required: true },
         periodOptions: Array,
+        gobiernoInicio: String,
         userRole: String
   // Contiene todos los datos cargados para los paneles
     });
@@ -102,53 +103,85 @@
     const fechaInicioFormatoMySQL = fechaInicio.value.toLocaleDateString('en-CA');
     const fechaFinFormatoMySQL = fechaFin.value.toLocaleDateString('en-CA')
 
+    const formatDate = (date) => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    };
+
     const calculateDateRange = (periodValue) => {
         const currentYear = new Date().getFullYear();
         const previousYear = currentYear - 1;
         let inicio = '';
         let fin = '';
         let idRango = '';
+        const hoy = new Date();
 
         if (periodValue === 'anio_actual') {
             inicio = `${currentYear}-01-01`;
             fin = `${currentYear}-12-31`;
-            idRango = 4
+            idRango = 2
         } else if (periodValue === 'anio_anterior') {
             inicio = `${previousYear}-01-01`;
             fin = `${previousYear}-12-31`;
-            idRango = 7;
+            idRango = 3;
         } else if (periodValue && periodValue.startsWith('gobierno_anio_')) {
-            // Extraemos el número ordinal (ej. '1' de 'gobierno_anio_1')
-            const ordinal = parseInt(periodValue.replace('gobierno_anio_', ''), 10);
-            
-            // Año base de inicio del periodo de gobierno actual (Noviembre 2024)
-            const gobiernoInicioBase = new Date(2024, 10, 1); // Mes 10 es Noviembre en JS (0-indexado)
-            
-            // Calculamos el año de inicio sumando (ordinal - 1) años
-            const anioStart = new Date(gobiernoInicioBase);
-            anioStart.setFullYear(gobiernoInicioBase.getFullYear() + (ordinal - 1));
+    const ordinal = parseInt(periodValue.replace('gobierno_anio_', ''), 10);
 
-            // Calculamos el año de fin (un año después menos un día)
-            const anioEnd = new Date(anioStart);
-            anioEnd.setFullYear(anioStart.getFullYear() + 1);
-            anioEnd.setDate(anioEnd.getDate() - 1);
+    // Extraemos YYYY-MM-DD de forma segura (soporta ISO string, Date o YYYY-MM-DD)
+    const rawInicio = props.gobiernoInicio instanceof Date
+        ? formatDate(props.gobiernoInicio)
+        : String(props.gobiernoInicio || '').slice(0, 10);
 
-            // Formatear a YYYY-MM-DD
-            const formatDate = (date) => {
-                const y = date.getFullYear();
-                const m = String(date.getMonth() + 1).padStart(2, '0');
-                const d = String(date.getDate()).padStart(2, '0');
-                return `${y}-${m}-${d}`;
-            };
+    const [baseYear, baseMonth, baseDay] = rawInicio.split('-').map(Number);
 
-            inicio = formatDate(anioStart);
-            fin = formatDate(anioEnd);
-            idRango = 10 + ordinal
-        } else {
+    // Creamos la fecha en hora local (mes en JS es 0-indexado)
+    const gobiernoInicioBase = new Date(
+        baseYear || 2024,
+        (baseMonth || 11) - 1,
+        baseDay || 1
+    );
+
+    const anioStart = new Date(
+        gobiernoInicioBase.getFullYear() + (ordinal - 1),
+        gobiernoInicioBase.getMonth(),
+        gobiernoInicioBase.getDate()
+    );
+
+    const anioEnd = new Date(anioStart.getFullYear() + 1, 9, 31); // 31 de octubre del año siguiente
+
+    inicio = formatDate(anioStart);
+    fin = formatDate(anioEnd);
+
+    const hoySinHora = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+
+    // Calculamos el rango del año de gobierno actual según la fecha de hoy
+    const inicioGobiernoActual = hoy.getMonth() < 10
+        ? new Date(currentYear - 1, 10, 1)
+        : new Date(currentYear, 10, 1);
+    const finGobiernoActual = new Date(inicioGobiernoActual.getFullYear() + 1, 9, 31);
+
+    // Calculamos el rango del año de gobierno anterior
+    const inicioGobiernoAnterior = new Date(inicioGobiernoActual.getFullYear() - 1, 10, 1);
+    const finGobiernoAnterior = new Date(inicioGobiernoAnterior.getFullYear() + 1, 9, 31);
+
+    if (hoySinHora >= anioStart && hoySinHora <= anioEnd) {
+        idRango = 4; // Año de Gobierno Actual
+    } else if (
+        anioStart.getTime() === inicioGobiernoAnterior.getTime() &&
+        anioEnd.getTime() === finGobiernoAnterior.getTime()
+    ) {
+        idRango = 5; // Año de Gobierno Anterior
+    } else {
+        idRango = 99;
+    }
+}
+        else {
             // Valor por defecto (Año actual)
             inicio = `${currentYear}-01-01`;
             fin = `${currentYear}-12-31`;
-            idRango = 4
+            idRango = 2
         }
 
         return { inicio, fin, idRango };
@@ -187,7 +220,7 @@
                     sortCriteriaQuery: 'fecha_asc',
                     fechaIngresoInicioQuery: rangoFechas.inicio,
                     fechaIngresoFinQuery: rangoFechas.fin,
-                    rangoFechasIngresoManual: true,
+                    rangoFechasIngresoManual: false,
                     idRangoFechasIngresoQuery: rangoFechas.idRango,
                     estatusQuery: "todas"
                 },
@@ -484,8 +517,7 @@
                     <div
                         v-for="n in 3"
                         :key="'kpi-skel-' + n"
-                        class="h-full bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700/80 rounded-xl p-4 sm:p-5 shadow-sm flex flex-col justify-between overflow-hidden animate-pulse"
-                    >
+                        class="h-full bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700/80 rounded-xl p-4 sm:p-5 shadow-sm flex flex-col justify-between overflow-hidden animate-pulse">
                         <div class="flex items-center justify-between gap-2">
                             <div class="h-3.5 w-32 rounded bg-gray-200 dark:bg-gray-700"></div>
                             <div class="h-7 w-7 rounded-lg bg-gray-200 dark:bg-gray-700 shrink-0"></div>
@@ -1009,7 +1041,7 @@
                             : 'lg:col-span-5'
                     ]">
                     
-                    <div class="p-5 sm:p-6 w-full flex-grow">
+                    <div class="p-4 sm:p-4 w-full flex-grow">
                         <component
                             :is="panelComponents['LatestSolicitudesPanel']"
                             :panelData="panelData['latest_solicitudes']"

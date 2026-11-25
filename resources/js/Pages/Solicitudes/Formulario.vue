@@ -184,8 +184,8 @@ import { formatDate } from 'date-fns';
         solicitante_numero_telefonico: props.solicitud?.solicitante?.numero_telefonico || '',
         solicitante_localidad: props.solicitud?.solicitante?.localidad?.nombre || 'CONCORDIA',
         solicitante_id_localidad: props.solicitud?.solicitante?.id_localidad || 1,
-        solicitante_localidad_beneficiada: props.solicitud?.solicitante?.localidad_beneficiada?.nombre || 'CONCORDIA',
-        solicitante_id_localidad_beneficiada: props.solicitud?.solicitante?.id_localidad_beneficiada || 1,
+        solicitante_localidad_beneficiada: props.solicitud?.localidad_beneficiada?.nombre || 'CONCORDIA',
+        solicitante_id_localidad_beneficiada: props.solicitud?.localidad_beneficiada.id || 1,
         id_tipo_apoyo: props.solicitud?.id_tipo_apoyo || null,
         id_area: props.solicitud?.id_area || '',
         id_estatus: props.solicitud?.id_estatus || '1', 
@@ -229,7 +229,7 @@ import { formatDate } from 'date-fns';
         form.solicitante_numero_telefonico = newVal.solicitante?.numero_telefonico || '';
         form.solicitante_localidad = newVal.solicitante?.localidad?.nombre || 'CONCORDIA';
         form.solicitante_id_localidad = newVal.solicitante?.id_localidad || 1;
-        form.solicitante_localidad_beneficiada = newVal.localidad_beneficiada?.localidad?.nombre || 'CONCORDIA';
+        form.solicitante_localidad_beneficiada = newVal.localidad_beneficiada?.nombre || 'CONCORDIA';
         form.solicitante_id_localidad_beneficiada = newVal.id_localidad_beneficiada || 1
         solicitanteSeleccionado.value = true
         solicitanteCargadoSolicitudes.value = true
@@ -243,7 +243,7 @@ import { formatDate } from 'date-fns';
             id_localidad: newVal.solicitante?.id_localidad || 1,
             localidad: newVal.solicitante?.localidad?.nombre || 'CONCORDIA',
             id_localidad_beneficiada: newVal.id_localidad_beneficiada || 1,
-            localidad_beneficiada: newVal.localidad_beneficiada?.localidad?.nombre || 'CONCORDIA'
+            localidad_beneficiada: newVal.localidad_beneficiada?.nombre || 'CONCORDIA'
         };
     } else {
         // Limpiar si es nueva solicitud
@@ -272,7 +272,9 @@ import { formatDate } from 'date-fns';
             formBusquedaSolicitante.apellidos = solicitud.solicitante.apellidos;
             formBusquedaSolicitante.numero_telefonico = solicitud.solicitante.numero_telefonico;
             formBusquedaSolicitante.id_localidad = solicitud.solicitante.id_localidad;
+            formBusquedaSolicitante.localidad_beneficiada = solicitud.localidad_beneficiada?.nombre;
             formBusquedaSolicitante.id_localidad_beneficiada = solicitud.id_localidad_beneficiada;  
+
         }
         if (form.cantidad_aprobada) {
             form.cantidad_aprobada = aplicarFormatoInicial(form.cantidad_aprobada);
@@ -527,9 +529,6 @@ import { formatDate } from 'date-fns';
 
         let fueModificado = false;
 
-        // console.log('solicitanteSeleccionado', solicitanteSeleccionado.value)
-        // console.log('solicitanteOriginal', solicitanteOriginal.value)
-
         // Solo evaluamos si fue modificado si previamente se seleccionó un registro y existe un original
         if (solicitanteSeleccionado.value && solicitanteOriginal.value) {
             const nombreActual = formBusquedaSolicitante.value?.nombre || '';
@@ -616,6 +615,29 @@ import { formatDate } from 'date-fns';
         }   
 
         buscarSolicitante();
+    }
+
+       function actualizarLocalidadBeneficiada() {
+
+        const idLocalidad = formBusquedaSolicitante.value.id_localidad_beneficiada;
+
+        form.solicitante_id_localidad_beneficiada = idLocalidad;
+
+        const encontrada = props.localidadesList?.find(
+            loc => loc.id == idLocalidad
+        );
+
+        if (encontrada) {
+            formBusquedaSolicitante.value.localidad_beneficiada = encontrada.nombre;
+            form.solicitante_localidad_beneficiada = encontrada.nombre
+        }
+
+        if (mismaLocalidad.value)
+        {
+            formBusquedaSolicitante.value.localidad_beneficiada = formBusquedaSolicitante.value.localidad
+            formBusquedaSolicitante.value.id_localidad_beneficiada = formBusquedaSolicitante.value.id_localidad
+        }   
+
     }
 
     // Forzar mayúsculas automáticamente en los campos de texto
@@ -863,10 +885,12 @@ import { formatDate } from 'date-fns';
         form.solicitante_apellidos = formBusquedaSolicitante.value.apellidos
         form.solicitante_numero_telefonico = formBusquedaSolicitante.value.numero_telefonico
         form.solicitante_id_localidad = formBusquedaSolicitante.value.id_localidad
-        form.solicitante_id_localidad_beneficiada = formBusquedaSolicitante.value.id_localidad_beneficiada
+        // form.solicitante_localidad_beneficiada = formBusquedaSolicitante.value.localidad_beneficiada
+        // form.solicitante_id_localidad_beneficiada = formBusquedaSolicitante.value.id_localidad_beneficiada
 
-        if (mismaLocalidad)
+        if (mismaLocalidad.value)
         {
+            form.solicitante_localidad_beneficiada = formBusquedaSolicitante.value.localidad_beneficiada
             form.solicitante_id_localidad_beneficiada = formBusquedaSolicitante.value.id_localidad
         }
 
@@ -1931,7 +1955,7 @@ const soloLectura = computed(() => Number(props.solicitud?.id_estatus) === 3);
                                         'el-select-bloqueado': soloLectura,
                                     }"
                                     @mousedown="(e) => { if (solicitanteBloqueado) e.preventDefault(); }"
-                                    @change="solicitanteBloqueado ? null : actualizarLocalidad($event)"
+                                    @change="actualizarLocalidadBeneficiada($event)"
                                     style="border-radius: 16px !important;">
                                     <el-option
                                         v-for="localidad in localidadesList"

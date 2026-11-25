@@ -35,9 +35,6 @@ import AdminLayout from '../Admin/Components/AdminLayout.vue';
 import GraficosEstadisticas from './GraficosEstadisticas.vue';
 import { Head } from '@inertiajs/vue3'; // Componente Head para Inertia.js
 
-import { watchEffect } from 'vue';
-
-
 const props = defineProps({
     userAuth: { type: Object, required: true }, // Información de usuario autenticado
     periodoActual: { type: Object, required: true },
@@ -64,15 +61,5 @@ const props = defineProps({
     vieneDeDashboard: Boolean,
     idTipoApoyo: [String, Number]
  });
-
- watchEffect(() => {
-    console.log('=== ESTADISTICAS INDEX ===');
-    console.log('solicitudes:', props.solicitudes);
-    console.log('rawDataFromBackend:', props.rawDataFromBackend);
-    console.log('rawDataLocalidades:', props.rawDataLocalidades);
-    console.log('rawDataAreas:', props.rawDataAreas);
-    console.log('rawDataEstatus:', props.rawDataEstatus);
-    console.log('kpisRecursosPublicos:', props.kpisRecursosPublicos);
-});
 
 </script>

@@ -94,6 +94,7 @@ const props = defineProps({
 
     onMounted(() => {
         capaPromedioEntregado.value = false
+        incluirLocalidadesSinMonto.value = props.kpisRecursosPublicos.incluir_localidades_sin_monto
         setTimeout(() => {
             isMounted.value = true;
         }, 50);
@@ -263,6 +264,11 @@ const chartOptions = computed(() => {
     let options = {
         responsive: true,
         maintainAspectRatio: false,
+        interaction: {
+            mode: 'index',
+            axis: 'x',
+            intersect: false
+        },
         plugins: {
             datalabels: {
                 display: false
@@ -273,23 +279,29 @@ const chartOptions = computed(() => {
                 onClick: (e, legendItem, legend) => {
                     e.native.stopPropagation(); // Opcional: evita propagación de eventos si lo requieres
                 },
-                labels: { font: { size: 11 }, boxWidth: 14,      // Ancho del rectángulo indicador
+                labels: {
+                    font: { size: 11 },
                     usePointStyle: true,
                     pointStyle: 'rectRounded',
                     boxWidth: 9,
                     boxHeight: 9,
                     padding: 16,
-                        sort: (a, b) => {
+                    sort: (a, b) => {
                         const orden = {
                             'Monto Entregado': 1,
                             'Monto Pendiente': 2,
                             'Monto Total': 3,
                         };
 
-                        return orden[a.text] - orden[b.text];
-                    }, },
+                        return (orden[a.text] ?? 99) - (orden[b.text] ?? 99);
+                    },
+                },
             },
             tooltip: {
+                mode: 'index',
+                intersect: false,
+                boxBorderWidth: 0,
+                boxBorderColor: 'transparent',
                 backgroundColor: 'rgba(17, 24, 39, 0.9)',
                 titleFont: { size: 11, weight: 'bold' },
                 bodyFont: { size: 11 },
@@ -297,8 +309,22 @@ const chartOptions = computed(() => {
                 cornerRadius: 8,
                 callbacks: {
                     title: function(context) {
+                        if (!context.length) return '';
                         const index = context[0].dataIndex;
-                        return props.rawDataFromBackend[index]?.mes_corto ?? '';
+                        return props.rawDataFromBackend?.[index]?.mes_corto ?? '';
+                    },
+                    
+                    labelColor: function(context) {
+                        const color = context.dataset.label === 'Monto Entregado'
+                            ? colorGuinda
+                            : colorGuindaClaro;
+
+                        return {
+                            borderColor: color,
+                            backgroundColor: color,
+                            borderWidth: 2,
+                            borderRadius: 2
+                        };
                     },
 
                     label: function(context) {
@@ -311,46 +337,44 @@ const chartOptions = computed(() => {
                     },
 
                     afterBody: function(context) {
+                        if (!context.length) return '';
+
                         const index = context[0].dataIndex;
-                        const registro = props.rawDataFromBackend[index];
+                        const registro = props.rawDataFromBackend?.[index] ?? {};
 
-                        const etiqueta = context[0].dataset.label.toLowerCase();
-
+                        const entregadas = Number(registro.total_solicitudes_entregado) || 0;
+                        const pendientes = Number(registro.total_solicitudes_pendiente) || 0;
                         const totalSolicitudes = Number(
-                            etiqueta.includes('entregado')
-                                ? registro?.total_solicitudes_entregado
-                                : etiqueta.includes('pendiente')
-                                    ? registro?.total_solicitudes_pendiente
-                                    : registro?.total_solicitudes
+                            registro.total_solicitudes ?? (entregadas + pendientes)
                         ) || 0;
-
-                        const esTotal = etiqueta.includes('total');
 
                         return [
                             '',
-                            `${esTotal ? 'Volumen mensual' : 'Volumen'}: ${totalSolicitudes.toLocaleString('es-MX')} solicitud${totalSolicitudes === 1 ? '' : 'es'}`
+                            `Entregadas: ${entregadas.toLocaleString('es-MX')} solicitud${entregadas === 1 ? '' : 'es'}`,
+                            `Pendientes: ${pendientes.toLocaleString('es-MX')} solicitud${pendientes === 1 ? '' : 'es'}`,
+                            `Total mensual: ${totalSolicitudes.toLocaleString('es-MX')} solicitud${totalSolicitudes === 1 ? '' : 'es'}`
                         ];
                     }
                 }
             },
-            // El objeto annotation va estrictamente dentro de plugins
             annotation: {
                 annotations: {}
             }
         },
         scales: {
-           x: { 
-                grid: { display: false }, 
+            x: {
+                grid: { display: false },
                 stacked: true,
-                ticks: { 
+                ticks: {
                     font: { size: 10, weight: '500' },
-                    color: '#6b7280' // Color sutil para los nombres de los meses abajo
-                } 
+                    color: '#6b7280'
+                }
             },
-            y: { 
-                grid: { color: 'rgba(243, 244, 246, 0.6)' }, 
+            y: {
+                grid: { color: 'rgba(243, 244, 246, 0.6)' },
                 stacked: true,
-                ticks: { 
+                beginAtZero: true,
+                ticks: {
                     font: { size: 10 },
                     callback: function(value) {
                         return '$' + Number(value).toLocaleString('es-MX');
@@ -366,31 +390,21 @@ const chartOptions = computed(() => {
         }
     };
 
-    //CHECKPOINT: Falta agregar espacio al lado derecho para que ahí se muestre el promedio
-    //porque ahorita sale encima de la última barra de la derecha
-    //CHECKPOINT: Falta agregar la tabla abajo y en las capas
-    //CHECKPOINT: Agregar el subtítulo que dice (Mostrando Año Calendario) y a un lado poner las capas
-    //CHECKPOINT: Que mientras esté cargando no muestre el template de que NO HAY REGISTROS
-    //Esto pasa cuando abro ESTADÍSTICAS y no hay ninguna opción seleccionada
-    //Y selecciono RECURSOS PÚBLICOS y mientras se está cargando sale de fondo que NO HAY REGISTROS
-    //hasta que ya se cargan los datos
-
-    // Agregar la línea de promedio general si el switch está activo y hay datos
     if (capaPromedioEntregado.value && hasData.value) {
         const promedio = promedioEntregadoGlobal.value;
         options.plugins.annotation.annotations.lineaPromedio = {
             type: 'line',
             yMin: promedio,
             yMax: promedio,
-            borderColor: '#ef4444', // Línea roja punteada
+            borderColor: '#ef4444',
             borderDash: [5, 5],
             borderWidth: 1.5,
             label: {
                 content: `Prom. Mensual Entregado: $${Number(promedio).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
                 display: true,
                 position: 'end',
-                backgroundColor: 'rgba(17, 24, 39, 0.85)', // Fondo gris oscuro elegante
-                color: '#ffffff', // Texto blanco brillante
+                backgroundColor: 'rgba(17, 24, 39, 0.85)',
+                color: '#ffffff',
                 font: { size: 10, weight: 'bold' },
                 padding: 6,
                 borderRadius: 4
@@ -771,12 +785,16 @@ const obtenerChartOptions = (tipoChart) => {
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
+        interaction: {
+            mode: 'index',
+            axis: 'y',
+            intersect: false
+        },
         layout: {
             padding: {
                 right: 30
             }
         },
-
         plugins: {
             legend: {
                 position: 'bottom',
@@ -800,9 +818,8 @@ const obtenerChartOptions = (tipoChart) => {
                     },
                     generateLabels: (chart) => {
                         return chart.data.datasets.map((dataset, index) => {
-                            // Asignamos el color correspondiente según la etiqueta del dataset
-                            const colorAsignado = dataset.label === 'Monto Entregado' 
-                                ? colorGuinda 
+                            const colorAsignado = dataset.label === 'Monto Entregado'
+                                ? colorGuinda
                                 : colorGuindaClaro;
 
                             return {
@@ -829,7 +846,6 @@ const obtenerChartOptions = (tipoChart) => {
                 offset: 6,
 
                 formatter: (value, context) => {
-                    // Solo pintamos la etiqueta en el dataset correspondiente.
                     if (context.datasetIndex !== 0) return '';
 
                     const registro = obtenerRegistro(context.dataIndex);
@@ -854,6 +870,8 @@ const obtenerChartOptions = (tipoChart) => {
             },
 
             tooltip: {
+                mode: 'index',
+                intersect: false,
                 backgroundColor: 'rgba(17, 24, 39, 0.9)',
                 titleFont: { size: 11, weight: 'bold' },
                 bodyFont: { size: 11 },
@@ -861,6 +879,19 @@ const obtenerChartOptions = (tipoChart) => {
                 cornerRadius: 8,
 
                 callbacks: {
+                    labelColor: function(context) {
+                        const color = context.dataset.label === 'Monto Entregado'
+                            ? colorGuinda
+                            : colorGuindaClaro;
+
+                        return {
+                            borderColor: color,
+                            backgroundColor: color,
+                            borderWidth: 2,
+                            borderRadius: 2
+                        };
+                    },
+
                     label: function(context) {
                         const value = Number(context.raw) || 0;
 
@@ -876,17 +907,15 @@ const obtenerChartOptions = (tipoChart) => {
                         const dataIndex = items[0].dataIndex;
                         const registro = obtenerRegistro(dataIndex);
 
-                        const esEntregado = items[0].dataset.label === 'Monto Entregado';
-
-                        const totalSolicitudes = Number(
-                            esEntregado
-                                ? registro?.total_solicitudes_entregadas
-                                : registro?.total_solicitudes_pendientes
-                        ) || 0;
+                        const entregadas = Number(registro?.total_solicitudes_entregadas) || 0;
+                        const pendientes = Number(registro?.total_solicitudes_pendientes) || 0;
+                        const total = Number(registro?.total_solicitudes) || 0;
 
                         return [
                             '',
-                            `Volumen: ${totalSolicitudes} ${totalSolicitudes === 1 ? 'solicitud' : 'solicitudes'}`
+                            `Entregadas: ${entregadas} ${entregadas === 1 ? 'solicitud' : 'solicitudes'}`,
+                            `Pendientes: ${pendientes} ${pendientes === 1 ? 'solicitud' : 'solicitudes'}`,
+                            `Total: ${total} ${total === 1 ? 'solicitud' : 'solicitudes'}`
                         ];
                     }
                 }
@@ -927,7 +956,6 @@ const obtenerChartOptions = (tipoChart) => {
         }
     };
 };
-
 const chartOptionsEstatus = computed(() => ({
     indexAxis: 'y',
     responsive: true,
@@ -982,6 +1010,8 @@ const chartOptionsEstatus = computed(() => ({
         tooltip: {
             display: false,
             enabled: false,
+            mode: 'index',
+            intersect: false,
             backgroundColor: '#1f2937',
             titleFont: {
                 size: 11,
@@ -1000,36 +1030,60 @@ const chartOptionsEstatus = computed(() => ({
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2
                     })}`;
+                },
+                afterBody: (items) => {
+                    if (!items.length) return '';
+                    const registro = props.rawDataEstatus?.[items[0].dataIndex];
+                    const total = Number(registro?.total_solicitudes) || 0;
+                    return [`Solicitudes: ${total}`];
                 }
             }
         },
-        
-        datalabels: {
-            display: (context) => Number(context.dataset.data[context.dataIndex]) > 0,
-            color: '#6b7280',
-            anchor: 'end',
-            align: 'end',
-            clamp: false,
-            clip: false,
-            offset: 6,
-            font: {
-                size: 9,
-            },
-            formatter: (value, context) => {
-                const dataIndex = context.dataIndex;
-                const registro = props.rawDataEstatus?.[dataIndex];
 
-                const totalSolicitudes = Number(registro?.total_solicitudes) || 0;
+     datalabels: {
+    display: (context) => {
+        const dataIndex = context.dataIndex;
+        const registro = props.rawDataEstatus?.[dataIndex];
+        const totalSolicitudes = Number(registro?.total_solicitudes) || 0;
+        if (totalSolicitudes === 0) return false;
 
-                if (Number(value) <= 0 || totalSolicitudes === 0) return '';
+        // Si es CANCELADAS (valor 0 en todos los datasets), solo lo mostramos en el último dataset (ej. datasetIndex === 0)
+        // para que no se repita/encime en cada dataset
+        const valorActual = Number(context.dataset.data[dataIndex]) || 0;
+        const esCancelada = String(registro?.estatus_id) === '4' ||
+            String(registro?.estatus_nombre || '').toUpperCase().includes('CANCELAD');
 
-                return '$' + Number(value).toLocaleString('es-MX', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                }) + ` (${totalSolicitudes})`;
-            }
+        if (esCancelada) {
+            return context.datasetIndex === 0;
         }
+
+        // En estatus con monto, solo mostramos el label en el dataset que tiene el monto (> 0)
+        return valorActual > 0;
     },
+    color: '#6b7280',
+    anchor: 'end',
+    align: 'end',
+    clamp: false,
+    clip: false,
+    offset: 6,
+    font: {
+        size: 9,
+    },
+    formatter: (value, context) => {
+        const dataIndex = context.dataIndex;
+        const registro = props.rawDataEstatus?.[dataIndex];
+        const totalSolicitudes = Number(registro?.total_solicitudes) || 0;
+
+        // Usamos el monto total del registro para que siempre salga el monto real (ej. $8,000.00 o $0.00)
+        const montoMostrar = Number(registro?.total_monto_aprobado ?? value) || 0;
+
+        return '$' + montoMostrar.toLocaleString('es-MX', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }) + ` (${totalSolicitudes})`;
+    }
+}
+        },
 
     scales: {
         x: {
@@ -1273,6 +1327,44 @@ const mostrarSolicitudesMontoMinimo = ref(false);
             id_solicitud: id
         });
     }
+
+    const incluirLocalidadesSinMonto = ref(false)
+
+    const cambiarSwitchLocalidades = () => {
+     // Recuperar los parámetros actuales de la URL
+        const parametrosActuales = Object.fromEntries(
+            new URLSearchParams(window.location.search)
+        );
+
+        // Agregar o actualizar el criterio de ordenamiento
+        parametrosActuales.incluirLocalidadesSinMonto = incluirLocalidadesSinMonto.value;
+
+        // Volver a ejecutar la consulta
+        router.get(route('estadisticas'), parametrosActuales, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const incluirAreasSinMonto = ref(false)
+
+    const cambiarSwitchAreas = () => {
+     // Recuperar los parámetros actuales de la URL
+        const parametrosActuales = Object.fromEntries(
+            new URLSearchParams(window.location.search)
+        );
+
+        // Agregar o actualizar el criterio de ordenamiento
+        parametrosActuales.incluirAreasSinMonto = incluirAreasSinMonto.value;
+
+        // Volver a ejecutar la consulta
+        router.get(route('estadisticas'), parametrosActuales, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
 
 </script>
 
@@ -2781,29 +2873,190 @@ const mostrarSolicitudesMontoMinimo = ref(false);
         </div>
     </div>
     <div v-else class="mt-5 grid grid-cols-1 xl:grid-cols-2 gap-6 items-start xl:items-stretch">
-        <!-- ================= CARD 1: LOCALIDADES (Cambia aquí tu altura, ej: h-[500px]) ================= -->
-        <div :class="[
-        'bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden px-5 pt-5 pb-2 flex flex-col gap-4',
-        props.rawDataLocalidades?.length <= 10
-            ? 'h-[550px]'
-            : props.rawDataLocalidades?.length <= 20
-                    ? 'h-[600px]'
-                    : props.rawDataLocalidades?.length <= 30
-                        ? 'h-[700px]'
-                        : 'h-[800px]']">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-gray-100 dark:border-gray-700/60 pb-4">
-                <div>
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-800 dark:text-gray-200">
-                        Análisis por Localidades Apoyadas
-                    </h3>
-                    <p class="text-[11px] text-gray-500 dark:text-gray-400">
-                        Distribución de recursos públicos por localidad.
-                    </p>
-                </div>
+    <!-- ================= CARD 1: LOCALIDADES (Cambia aquí tu altura, ej: h-[500px]) ================= -->
+    <div :class="[
+    'bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden px-5 pt-5 pb-2 flex flex-col gap-4',
+    props.rawDataLocalidades?.length <= 10
+        ? 'h-[650px]'
+        : props.rawDataLocalidades?.length <= 20
+                ? 'h-[700px]'
+                : props.rawDataLocalidades?.length <= 30
+                    ? 'h-[750px]'
+                    : 'h-[800px]']">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-gray-100 dark:border-gray-700/60 pb-4">
+            <div>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-gray-800 dark:text-gray-200">
+                    Análisis por Localidades Apoyadas
+                </h3>
+                <p class="text-[11px] text-gray-500 dark:text-gray-400">
+                    Distribución de recursos públicos por localidad.
+                </p>
+            </div>
+            <div class="flex items-center flex-wrap gap-2">
                 <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-color1-50 text-color1-800 dark:bg-color1-900/60 dark:text-color1-300">
                     {{ props.rawDataLocalidades?.length || 0 }}
                     {{ props.rawDataLocalidades?.length === 1 ? 'registro' : 'registros' }}
                 </span>
+                <span
+                    v-if="idTipoApoyo === 1"
+                    class="inline-flex shrink-0 items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium bg-color2-50/60 text-color2-700 dark:bg-color1-950/40 dark:text-color1-300 dark:border-color1-800/50">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="w-3.5 h-3.5 shrink-0 transition-transform duration-200 group-hover:scale-110"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <rect width="20" height="12" x="2" y="6" rx="2"/>
+                        <circle cx="12" cy="12" r="2"/>
+                        <path d="M6 12h.01M18 12h.01"/>
+                    </svg>
+                    Efectivo
+                </span>
+                <span
+                    v-else-if="idTipoApoyo === 2"
+                    class="inline-flex shrink-0 items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium bg-color4-50/70 text-color4-700 dark:bg-color4-950/40 dark:text-color4-300 dark:border-color4-800/50">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="w-3.5 h-3.5 shrink-0 transition-transform duration-200 group-hover:scale-110"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                        <path d="m3.3 7 8.7 5 8.7-5"/>
+                        <path d="M12 22V12"/>
+                    </svg>
+                    En especie
+                </span>
+                <span
+                    v-else
+                    class="inline-flex shrink-0 items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium bg-color1-50/70 text-color1-700 dark:bg-color4-950/40 dark:text-color4-300 dark:border-color4-800/50">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="w-4 h-3.5 shrink-0 transition-transform duration-200 group-hover:scale-110"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <rect width="20" height="12" x="2" y="6" rx="2"/>
+                        <circle cx="12" cy="12" r="2"/>
+                        <path d="M6 12h.01M18 12h.01"/>
+                    </svg> /
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="w-3.5 h-3 shrink-0 transition-transform duration-200 group-hover:scale-110"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                        <path d="m3.3 7 8.7 5 8.7-5"/>
+                        <path d="M12 22V12"/>
+                    </svg>
+                </span>
+            </div>
+        </div>
+
+        <div class="-mt-1 -mb-2 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 sm:items-end w-full min-w-0">
+            <div class="min-w-0 flex flex-col gap-1.5">
+                <span class="text-[11px] text-gray-400 italic">
+                    {{ subtituloParametros }}
+                </span>
+
+                <!-- Switch para incluir localidades sin monto -->
+                <div class="flex items-center gap-2 pt-0.5">
+                    <el-switch
+                        v-model="incluirLocalidadesSinMonto"
+                        @click="cambiarSwitchLocalidades"
+                        size="small"/>
+                    <span
+                        class="text-[11px] font-medium text-gray-500 dark:text-gray-300 select-none">
+                        Incluir sin monto ($0)
+                    </span>
+                </div>
+            </div>
+
+            <!-- Selector de ordenamiento -->
+            <div v-if="props.rawDataLocalidades?.length" class="space-y-1 w-full min-w-0 sm:w-[220px] sm:shrink-0">
+                <label class="block pl-1 text-[9px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    Ordenar por
+                </label>
+                <el-select 
+                    v-model="criterioOrdenLocalidades"
+                    class="custom-select-gray custom-select-gray-orden !w-full w-full"
+                    popper-class="custom-select-orden-popper"
+                    placeholder="Seleccionar orden"
+                    size="small"
+                    @change="cambiarCriterioOrdenLocalidades">
+                    <el-option label="Mayor Monto Total" value="total">
+                        <div class="flex items-center">
+                            <span class="w-2 h-5 mr-2"></span>
+                            <span class="text-xs">Monto Total</span>
+                        </div>
+                    </el-option>
+                    <el-option label="Mayor Monto Entregado" value="entregado">
+                        <div class="flex items-center">
+                            <span class="w-2 h-5 mr-2"></span>
+                            <span class="text-xs">Mayor Monto Entregado</span>
+                        </div>
+                    </el-option>
+                    <el-option label="Mayor Monto Pendiente" value="pendiente">
+                        <div class="flex items-center">
+                            <span class="w-2 h-5 mr-2"></span>
+                            <span class="text-xs">Mayor Monto Pendiente</span>
+                        </div>
+                    </el-option>
+                    <el-option label="Mayor Volumen de Solicitudes" value="volumen">
+                        <div class="flex items-center">
+                            <span class="w-2 h-5 mr-2"></span>
+                            <span class="text-xs">Mayor Volumen de Solicitudes</span>
+                        </div>
+                    </el-option>
+                </el-select>
+            </div>
+        </div>
+
+        <div class="w-full h-full flex flex-col min-h-0">
+            <div
+                v-if="hasDataLocalidades"
+                class="relative w-full min-h-0"
+                :class="props.rawDataLocalidades?.length <= 10 ? 'h-[200px]' : 'h-full'">
+                <Chart
+                    type="bar"
+                    :data="chartDataLocalidades"
+                    :options="obtenerChartOptions('localidades')"
+                    class="w-full h-full"/>
+            </div>
+            <div v-else class="h-full border border-dashed border-gray-200 dark:border-gray-700 rounded-xl flex flex-col items-center justify-center p-6 text-center w-full">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400">
+                    Sin registros de localidades en este periodo.
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- COLUMNA DERECHA: Añadimos min-h-0 para permitir que se reduzca -->
+    <div class="h-full flex flex-col gap-3 min-h-0">
+        <!-- ================= CARD 2: ÁREAS ================= -->
+        <div class="h-full flex-1 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm px-5 pt-5 pb-2 flex flex-col justify-between overflow-hidden min-h-0">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-gray-100 dark:border-gray-700/60 pb-4">
+                <div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-800 dark:text-gray-200">
+                        Análisis por Áreas
+                    </h3>
+                    <p class="text-[11px] text-gray-500 dark:text-gray-400">
+                        Distribución de recursos públicos por departamento o área.
+                    </p>
+                </div>
                 <span
                     v-if="idTipoApoyo === 1"
                     class="inline-flex ml-2 shrink-0 items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium bg-color2-50/60 text-color2-700 dark:bg-color1-950/40 dark:text-color1-300 dark:border-color1-800/50">
@@ -2871,25 +3124,36 @@ const mostrarSolicitudesMontoMinimo = ref(false);
                     </svg>
                 </span>
             </div>
-            <div class="-mt-1 -mb-2 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 sm:items-end w-full min-w-0">
-                <div class="min-w-0">
+            <div class="mt-3 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 sm:items-end w-full min-w-0 pb-2 mb-2 md:pb-0">
+                 <div class="min-w-0 flex flex-col gap-1.5">
                     <span class="text-[11px] text-gray-400 italic">
                         {{ subtituloParametros }}
                     </span>
+
+                    <!-- Switch para incluir localidades sin monto -->
+                    <div class="flex items-center gap-2 pt-0.5">
+                        <el-switch
+                            v-model="incluirAreasSinMonto"
+                            @click="cambiarSwitchAreas"
+                            size="small"/>
+                        <span
+                            class="text-[11px] font-medium text-gray-500 dark:text-gray-300 select-none">
+                            Incluir sin monto ($0)
+                        </span>
+                    </div>
                 </div>
 
-                <!-- Selector de ordenamiento -->
-                <div v-if="props.rawDataLocalidades?.length" class="space-y-1 w-full min-w-0 sm:w-[220px] sm:shrink-0">
+                <div v-if="props.rawDataAreas?.length" class="space-y-1 w-full min-w-0 sm:w-[220px] sm:shrink-0">
                     <label class="block pl-1 text-[9px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                         Ordenar por
                     </label>
                     <el-select 
-                        v-model="criterioOrdenLocalidades"
+                        v-model="criterioOrdenAreas"
                         class="custom-select-gray custom-select-gray-orden !w-full w-full"
                         popper-class="custom-select-orden-popper"
                         placeholder="Seleccionar orden"
                         size="small"
-                        @change="cambiarCriterioOrdenLocalidades">
+                        @change="cambiarCriterioOrdenAreas">
                         <el-option label="Mayor Monto Total" value="total">
                             <div class="flex items-center">
                                 <span class="w-2 h-5 mr-2"></span>
@@ -2917,283 +3181,131 @@ const mostrarSolicitudesMontoMinimo = ref(false);
                     </el-select>
                 </div>
             </div>
-            <div class="w-full h-full flex flex-col min-h-0">
-                <div
-                    v-if="hasDataLocalidades"
-                    class="relative w-full min-h-0"
-                    :class="props.rawDataLocalidades?.length <= 5 ? 'h-[200px]' : 'h-full'">
-                    <Chart
-                        type="bar"
-                        :data="chartDataLocalidades"
-                        :options="obtenerChartOptions('localidades')"
-                        class="w-full h-full"/>
+            <div class="w-full h-full flex flex-col justify-center min-h-0">
+                <div v-if="hasDataAreas" class="relative w-full flex-1 min-h-0">
+                    <Chart type="bar" :data="chartDataAreas" :options="obtenerChartOptions('areas')" class="w-full h-full" />
                 </div>
                 <div v-else class="h-full border border-dashed border-gray-200 dark:border-gray-700 rounded-xl flex flex-col items-center justify-center p-6 text-center w-full">
                     <span class="text-xs font-medium text-gray-500 dark:text-gray-400">
-                        Sin registros de localidades en este periodo.
+                        Sin registros de áreas en este periodo.
                     </span>
                 </div>
             </div>
         </div>
 
-        <!-- COLUMNA DERECHA: Añadimos min-h-0 para permitir que se reduzca -->
-        <div class="h-full flex flex-col gap-3 min-h-0">
-            <!-- ================= CARD 2: ÁREAS ================= -->
-            <div class="h-full flex-1 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm px-5 pt-5 pb-2 flex flex-col justify-between overflow-hidden min-h-0">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-gray-100 dark:border-gray-700/60 pb-4">
-                    <div>
-                        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-800 dark:text-gray-200">
-                            Análisis por Áreas
-                        </h3>
-                        <p class="text-[11px] text-gray-500 dark:text-gray-400">
-                            Distribución de recursos públicos por departamento o área.
-                        </p>
-                    </div>
-                    <span
-                        v-if="idTipoApoyo === 1"
-                        class="inline-flex ml-2 shrink-0 items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium bg-color2-50/60 text-color2-700 dark:bg-color1-950/40 dark:text-color1-300 dark:border-color1-800/50">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            class="w-3.5 h-3.5 shrink-0 transition-transform duration-200 group-hover:scale-110"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round">
-                            <rect width="20" height="12" x="2" y="6" rx="2"/>
-                            <circle cx="12" cy="12" r="2"/>
-                            <path d="M6 12h.01M18 12h.01"/>
-                        </svg>
-                        Efectivo
-                    </span>
-                    <span
-                        v-else-if="idTipoApoyo === 2"
-                        class="inline-flex ml-2 shrink-0 items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium bg-color4-50/70 text-color4-700 dark:bg-color4-950/40 dark:text-color4-300 dark:border-color4-800/50">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            class="w-3.5 h-3.5 shrink-0 transition-transform duration-200 group-hover:scale-110"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round">
-                            <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
-                            <path d="m3.3 7 8.7 5 8.7-5"/>
-                            <path d="M12 22V12"/>
-                        </svg>
-                        En especie
-                    </span>
-                    <span
-                        v-else
-                        class="inline-flex ml-2 shrink-0 items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium bg-color1-50/70 text-color1-700 dark:bg-color4-950/40 dark:text-color4-300 dark:border-color4-800/50">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            class="w-4 h-3.5 shrink-0 transition-transform duration-200 group-hover:scale-110"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round">
-                            <rect width="20" height="12" x="2" y="6" rx="2"/>
-                            <circle cx="12" cy="12" r="2"/>
-                            <path d="M6 12h.01M18 12h.01"/>
-                        </svg> /
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            class="w-3.5 h-3 shrink-0 transition-transform duration-200 group-hover:scale-110"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round">
-                            <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
-                            <path d="m3.3 7 8.7 5 8.7-5"/>
-                            <path d="M12 22V12"/>
-                        </svg>
-                    </span>
+        <!-- ================= CARD 3: POR ESTATUS ================= -->
+        <div class="h-[500px] xl:h-full xl:flex-1 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-5 flex flex-col justify-between overflow-hidden min-h-0">
+            <div class="flex flex-row items-start justify-between gap-2 border-b border-gray-100 dark:border-gray-700/60 pb-4 shrink-0">
+                <div class="min-w-0">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-800 dark:text-gray-200 text-left">
+                        Análisis por Estatus
+                    </h3>
+                    <p class="text-[11px] text-gray-500 dark:text-gray-400 text-left">
+                        Distribución de recursos públicos por estatus de las solicitudes.
+                    </p>
                 </div>
-                <div class="mt-3 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 sm:items-end w-full min-w-0 pb-2 mb-2 md:pb-0">
 
-                    <div class="min-w-0">
-                        <span class="text-[11px] text-gray-400 italic">
-                            {{ subtituloParametros }}
-                        </span>
-                    </div>
-
-                    <div v-if="props.rawDataAreas?.length" class="space-y-1 w-full min-w-0 sm:w-[220px] sm:shrink-0">
-                        <label class="block pl-1 text-[9px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                            Ordenar por
-                        </label>
-                        <el-select 
-                            v-model="criterioOrdenAreas"
-                            class="custom-select-gray custom-select-gray-orden !w-full w-full"
-                            popper-class="custom-select-orden-popper"
-                            placeholder="Seleccionar orden"
-                            size="small"
-                            @change="cambiarCriterioOrdenAreas">
-
-                            <el-option label="Mayor Monto Total" value="total">
-                                <div class="flex items-center">
-                                    <span class="w-2 h-5 mr-2"></span>
-                                    <span class="text-xs">Monto Total</span>
-                                </div>
-                            </el-option>
-
-                            <el-option label="Mayor Monto Entregado" value="entregado">
-                                <div class="flex items-center">
-                                    <span class="w-2 h-5 mr-2"></span>
-                                    <span class="text-xs">Mayor Monto Entregado</span>
-                                </div>
-                            </el-option>
-
-                            <el-option label="Mayor Monto Pendiente" value="pendiente">
-                                <div class="flex items-center">
-                                    <span class="w-2 h-5 mr-2"></span>
-                                    <span class="text-xs">Mayor Monto Pendiente</span>
-                                </div>
-                            </el-option>
-
-                            <el-option label="Mayor Volumen de Solicitudes" value="volumen">
-                                <div class="flex items-center">
-                                    <span class="w-2 h-5 mr-2"></span>
-                                    <span class="text-xs">Mayor Volumen de Solicitudes</span>
-                                </div>
-                            </el-option>
-                        </el-select>
-                    </div>
-                </div>
-                <div class="w-full h-full flex flex-col justify-center min-h-0">
-                    <div v-if="hasDataAreas" class="relative w-full flex-1 min-h-0">
-                        <Chart type="bar" :data="chartDataAreas" :options="obtenerChartOptions('areas')" class="w-full h-full" />
-                    </div>
-                    <div v-else class="h-full border border-dashed border-gray-200 dark:border-gray-700 rounded-xl flex flex-col items-center justify-center p-6 text-center w-full">
-                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">
-                            Sin registros de áreas en este periodo.
-                        </span>
-                    </div>
+                <span
+                    v-if="idTipoApoyo === 1"
+                    class="inline-flex ml-2 shrink-0 items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium bg-color2-50/60 text-color2-700 dark:bg-color1-950/40 dark:text-color1-300 dark:border-color1-800/50">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="w-3.5 h-3.5 shrink-0 transition-transform duration-200 group-hover:scale-110"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <rect width="20" height="12" x="2" y="6" rx="2"/>
+                        <circle cx="12" cy="12" r="2"/>
+                        <path d="M6 12h.01M18 12h.01"/>
+                    </svg>
+                    Efectivo
+                </span>
+                <span
+                    v-else-if="idTipoApoyo === 2"
+                    class="inline-flex ml-2 shrink-0 items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium bg-color4-50/70 text-color4-700 dark:bg-color4-950/40 dark:text-color4-300 dark:border-color4-800/50">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="w-3.5 h-3.5 shrink-0 transition-transform duration-200 group-hover:scale-110"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                        <path d="m3.3 7 8.7 5 8.7-5"/>
+                        <path d="M12 22V12"/>
+                    </svg>
+                    En especie
+                </span>
+                <span
+                    v-else
+                    class="inline-flex ml-2 shrink-0 items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium bg-color1-50/70 text-color1-700 dark:bg-color4-950/40 dark:text-color4-300 dark:border-color4-800/50">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="w-4 h-3.5 shrink-0 transition-transform duration-200 group-hover:scale-110"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <rect width="20" height="12" x="2" y="6" rx="2"/>
+                        <circle cx="12" cy="12" r="2"/>
+                        <path d="M6 12h.01M18 12h.01"/>
+                    </svg> /
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="w-3.5 h-3 shrink-0 transition-transform duration-200 group-hover:scale-110"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                        <path d="m3.3 7 8.7 5 8.7-5"/>
+                        <path d="M12 22V12"/>
+                    </svg>
+                </span>
+            </div>
+            <div class="mt-3 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 sm:items-end w-full min-w-0 pb-2 mb-2 md:pb-0">
+                <div class="min-w-0">
+                    <span class="text-[11px] text-gray-400 italic">
+                        {{ subtituloParametros }}
+                    </span>
                 </div>
             </div>
-
-            <!-- ================= CARD 3: POR ESTATUS ================= -->
-            <div class="h-[500px] xl:h-full xl:flex-1 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-5 flex flex-col justify-between overflow-hidden min-h-0">
-                <div class="flex flex-row items-start justify-between gap-2 border-b border-gray-100 dark:border-gray-700/60 pb-4 shrink-0">
-                    <div class="min-w-0">
-                        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-800 dark:text-gray-200 text-left">
-                            Análisis por Estatus
-                        </h3>
-                        <p class="text-[11px] text-gray-500 dark:text-gray-400 text-left">
-                            Distribución de recursos públicos por estatus de las solicitudes.
-                        </p>
+            <div class="w-full flex-1 flex flex-col justify-center min-h-0">                    
+                <div v-if="isMounted && hasDataEstatus" class="relative w-full h-full min-h-0">
+                    <div class="absolute inset-0">
+                        <Chart type="bar" :data="chartDataEstatus" :options="chartOptionsEstatus" class="w-full h-full" />
                     </div>
+                </div>
 
-                    <span
-                        v-if="idTipoApoyo === 1"
-                        class="inline-flex ml-2 shrink-0 items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium bg-color2-50/60 text-color2-700 dark:bg-color1-950/40 dark:text-color1-300 dark:border-color1-800/50">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            class="w-3.5 h-3.5 shrink-0 transition-transform duration-200 group-hover:scale-110"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round">
-                            <rect width="20" height="12" x="2" y="6" rx="2"/>
-                            <circle cx="12" cy="12" r="2"/>
-                            <path d="M6 12h.01M18 12h.01"/>
-                        </svg>
-                        Efectivo
-                    </span>
-                    <span
-                        v-else-if="idTipoApoyo === 2"
-                        class="inline-flex ml-2 shrink-0 items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium bg-color4-50/70 text-color4-700 dark:bg-color4-950/40 dark:text-color4-300 dark:border-color4-800/50">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            class="w-3.5 h-3.5 shrink-0 transition-transform duration-200 group-hover:scale-110"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round">
-                            <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
-                            <path d="m3.3 7 8.7 5 8.7-5"/>
-                            <path d="M12 22V12"/>
-                        </svg>
-                        En especie
-                    </span>
-                    <span
-                        v-else
-                        class="inline-flex ml-2 shrink-0 items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium bg-color1-50/70 text-color1-700 dark:bg-color4-950/40 dark:text-color4-300 dark:border-color4-800/50">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            class="w-4 h-3.5 shrink-0 transition-transform duration-200 group-hover:scale-110"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round">
-                            <rect width="20" height="12" x="2" y="6" rx="2"/>
-                            <circle cx="12" cy="12" r="2"/>
-                            <path d="M6 12h.01M18 12h.01"/>
-                        </svg> /
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            class="w-3.5 h-3 shrink-0 transition-transform duration-200 group-hover:scale-110"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round">
-                            <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
-                            <path d="m3.3 7 8.7 5 8.7-5"/>
-                            <path d="M12 22V12"/>
-                        </svg>
+                <div v-else-if="!isMounted" class="h-full flex items-center justify-center">
+                </div>
+
+                <div v-else class="h-full border border-dashed border-gray-200 dark:border-gray-700 rounded-xl flex flex-col items-center justify-center p-6 text-center w-full">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400">
+                        Sin registros de estatus en este periodo.
                     </span>
                 </div>
-                <div class="mt-3 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 sm:items-end w-full min-w-0 pb-2 mb-2 md:pb-0">
-                    <div class="min-w-0">
-                        <span class="text-[11px] text-gray-400 italic">
-                            {{ subtituloParametros }}
-                        </span>
-                    </div>
-                </div>
-                <div class="w-full flex-1 flex flex-col justify-center min-h-0">                    
-                    <div v-if="isMounted && hasDataEstatus" class="relative w-full h-full min-h-0">
-                        <div class="absolute inset-0">
-                            <Chart type="bar" :data="chartDataEstatus" :options="chartOptionsEstatus" class="w-full h-full" />
-                        </div>
-                        <!-- Dentro de tu Card de Estatus, justo abajo del gráfico o la leyenda -->
-                    </div>
-                    
-
-                    <div v-else-if="!isMounted" class="h-full flex items-center justify-center">
-                        <!-- Opcional: un placeholder invisible o sutil mientras monta -->
-                    </div>
-
-                    <div v-else class="h-full border border-dashed border-gray-200 dark:border-gray-700 rounded-xl flex flex-col items-center justify-center p-6 text-center w-full">
-                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">
-                            Sin registros de estatus en este periodo.
-                        </span>
-                    </div>
-                </div>
-                <div v-if="isMounted && hasDataEstatus" class="mt-3 pt-2 border-t border-gray-100 dark:border-gray-700/60 flex items-center gap-1.5 text-[11px] text-gray-400 dark:text-gray-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="16" x2="12" y2="12"></line>
-                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                    </svg>
-                    <span>Las solicitudes <b>canceladas</b> se muestran exclusivamente para consulta de estatus y no se contabilizan en los indicadores de esta página.</span>
-                </div>
+            </div>
+            <div v-if="isMounted && hasDataEstatus" class="mt-3 pt-2 border-t border-gray-100 dark:border-gray-700/60 flex items-center gap-1.5 text-[11px] text-gray-400 dark:text-gray-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <span>Las solicitudes <b>canceladas</b> se muestran exclusivamente para consulta de estatus y no se contabilizan en los indicadores de esta página.</span>
             </div>
         </div>
     </div>
+</div>
     <!-- Backdrop / Fondo oscuro animado -->
     <div v-if="asideAbierto" class="fixed inset-0 bg-gray-900/80 backdrop-blur-sm z-50 transition-opacity" @click="cerrarAside"></div>
 

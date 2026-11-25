@@ -240,6 +240,7 @@ class EstadisticasController extends Controller
                 'estadisticaSeleccionada' => $estadisticaSeleccionada,
             ]);
         } else if ($estadisticaSeleccionada == 'atencion_ciudadana') {
+
             // 1. MÉTRICAS GENERALES: Total de personas atendidas y promedio diario
             $totalPersonasAtendidas = Solicitud::query()
                 ->whereBetween('fecha', [$fechaInicioQuery . ' 00:00:00', $fechaFinQuery . ' 23:59:59'])
@@ -279,6 +280,7 @@ class EstadisticasController extends Controller
             // 4. SOLICITANTES CON MÁS DE UNA SOLICITUD (Ciudadanos reincidentes / recurrentes - SIN ESTATUS)
             $ciudadanosReincidentes = Solicitud::query()
                 ->whereBetween('solicitudes.fecha', [$fechaInicioQuery . ' 00:00:00', $fechaFinQuery . ' 23:59:59'])
+                ->where('id_estatus', '!=', 4)
                 ->join('solicitantes', 'solicitudes.id_solicitante', '=', 'solicitantes.id')
                 ->select(
                     'solicitantes.id as id_solicitante',
@@ -299,6 +301,7 @@ class EstadisticasController extends Controller
                         ->select('id_solicitante')
                         ->selectRaw('COUNT(*) AS total_solicitudes')
                         ->whereNotNull('id_solicitante')
+                        ->where('id_estatus', '!=', 4)
                         ->whereBetween('fecha', [
                             $fechaInicioQuery . ' 00:00:00',
                             $fechaFinQuery . ' 23:59:59',
@@ -317,6 +320,8 @@ class EstadisticasController extends Controller
                     'fecha'
                 )
                 ->whereNotNull('id_solicitante')
+                ->where('id_estatus', '!=', 4)
+
                 ->whereBetween('fecha', [
                     $fechaInicioQuery . ' 00:00:00',
                     $fechaFinQuery . ' 23:59:59',
@@ -389,6 +394,17 @@ class EstadisticasController extends Controller
             ]);
         } else if ($estadisticaSeleccionada == 'recursos_publicos') {
             $tipoApoyoQuery = $request->input('idTipoApoyo');
+
+            $incluirLocalidadesSinMonto = filter_var(
+                $request->input('incluirLocalidadesSinMonto', false),
+                FILTER_VALIDATE_BOOLEAN
+            );
+
+            $incluirAreasSinMonto = filter_var(
+                $request->input('incluirAreasSinMonto', false),
+                FILTER_VALIDATE_BOOLEAN
+            );
+
 
             // Aquí conserva todas tus consultas actuales.
             $rawDataFromBackend = Solicitud::query()
@@ -513,6 +529,7 @@ class EstadisticasController extends Controller
                 ->get()
                 ->keyBy('periodo_key');
 
+
             // --------------------------------------------------
             // COMPLETAR MESES SIN REGISTROS
             // --------------------------------------------------
@@ -596,28 +613,34 @@ class EstadisticasController extends Controller
                         $query->where('solicitudes.id_tipo_apoyo', $tipoApoyoQuery);
                     }
                 )
+                ->when(!$incluirLocalidadesSinMonto, function ($query) {
+                    $query->where('solicitudes.cantidad_aprobada', '>', 0);
+                })
                 ->selectRaw("
-                localidades.id as localidad_id,
-                localidades.nombre as localidad_nombre,
-                
-                -- Montos Financieros
-                SUM(COALESCE(solicitudes.cantidad_aprobada, 0)) as total_monto_aprobado,
-                SUM(CASE WHEN solicitudes.id_estatus = 3 THEN COALESCE(solicitudes.cantidad_aprobada, 0) ELSE 0 END) as monto_entregado,
-                SUM(CASE WHEN solicitudes.id_estatus IN (1, 2) THEN COALESCE(solicitudes.cantidad_aprobada, 0) ELSE 0 END) as monto_pendiente_entrega,
+                    localidades.id as localidad_id,
+                    localidades.nombre as localidad_nombre,
+                    
+                    -- Montos Financieros
+                    SUM(COALESCE(solicitudes.cantidad_aprobada, 0)) as total_monto_aprobado,
+                    SUM(CASE WHEN solicitudes.id_estatus = 3 THEN COALESCE(solicitudes.cantidad_aprobada, 0) ELSE 0 END) as monto_entregado,
+                    SUM(CASE WHEN solicitudes.id_estatus IN (1, 2) THEN COALESCE(solicitudes.cantidad_aprobada, 0) ELSE 0 END) as monto_pendiente_entrega,
 
-                -- Conteos de Solicitudes (Nuevos campos)
-                COUNT(solicitudes.id) as total_solicitudes,
-                COUNT(CASE WHEN solicitudes.id_estatus = 3 THEN 1 END) as total_solicitudes_entregadas,
-                COUNT(CASE WHEN solicitudes.id_estatus IN (1, 2) THEN 1 END) as total_solicitudes_pendientes
-            ")
+                    -- Conteos de Solicitudes
+                    COUNT(solicitudes.id) as total_solicitudes,
+                    COUNT(CASE WHEN solicitudes.id_estatus = 3 THEN 1 END) as total_solicitudes_entregadas,
+                    COUNT(CASE WHEN solicitudes.id_estatus IN (1, 2) THEN 1 END) as total_solicitudes_pendientes
+                ")
                 ->groupBy('localidades.id', 'localidades.nombre')
-                ->having('total_monto_aprobado', '>', 0)
+                ->when(!$incluirLocalidadesSinMonto, function ($query) {
+                    $query->having('total_monto_aprobado', '>', 0);
+                })
                 ->orderByDesc($columnaOrden)
                 ->when($columnaOrden !== 'total_monto_aprobado', function ($query) {
                     $query->orderByDesc('total_monto_aprobado');
                 })
                 ->orderBy('localidades.nombre', 'asc')
                 ->get();
+
 
             $criterioOrdenAreas = $request->input('criterioOrdenAreas', 'total');
 
@@ -639,6 +662,9 @@ class EstadisticasController extends Controller
                         $query->where('solicitudes.id_tipo_apoyo', $tipoApoyoQuery);
                     }
                 )
+                ->when(!$incluirAreasSinMonto, function ($query) {
+                    $query->where('solicitudes.cantidad_aprobada', '>', 0);
+                })
                 ->selectRaw("
                 COALESCE(areas.id, 0) as area_id,
                 COALESCE(areas.nombre, 'S/A') as area_nombre, -- Texto ejecutiva y amigablemente formateado
@@ -654,7 +680,9 @@ class EstadisticasController extends Controller
                 COUNT(CASE WHEN solicitudes.id_estatus IN (1, 2) THEN 1 END) as total_solicitudes_pendientes
             ")
                 ->groupBy('area_id', 'area_nombre')
-                ->having('total_monto_aprobado', '>', 0)
+                ->when(!$incluirAreasSinMonto, function ($query) {
+                    $query->having('total_monto_aprobado', '>', 0);
+                })
                 ->orderByDesc($columnaOrden)
                 ->when($columnaOrden !== 'total_monto_aprobado', function ($query) {
                     $query->orderByDesc('total_monto_aprobado');
@@ -695,9 +723,11 @@ class EstadisticasController extends Controller
                     COUNT(solicitudes.id) as total_solicitudes
                 ")
                 ->groupBy('estatus_id', 'estatus_nombre')
-                ->having('total_monto_aprobado', '>', 0)
+                // ->having('total_monto_aprobado', '>', 0)
                 ->orderBy('estatus_id')
                 ->get();
+
+            // dd($rawDataEstatus);
 
             $totalPersonasAtendidas = Solicitud::query()
                 ->whereBetween('fecha', [$fechaInicioQuery . ' 00:00:00', $fechaFinQuery . ' 23:59:59'])
@@ -865,7 +895,8 @@ class EstadisticasController extends Controller
                 'monto_maximo' => $solicitudesMontoMaximo,
                 'monto_minimo' => $solicitudesMontoMinimo,
                 'top_solicitudes' => $topSolicitudes,
-                'distribucion_montos' => $distribucionMontos
+                'distribucion_montos' => $distribucionMontos,
+                'incluir_localidades_sin_monto' => $incluirLocalidadesSinMonto
             ];
 
             return inertia('Estadisticas/Index', [

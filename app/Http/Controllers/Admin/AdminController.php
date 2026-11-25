@@ -693,6 +693,7 @@ class AdminController extends Controller
             'panelData' => $dataForPanels,   // Los datos para cada panel
             'userRole' => $userRole, // El rol del usuario autenticado
             'periodOptions' => $periodOptions,
+            'gobiernoInicio' => Carbon::parse($periodoGobierno->inicio),
             'filters' => [
                 'period' => $selectedPeriod
             ]

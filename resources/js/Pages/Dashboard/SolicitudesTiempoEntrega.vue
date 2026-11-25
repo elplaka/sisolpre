@@ -86,7 +86,7 @@
       class="pt-3 border-t border-gray-100 mt-2 dark:border-gray-700/60 flex items-center justify-between gap-2 text-[11px] text-gray-500 dark:text-gray-400 px-1">
       <span class="flex items-center gap-1 flex-wrap">
         <span class="text-gray-500 dark:text-gray-300">Máximo:</span>
-        <strong class="text-gray-700 dark:text-rose-400 font-bold tabular-nums">
+        <strong class="text-gray-700 dark:text-rose-400 font-bold">
           {{ panelData?.maxDias || 0 }} {{ (panelData?.maxDias || 0) === 1 ? 'día' : 'días' }}
         </strong>
         <span v-if="panelData?.maxSolicitudFolio" class="text-gray-400">

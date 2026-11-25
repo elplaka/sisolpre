@@ -19,13 +19,13 @@
 
         <!-- Contenedor de palabras con altura controlada para evitar estiramientos -->
         <div class="flex flex-col my-auto">
-            <div v-if="panelData?.frecuencia_peticiones && panelData.frecuencia_peticiones.length > 0" class="flex flex-wrap justify-center gap-1 max-h-[85px] overflow-y-auto px-1 py-0.5 custom-scrollbar">
+            <div v-if="panelData?.frecuencia_peticiones && panelData.frecuencia_peticiones.length > 0" class="flex flex-wrap justify-center gap-1 max-h-[100px] overflow-y-auto px-0.5 py-0.5 custom-scrollbar">
                 <span 
                     v-for="(item, index) in panelData.frecuencia_peticiones" 
                     :key="index"
                     class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-gray-50 text-gray-500 border border-gray-200/80 dark:bg-gray-700/40 dark:text-gray-200 dark:border-gray-600/60 shadow-2xs hover:border-gray-400 transition-colors">
                     <span>{{ item.palabra }}</span>
-                    <span class="px-1.5 py-0.2 rounded text-[0.55rem] font-bold bg-color1-50 text-color1-700 dark:bg-color1-900/50 dark:text-color1-300">
+                    <span class="px-1 py-0.2 rounded text-[0.55rem] font-bold bg-color1-50 text-color1-700 dark:bg-color1-900/50 dark:text-color1-300">
                         {{ item.frecuencia }}
                     </span>
                 </span>

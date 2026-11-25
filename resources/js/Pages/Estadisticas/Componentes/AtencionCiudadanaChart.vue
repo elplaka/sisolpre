@@ -1218,7 +1218,7 @@
                         </div>
                     </div>
                     <div class="p-3 flex-1 min-h-0">
-                        <div v-if="rawDataFromBackend?.length" class="overflow-auto max-h-[320px] rounded-lg border border-gray-100 dark:border-gray-700/70">
+                        <div v-if="rawDataFromBackend?.length" class="overflow-auto max-h-[540px] rounded-lg border border-gray-100 dark:border-gray-700/70">
                             <table class="w-full text-left border-collapse">
                                 <thead class="sticky top-0 z-10 bg-gray-50 dark:bg-gray-700">
                                     <tr class="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-300">

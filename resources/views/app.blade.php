@@ -29,14 +29,14 @@
 <body class="font-sans antialiased">
     <!-- Spinner de carga inicial -->
     <div id="initial-loader"
-        class="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50">
+        class="fixed inset-0 z-[99999] flex items-center justify-center bg-white/50">
 
         <div class="flex items-center">
             <div class="h-8 w-8 rounded-full border-[3px] border-gray-300/40 border-t-color1-500 animate-spin"></div>
 
             <span
                 class="initial-loader__text"
-                style="color: white; font-size: 0.875rem; padding-left: 6px; font-weight: 300; letter-spacing: 0.01em; line-height: 1.25;">
+                style="color: black; font-size: 0.875rem; padding-left: 6px; font-weight: 300; letter-spacing: 0.01em; line-height: 1.25;">
                 Cargando !!!
             </span>
         </div>
